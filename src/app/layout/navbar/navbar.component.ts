@@ -14,7 +14,6 @@ import { RouterLink } from '@angular/router';
 
       <!-- Marca -->
       <a routerLink="/" class="flex items-center gap-2">
-        <img src="/img/logo.png" class="h-7 w-auto object-contain" alt="Logo" />
         <span class="font-semibold text-white text-sm tracking-wide">EPSAS</span>
       </a>
 

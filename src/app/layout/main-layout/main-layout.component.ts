@@ -2,6 +2,7 @@ import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { NavbarComponent } from '../navbar/navbar.component';
 import { SidebarComponent } from '../sidebar/sidebar.component';
+import { FloatingButtons } from '../floating-buttons/floating-buttons';
 
 /**
  * Equivalente al DefaultLayout de React:
@@ -26,7 +27,7 @@ import { SidebarComponent } from '../sidebar/sidebar.component';
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [RouterOutlet, NavbarComponent, SidebarComponent],
+  imports: [RouterOutlet, NavbarComponent, SidebarComponent, FloatingButtons],
   template: `
     <div class="flex h-screen">
 
@@ -49,6 +50,8 @@ import { SidebarComponent } from '../sidebar/sidebar.component';
         <main class="p-6 flex-1 overflow-y-auto bg-[#EEF2F7]">
           <router-outlet />
         </main>
+
+        <app-floating-buttons></app-floating-buttons>
 
         <!-- FOOTER (comentado en el original, disponible aquí) -->
         <!-- <app-footer /> -->
