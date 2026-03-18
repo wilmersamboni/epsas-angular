@@ -16,8 +16,8 @@
 
 /* Botón WhatsApp */
 .btn.whatsapp {
-  width: 60px;
-  height: 60px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background-color: #25D366;
   display: flex;
@@ -35,8 +35,8 @@
 }
 
 .btn.whatsapp svg {
-  width: 28px;
-  height: 28px;
+  width: 23px;
+  height: 23px;
   fill: white;
 }
 
@@ -49,8 +49,8 @@
 
 /* Robots grandes */
 .robot-bot {
-  width: 150px;
-  height: 150px;
+  width: 100px;
+  height: 100px;
   cursor: pointer;
 }
 

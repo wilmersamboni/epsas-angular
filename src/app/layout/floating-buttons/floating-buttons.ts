@@ -9,7 +9,7 @@ import { ChatService } from '../../core/services/chat.service';
   standalone: true,
   imports: [LottieComponent, CommonModule, FormsModule],
   templateUrl: './floating-buttons.html',
-  styleUrl: './floating-buttons.css',
+  styleUrls: ['./floating-buttons.css'],  // <-- corregido
 })
 export class FloatingButtons {
 
@@ -43,7 +43,7 @@ export class FloatingButtons {
 
     this.chatService.sendMessage(texto).subscribe({
       next: (res) => {
-        this.mensajes.push({ rol: 'asistente', texto: res.reply });
+        this.mensajes.push({ rol: 'asistente', texto: res.texto || 'Sin respuesta' });  // <-- aquí
         this.cargando = false;
       },
       error: () => {

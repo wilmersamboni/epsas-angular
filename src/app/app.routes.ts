@@ -41,11 +41,6 @@ export const routes: Routes = [
           import('./features/formatos/formatos.component').then(m => m.FormatosComponent),
       },
       {
-        path: 'blog',
-        loadComponent: () =>
-          import('./features/chat/chat.component').then(m => m.ChatComponent),
-      },
-      {
         path: 'admin',
         loadComponent: () =>
           import('./features/admin/admin-panel/admin-panel.component').then(

@@ -1,18 +1,22 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ChatService {
 
-  private webhookUrl = 'https://tu-n8n.com/webhook/asistente';
+  private webhookUrl = 'https://n8n.falla.lat/webhook-test/asistente';
 
   constructor(private http: HttpClient) {}
 
-  sendMessage(userMessage: string) {
-    return this.http.post<any>(this.webhookUrl, {
-      message: userMessage
-    });
+  // Llamada al webhook de n8n
+  sendMessage(userMessage: string): Observable<any> {
+    return this.http.post<any>(
+      this.webhookUrl,
+      { mensaje: userMessage },
+      { withCredentials: false }  // <-- aquí le decimos al navegador que no envíe cookies
+    );
   }
 }
