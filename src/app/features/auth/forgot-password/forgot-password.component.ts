@@ -12,16 +12,41 @@ import { ApiService } from '../../../core/services/api.service';
   standalone: true,
   imports: [FormsModule, RouterLink],
   template: `
-    <div class="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50
-                flex items-center justify-center p-4">
-      <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+    <!-- Fondo gris claro -->
+    <div class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
+      style="
+        background-color: #ced4d9;
+        background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2780%27 height=%2780%27%3E%3Cpolygon points=%2720,4 36,13 36,31 20,40 4,31 4,13%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27 opacity=%270.35%27/%3E%3Ccircle cx=%2758%27 cy=%2720%27 r=%272.5%27 fill=%27white%27 opacity=%270.28%27/%3E%3Ccircle cx=%2758%27 cy=%2760%27 r=%272.5%27 fill=%27white%27 opacity=%270.1%27/%3E%3Crect x=%2752%27 y=%272%27 width=%2714%27 height=%2714%27 rx=%272%27 fill=%27none%27 stroke=%27white%27 stroke-width=%270.9%27 opacity=%270.1%27 transform=%27rotate(20 59 9)%27/%3E%3Cline x1=%2750%27 y1=%2740%27 x2=%2770%27 y2=%2760%27 stroke=%27white%27 stroke-width=%270.8%27 opacity=%270.08%27/%3E%3C/svg%3E');
+      "
+    >
+      <!-- Tarjeta principal dividida en 2 -->
+      <div class="w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden flex"
+        style="min-height: 420px;">
 
-        <h1 class="text-2xl font-bold text-gray-800 mb-1">Recuperar contraseña</h1>
-        <p class="text-sm text-gray-400 mb-6">
-          {{ step() === 1 ? 'Ingresa tu correo registrado'
-            : step() === 2 ? 'Ingresa el código enviado'
-            : 'Ingresa tu nueva contraseña' }}
-        </p>
+        <!-- Panel izquierdo verde -->
+        <div class="w-1/2 flex flex-col justify-between p-10 text-white rounded-1xl"
+          style="background: linear-gradient(135deg, #2d8400 0%, #39A900 60%, #4dc800 100%);">
+          <div>
+            <h2 class="text-4xl font-bold mb-8">¿Olvidaste tu Contraseña?</h2>
+            <p class="text-white/90 text-lg mb-8 mt-10">
+              No te preocupes, sigue las instrucciones para restablecer tu contraseña.
+            </p>
+          </div>
+          <a routerLink="/login" class="block text-left mt-4 text-x text-white hover:underline flex items-center gap-1">
+            Volver al inicio de sesión
+          </a>
+        </div>
+
+        <!-- Panel derecho blanco -->
+        <div class="w-1/2 flex flex-col bg-white rounded-1xl shadow-xl p-8 w-full max-w-md">
+
+        <h1 class="text-2xl font-bold text-gray-800 mb-3">Recuperar contraseña</h1>
+          <p class="text-sm text-gray-400 mb-6">
+            {{ step() === 1 ? 'Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña'
+              : step() === 2 ? 'Ingresa el código enviado'
+              : 'Ingresa tu nueva contraseña' }}
+          </p>
+          <label class="text-sm text-black mb-4 ml-1">Correo Electronico</label>
 
         @if (mensaje()) {
           <div class="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">
@@ -38,11 +63,11 @@ import { ApiService } from '../../../core/services/api.service';
         @if (step() === 1) {
           <div class="space-y-4">
             <input type="email" [(ngModel)]="correo" placeholder="correo@ejemplo.com"
-              class="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none
-                     focus:ring-2 focus:ring-[#39A900]/40 focus:border-[#39A900]" />
+              class="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none mb-3
+                focus:ring-2 focus:ring-[#39A900]/40 focus:border-[#39A900]" />
             <button (click)="solicitarCodigo()" [disabled]="loading()"
               class="w-full py-3 bg-[#39A900] text-white font-semibold rounded-lg
-                     hover:bg-[#2d8400] transition-colors disabled:opacity-60">
+                hover:bg-[#2d8400] transition-colors disabled:opacity-60">
               Enviar código
             </button>
           </div>
@@ -53,10 +78,10 @@ import { ApiService } from '../../../core/services/api.service';
           <div class="space-y-4">
             <input type="text" [(ngModel)]="codigo" placeholder="Código de verificación"
               class="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none
-                     focus:ring-2 focus:ring-[#39A900]/40 focus:border-[#39A900]" />
+                focus:ring-2 focus:ring-[#39A900]/40 focus:border-[#39A900]" />
             <button (click)="verificarCodigo()" [disabled]="loading()"
               class="w-full py-3 bg-[#39A900] text-white font-semibold rounded-lg
-                     hover:bg-[#2d8400] transition-colors disabled:opacity-60">
+                hover:bg-[#2d8400] transition-colors disabled:opacity-60">
               Verificar código
             </button>
           </div>
@@ -67,18 +92,14 @@ import { ApiService } from '../../../core/services/api.service';
           <div class="space-y-4">
             <input type="password" [(ngModel)]="nuevaPassword" placeholder="Nueva contraseña"
               class="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none
-                     focus:ring-2 focus:ring-[#39A900]/40 focus:border-[#39A900]" />
+                focus:ring-2 focus:ring-[#39A900]/40 focus:border-[#39A900]" />
             <button (click)="cambiarPassword()" [disabled]="loading()"
               class="w-full py-3 bg-[#39A900] text-white font-semibold rounded-lg
-                     hover:bg-[#2d8400] transition-colors disabled:opacity-60">
+                  hover:bg-[#2d8400] transition-colors disabled:opacity-60">
               Cambiar contraseña
             </button>
           </div>
         }
-
-        <a routerLink="/login" class="block text-center mt-4 text-xs text-[#39A900] hover:underline">
-          Volver al inicio de sesión
-        </a>
       </div>
     </div>
   `,
