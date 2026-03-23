@@ -12,6 +12,15 @@ import { RouterLink } from '@angular/router';
   template: `
     <nav class="bg-[#001f33] h-14 border-b border-white/5 flex items-center justify-between px-4 sticky top-0 z-50">
 
+      <!-- Logo -->
+      <div class="flex items-center h-14 px-4 border-b border-white/5 flex-shrink-0"
+           [class.gap-3]="open" [class.justify-center]="!open">
+        <img src="/img/logo.png" class="h-7 w-7 object-contain flex-shrink-0" alt="Logo" onerror="this.style.display='none'" />
+        @if (open) {
+          <span class="font-semibold text-sm tracking-wide">EPSAS</span>
+        }
+      </div>
+
       <!-- Marca -->
       <a routerLink="/" class="flex items-center gap-2">
         <span class="font-semibold text-white text-sm tracking-wide">EPSAS</span>

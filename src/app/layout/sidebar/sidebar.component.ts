@@ -11,26 +11,18 @@ interface NavLink { label: string; href: string; safeIcon:SafeHtml }
   imports: [RouterLink, RouterLinkActive],
   template: `
     <aside
-      class="h-screen flex flex-col bg-[#001f33] text-white border-r border-white/5
+      class="h-screen flex flex-col bg-[#F6F6F6] text-[#007832] border-r border-white/5
              transition-all duration-300 ease-in-out"
       [class.w-56]="open"
       [class.w-16]="!open"
     >
-      <!-- Logo -->
-      <div class="flex items-center h-14 px-4 border-b border-white/5 flex-shrink-0"
-           [class.gap-3]="open" [class.justify-center]="!open">
-        <img src="/img/logo.png" class="h-7 w-7 object-contain flex-shrink-0" alt="Logo" onerror="this.style.display='none'" />
-        @if (open) {
-          <span class="font-semibold text-sm tracking-wide">EPSAS</span>
-        }
-      </div>
 
       <!-- Perfil -->
       <div class="px-2 py-3 border-b border-white/5"
            [class.flex]="!open" [class.justify-center]="!open">
         <div class="flex items-center gap-2 px-2">
-          <div class="w-8 h-8 rounded-full bg-[#39A900]/20 flex items-center justify-center
-                       text-[#39A900] text-xs font-bold flex-shrink-0">
+          <div class="w-8 h-8 rounded-full bg-[#007832]/20 flex items-center justify-center
+                       text-[#007832] text-xs font-bold flex-shrink-0">
             {{ userInitials }}
           </div>
           @if (open) {
@@ -47,12 +39,12 @@ interface NavLink { label: string; href: string; safeIcon:SafeHtml }
         @for (link of links; track link.href) {
           <a
             [routerLink]="link.href"
-            routerLinkActive="bg-[#39A900] text-white"
+            routerLinkActive="bg-[#007832] text-white"
             [routerLinkActiveOptions]="{ exact: link.href === '/' }"
             [title]="!open ? link.label : ''"
             class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-left
-                   transition-all duration-150 text-sm text-white/55
-                   hover:text-white hover:bg-white/8"
+                   transition-all duration-150 text-sm text-[#]/55
+                   hover:text-[#acd8a7] hover:bg-white/8"
             [class.justify-center]="!open"
           >
             <!-- Usar [innerHTML] con SafeHtml para SVGs -->
@@ -70,7 +62,7 @@ interface NavLink { label: string; href: string; safeIcon:SafeHtml }
           (click)="auth.logout()"
           [title]="!open ? 'Cerrar sesión' : ''"
           class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
-                 text-white/40 hover:text-white hover:bg-red-500/20
+                 text-[#00783]/40 hover:text-white hover:bg-red-500/20
                  transition-all duration-150 text-sm"
           [class.justify-center]="!open"
         >
