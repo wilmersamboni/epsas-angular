@@ -12,7 +12,12 @@
     "changeOrigin": true,
     "pathRewrite": { "^/api2/": "/" },
     "cookieDomainRewrite": "localhost",
-    "onProxyReq": "function(proxyReq, req) { if (req.headers.cookie) { proxyReq.setHeader('Cookie', req.headers.cookie); } }",
+    "logLevel": "debug"
+  },
+  "/webhook": {
+    "target": "https://bot.kromas.lat",
+    "secure": true,
+    "changeOrigin": true,
     "logLevel": "debug"
   }
 }
