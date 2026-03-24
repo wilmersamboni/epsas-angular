@@ -63,22 +63,28 @@ export class AdminService {
   });
 
   // ── COLUMNAS ──────────────────────────────────────────
-  activeColumns = computed(() => {
-    const rows = this.allActiveData();
-    if (!rows.length) return [];
+ activeColumns = computed(() => {
+  const mod = this.activeTab();
+  const cfg = CONFIG[mod];
 
-    return Object.keys(rows[0]).filter(k => {
-      const key = k.toLowerCase();
-      return (
-        !key.includes('password') &&
-        !key.includes('token') &&
-        !key.includes('secret') &&
-        !key.startsWith('id_') &&
-        !key.startsWith('fk_') &&
-        key !== 'id'
-      );
-    });
+  // 🔥 prioridad a columnas definidas
+  if (cfg.columnas) return cfg.columnas;
+
+  const rows = this.allActiveData();
+  if (!rows.length) return [];
+
+  return Object.keys(rows[0]).filter(k => {
+    const key = k.toLowerCase();
+    return (
+      !key.includes('password') &&
+      !key.includes('token') &&
+      !key.includes('secret') &&
+      !key.startsWith('id_') &&
+      !key.startsWith('fk_') &&
+      key !== 'id'
+    );
   });
+});
 
   editableColumns = computed(() => {
     return this.activeColumns().filter(c =>
@@ -105,22 +111,57 @@ export class AdminService {
   }
 
   // ── HTTP ──────────────────────────────────────────────
-  cargarTodos(): void {
-    MODULOS.forEach(mod => this.cargar(mod));
-  }
+  async cargarTodos(): Promise<void> {
+  // 🔥 primero los datos base
+  await this.cargar('personas');
+  await this.cargar('cursos');
 
-  async cargar(mod: Modulo): Promise<void> {
-    this.loading.set(true);
-    try {
-      const result: any = await firstValueFrom(this.http.get(CONFIG[mod].listar));
-      const rows = Array.isArray(result) ? result : result?.data ?? [];
-      this.data.update(d => ({ ...d, [mod]: rows }));
-    } catch (e: any) {
-      console.error(`[Admin] Error cargando ${mod}:`, e?.message);
-    } finally {
-      this.loading.set(false);
+  // luego el resto
+  for (const mod of MODULOS) {
+    if (mod !== 'personas' && mod !== 'cursos') {
+      await this.cargar(mod);
     }
   }
+}
+
+  async cargar(mod: Modulo): Promise<void> {
+    
+  this.loading.set(true);
+  try {
+    const result: any = await firstValueFrom(this.http.get(CONFIG[mod].listar));
+    let rows = Array.isArray(result) ? result : result?.data ?? [];
+
+    // 🔥 transformación para matriculas
+    if (mod === 'matriculas') {
+      const personas = this.data()['personas'] || [];
+      const cursos = this.data()['cursos'] || [];
+
+      rows = rows.map((m: any) => {
+        const estudiante = personas.find(p => p.id_persona === m.fk_persona);
+        const curso = cursos.find(c => c.id_curso === m.fk_curso);
+
+        return {
+          ...m,
+          estudiante: estudiante?.nombre || '—',
+          curso: curso?.codigo || '—',
+        };
+      });
+    }
+
+    this.data.update(d => ({ ...d, [mod]: rows }));
+
+    if (mod === 'matriculas') {
+  console.log('MATRICULAS RAW:', rows);
+  console.log('PERSONAS:', this.data()['personas']);
+  console.log('CURSOS:', this.data()['cursos']);
+}
+
+  } catch (e: any) {
+    console.error(`[Admin] Error cargando ${mod}:`, e?.message);
+  } finally {
+    this.loading.set(false);
+  }
+}
 
   // ── MODAL ─────────────────────────────────────────────
   abrirModal(): void {
