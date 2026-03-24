@@ -10,6 +10,7 @@ import { debugInterceptor } from './core/interceptors/debug.interceptor';
 import { provideLottieOptions } from 'ngx-lottie';
 import player from 'lottie-web';
 
+
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),

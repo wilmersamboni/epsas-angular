@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, computed, effect } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { MessageService, ConfirmationService } from 'primeng/api';
@@ -7,43 +7,104 @@ import { CONFIG, MODULOS, Modulo } from '../config/admin.config';
 @Injectable()
 export class AdminService {
 
-  // ── State ─────────────────────────────────────────────────────────────────
-  activeTab  = signal<Modulo>('personas');
-  data       = signal<Record<string, any[]>>({});
-  loading    = signal(false);
-  modalOpen  = signal(false);
-  editando   = signal<any | null>(null);
-  saving     = signal(false);
-  modalError = signal<string | null>(null);
-  modalForm: Record<string, any> = {};
+  // ── FILTRO ──────────────────────────────────────────────
+  filtro = signal<string>('');
+
+  // ── State ──────────────────────────────────────────────
+  activeTab     = signal<Modulo>('personas');
+  data          = signal<Record<string, any[]>>({});
+  loading       = signal(false);
+  modalOpen     = signal(false);
+  editando      = signal<any | null>(null);
+  saving        = signal(false);
+  modalError    = signal<string | null>(null);
+  modalForm:    Record<string, any> = {};
+
+  // ── Paginación ─────────────────────────────────────────
+  paginaActual       = signal(1);
+  registrosPorPagina = signal(20);
 
   constructor(
     private http:        HttpClient,
     private msg:         MessageService,
     private confirmSvc:  ConfirmationService,
-  ) {}
-
-  // ── Computed helpers ──────────────────────────────────────────────────────
-  activeData(): any[] {
-    return this.data()[this.activeTab()] ?? [];
+  ) {
+    effect(() => {
+      this.activeTab();
+      this.paginaActual.set(1);
+    }, { allowSignalWrites: true });
   }
 
-  activeColumns(): string[] {
-    const rows = this.activeData();
-    if (!rows.length) return [];
-    return Object.keys(rows[0]).filter(k =>
-      !k.toLowerCase().includes('password') &&
-      !k.toLowerCase().includes('contrasena')
+  // ── DATA BASE ──────────────────────────────────────────
+  private allActiveData = computed(() => 
+    this.data()[this.activeTab()] ?? []
+  );
+
+  // ── FILTRADO ──────────────────────────────────────────
+  private filteredData = computed(() => {
+    const filtro = this.filtro().toLowerCase().trim();
+    const data = this.allActiveData();
+
+    if (!filtro) return data;
+
+    return data.filter((item: any) =>
+      Object.values(item).some(valor =>
+        String(valor).toLowerCase().includes(filtro)
+      )
     );
-  }
+  });
 
-  editableColumns(): string[] {
+  // ── DATA PAGINADA (YA FILTRADA) ───────────────────────
+  activeData = computed(() => {
+    const inicio = (this.paginaActual() - 1) * this.registrosPorPagina();
+    const fin = inicio + this.registrosPorPagina();
+
+    return this.filteredData().slice(inicio, fin);
+  });
+
+  // ── COLUMNAS ──────────────────────────────────────────
+  activeColumns = computed(() => {
+    const rows = this.allActiveData();
+    if (!rows.length) return [];
+
+    return Object.keys(rows[0]).filter(k => {
+      const key = k.toLowerCase();
+      return (
+        !key.includes('password') &&
+        !key.includes('token') &&
+        !key.includes('secret') &&
+        !key.startsWith('id_') &&
+        !key.startsWith('fk_') &&
+        key !== 'id'
+      );
+    });
+  });
+
+  editableColumns = computed(() => {
     return this.activeColumns().filter(c =>
       !c.startsWith('id_') && !c.startsWith('fk_')
     );
+  });
+
+  // ── PAGINACIÓN ────────────────────────────────────────
+  setRegistrosPorPagina(n: number) {
+    this.registrosPorPagina.set(n);
+    this.paginaActual.set(1);
   }
 
-  // ── HTTP ──────────────────────────────────────────────────────────────────
+  totalRegistros = computed(() => this.filteredData().length);
+
+  totalPaginas = computed(() =>
+    Math.ceil(this.totalRegistros() / this.registrosPorPagina())
+  );
+
+  // ── FILTRO ────────────────────────────────────────────
+  setFiltro(valor: string) {
+    this.filtro.set(valor);
+    this.paginaActual.set(1);
+  }
+
+  // ── HTTP ──────────────────────────────────────────────
   cargarTodos(): void {
     MODULOS.forEach(mod => this.cargar(mod));
   }
@@ -61,7 +122,7 @@ export class AdminService {
     }
   }
 
-  // ── Modal ─────────────────────────────────────────────────────────────────
+  // ── MODAL ─────────────────────────────────────────────
   abrirModal(): void {
     this.editando.set(null);
     this.modalForm = {};
@@ -83,25 +144,31 @@ export class AdminService {
     this.modalError.set(null);
   }
 
-  // ── CRUD ──────────────────────────────────────────────────────────────────
+  // ── CRUD ──────────────────────────────────────────────
   async guardar(): Promise<void> {
     const mod = this.activeTab();
     const cfg = CONFIG[mod];
     this.saving.set(true);
     this.modalError.set(null);
+
     try {
-      const row = this.editando();
-      if (row) {
-        await firstValueFrom(this.http.put(cfg.actualizar!(row[cfg.idKey]), this.modalForm));
+      const registroExistente = this.editando();
+
+      if (registroExistente) {
+        await firstValueFrom(
+          this.http.put(cfg.actualizar!(registroExistente[cfg.idKey]), this.modalForm)
+        );
       } else {
         await firstValueFrom(this.http.post(cfg.crear!, this.modalForm));
       }
+
       this.cerrarModal();
       await this.cargar(mod);
+
       this.msg.add({
         severity: 'success',
-        summary: row ? 'Actualizado' : 'Registrado',
-        detail: `El registro fue ${row ? 'actualizado' : 'creado'} correctamente.`,
+        summary: registroExistente ? 'Actualizado' : 'Registrado',
+        detail: `El registro fue procesado correctamente.`,
         life: 3000,
       });
     } catch (e: any) {
@@ -116,25 +183,28 @@ export class AdminService {
   eliminarFila(row: any): void {
     const mod = this.activeTab();
     const cfg = CONFIG[mod];
+
     this.confirmSvc.confirm({
       message: '¿Estás seguro? Esta acción no se puede deshacer.',
-      header: 'Danger Zone',
-      icon: 'pi pi-info-circle',
+      header: 'Atención',
+      icon: 'pi pi-exclamation-triangle',
       rejectButtonProps: { label: 'Cancelar', severity: 'secondary', outlined: true },
       acceptButtonProps: { label: 'Sí, eliminar', severity: 'danger' },
       accept: async () => {
         try {
           await firstValueFrom(this.http.delete(cfg.eliminar!(row[cfg.idKey])));
           await this.cargar(mod);
-          this.msg.add({ severity: 'success', summary: 'Eliminado', detail: 'Registro eliminado correctamente.', life: 3000 });
+          this.msg.add({
+            severity: 'success',
+            summary: 'Eliminado',
+            detail: 'Registro eliminado correctamente.',
+            life: 3000
+          });
         } catch (e: any) {
-          const detail = e?.error?.mensaje ?? e?.error?.error ?? 'No se pudo eliminar. Puede tener registros relacionados.';
+          const detail = e?.error?.mensaje ?? e?.error?.error ?? 'No se pudo eliminar.';
           this.msg.add({ severity: 'error', summary: 'No se pudo eliminar', detail, life: 5000 });
         }
-      },
-      reject: () => {
-        this.msg.add({ severity: 'info', summary: 'Cancelado', detail: 'Acción cancelada.', life: 2000 });
-      },
+      }
     });
   }
 }
