@@ -27,7 +27,7 @@ interface NavLink { label: string; href: string; safeIcon:SafeHtml }
           </div>
           @if (open) {
             <div class="overflow-hidden">
-              <p class="text-white text-xs font-medium truncate">{{ userName }}</p>
+              <p class="text-[#007832] text-xs font-medium truncate">{{ userName }}</p>
               <p class="text-white/40 text-[10px] truncate">{{ userCargo }}</p>
             </div>
           }

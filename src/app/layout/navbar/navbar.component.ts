@@ -10,7 +10,7 @@ import { RouterLink } from '@angular/router';
   standalone: true,
   imports: [RouterLink],
   template: `
-    <nav class="bg-[#001f33] h-14 border-b border-white/5 flex items-center justify-between px-4 sticky top-0 z-50">
+    <nav class="bg-[#F6F6F6] h-14 border-b border-white/5 flex items-center justify-between px-4 sticky top-0 z-50">
 
       <!-- Logo -->
       <div class="flex items-center h-14 px-4 border-b border-white/5 flex-shrink-0"
@@ -23,7 +23,7 @@ import { RouterLink } from '@angular/router';
 
       <!-- Marca -->
       <a routerLink="/" class="flex items-center gap-2">
-        <span class="font-semibold text-white text-sm tracking-wide">EPSAS</span>
+        <span class="font-semibold text-[#007832] text-sm tracking-wide">EPSAS</span>
       </a>
 
       <!-- Buscador -->
@@ -44,4 +44,6 @@ import { RouterLink } from '@angular/router';
     </nav>
   `,
 })
-export class NavbarComponent {}
+export class NavbarComponent {
+  open: boolean = false
+}
