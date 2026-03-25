@@ -13,6 +13,8 @@ interface NavLink { label: string; href: string; safeIcon:SafeHtml }
     <aside
       class="h-screen flex flex-col bg-[#001f33] text-white border-r border-white/5
         transition-all duration-300 ease-in-out"
+      class="h-screen flex flex-col bg-[#F6F6F6] text-[#007832] border-r border-white/5
+             transition-all duration-300 ease-in-out"
       [class.w-56]="open"
       [class.w-16]="!open"
     >
@@ -27,7 +29,7 @@ interface NavLink { label: string; href: string; safeIcon:SafeHtml }
           </div>
           @if (open) {
             <div class="overflow-hidden">
-              <p class="text-white text-xs font-medium truncate">{{ userName }}</p>
+              <p class="text-[#007832] text-xs font-medium truncate">{{ userName }}</p>
               <p class="text-white/40 text-[10px] truncate">{{ userCargo }}</p>
             </div>
           }
@@ -39,7 +41,7 @@ interface NavLink { label: string; href: string; safeIcon:SafeHtml }
         @for (link of links; track link.href) {
           <a
             [routerLink]="link.href"
-            routerLinkActive="bg-[#39A900] text-white"
+            routerLinkActive="bg-[#007832] text-white"
             [routerLinkActiveOptions]="{ exact: link.href === '/' }"
             [title]="!open ? link.label : ''"
             class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-left
