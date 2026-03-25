@@ -546,50 +546,76 @@ export class TableInfoComponent implements OnInit {
   }
 
   async cargar(): Promise<void> {
-    this.loading.set(true);
-    try {
-      const [aprendices, areasData, practicas] = await Promise.all([
-        this.api.listarAprendices(),
-        this.api.listarAreas(),
-        this.api.listarPracticas(),
-      ]);
+  this.loading.set(true);
+  try {
+    // 🚀 OPTIMIZACIÓN CRÍTICA: Cargar TODO en paralelo
+    const [aprendices, areasData, practicas, todasMatriculas] = await Promise.all([
+      this.api.listarAprendices(),
+      this.api.listarAreas(),
+      this.api.listarPracticas(),
+      this.api.listarTodasMatriculas() // ✅ Nueva llamada optimizada
+    ]);
 
-      const practicaMap: Record<number, any> = {};
-      practicas.forEach((p: any) => { practicaMap[p.fk_matricula] = p; });
+    console.log('📊 Datos cargados:', {
+      aprendices: aprendices.length,
+      areas: areasData.length,
+      practicas: practicas.length,
+      matriculas: todasMatriculas.length
+    });
 
-      const transformados = await Promise.all(
-        aprendices.map(async (persona: any) => {
-          const matriculas = await this.api.listarMatriculasPorAlumno(persona.id_persona);
-          const practica = matriculas
-            .map((m: any) => practicaMap[m.id_matricula])
-            .find((p: any) => p != null) ?? null;
-          return {
-            id: persona.id_persona,
-            name: persona.nombre,
-            age: persona.identificacion,
-            email: persona.correo,
-            programa: persona.programa,
-            area: persona.area ?? '',
-            number: persona.ficha,
-            estado: persona.estado,
-            startDate: practica?.fecha_inicio ? formatDate(practica.fecha_inicio) : '',
-            endDate:   practica?.fecha_fin    ? formatDate(practica.fecha_fin)    : '',
-            avance:      practica?.avance      ?? '',
-            observacion: practica?.observacion ?? '',
-            id_practica: practica?.id_etapa_practica ?? null,
-            seguimientos: persona.total_seguimientos ?? 0,
-          };
-        })
-      );
+    // Crear mapas para búsquedas O(1) - Súper rápido
+    const practicaMap = new Map<number, any>();
+    practicas.forEach((p: any) => {
+      practicaMap.set(p.fk_matricula, p);
+    });
 
-      this.data.set(transformados);
-      this.areas.set(areasData.map((a: any) => a.nombre));
-    } catch (e: any) {
-      console.error('[TableInfo] Error:', e?.message ?? e);
-    } finally {
-      this.loading.set(false);
-    }
+    const matriculasPorPersona = new Map<number, any[]>();
+    todasMatriculas.forEach((m: any) => {
+      const personaId = m.fk_persona;
+      if (!matriculasPorPersona.has(personaId)) {
+        matriculasPorPersona.set(personaId, []);
+      }
+      matriculasPorPersona.get(personaId)!.push(m);
+    });
+
+    // ✅ Transformar datos SIN await - Súper rápido
+    const transformados = aprendices.map((persona: any) => {
+      const matriculas = matriculasPorPersona.get(persona.id_persona) || [];
+      
+      const practica = matriculas
+        .map((m: any) => practicaMap.get(m.id_matricula))
+        .find((p: any) => p != null) ?? null;
+
+      return {
+        id: persona.id_persona,
+        name: persona.nombre,
+        age: persona.identificacion,
+        email: persona.correo,
+        programa: persona.programa,
+        area: persona.area ?? '',
+        number: persona.ficha,
+        estado: persona.estado,
+        startDate: practica?.fecha_inicio ? formatDate(practica.fecha_inicio) : '',
+        endDate:   practica?.fecha_fin    ? formatDate(practica.fecha_fin)    : '',
+        avance:      practica?.avance      ?? '',
+        observacion: practica?.observacion ?? '',
+        id_practica: practica?.id_etapa_practica ?? null,
+        seguimientos: persona.total_seguimientos ?? 0,
+      };
+    });
+
+    this.data.set(transformados);
+    this.areas.set(areasData.map((a: any) => a.nombre));
+
+    console.log('✅ Transformación completada:', transformados.length, 'registros');
+
+  } catch (e: any) {
+    console.error('[TableInfo] Error:', e?.message ?? e);
+    this.data.set([]);
+  } finally {
+    this.loading.set(false);
   }
+}
 
   // ── Helpers visuales ──────────────────────────────────────────────────────
   initials(name: string): string {
