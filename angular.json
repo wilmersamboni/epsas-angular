@@ -55,7 +55,10 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
-          "configurations": {
+          "options": {
+            "proxyConfig": "proxy.conf.json"
+            },         
+        "configurations": {
             
             "production": {
               "buildTarget": "epsas-angular:build:production"
