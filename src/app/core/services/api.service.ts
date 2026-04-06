@@ -4,7 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { Area, Curso, Formato, Persona } from '../../shared/models';
 
 const BASE  = '/api';   // → http://localhost:3000 vía proxy
-const BASE2 = '/v2';  // → http://localhost:3001 vía proxy
+const BASE2 = '/api2';  // → http://localhost:3001 vía proxy
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -12,7 +12,7 @@ export class ApiService {
 
   // ── Áreas ────────────────────────────────────────────────────────────────
   async listarAreas(params?: any): Promise<Area[]> {
-    const resp: any = await firstValueFrom(this.http.get(`${BASE}/area/listar_jwsv`, { params }));
+    const resp: any = await firstValueFrom(this.http.get(`${BASE}/areas`, { params }));
     if (Array.isArray(resp)) return resp;
     if (resp?.data  && Array.isArray(resp.data))  return resp.data;
     if (resp?.areas && Array.isArray(resp.areas)) return resp.areas;
@@ -58,7 +58,7 @@ export class ApiService {
 
   // ── Personas / Aprendices ─────────────────────────────────────────────────
   async listarAprendices(): Promise<any[]> {
-    const resp: any = await firstValueFrom(this.http.get(`${BASE}/persona/aprendices`));
+    const resp: any = await firstValueFrom(this.http.get(`${BASE}/personas`));
     // El backend puede devolver: array directo, { data: [] }, { aprendices: [] }, etc.
     if (Array.isArray(resp)) return resp;
     if (resp?.data   && Array.isArray(resp.data))       return resp.data;
