@@ -9,16 +9,20 @@ import { AuthService } from '../../../core/services/auth.service';
   imports: [FormsModule, RouterLink],
   template: `
     <!-- Fondo gris claro -->
-    <div class="min-h-screen flex items-center justify-center p-4"
-         style="background-color: #dce8e0;">
+    <div class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
+    style="
+      background-color: #ced4d9;
+      background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2780%27 height=%2780%27%3E%3Cpolygon points=%2720,4 36,13 36,31 20,40 4,31 4,13%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27 opacity=%270.35%27/%3E%3Ccircle cx=%2758%27 cy=%2720%27 r=%272.5%27 fill=%27white%27 opacity=%270.28%27/%3E%3Ccircle cx=%2758%27 cy=%2760%27 r=%272.5%27 fill=%27white%27 opacity=%270.1%27/%3E%3Crect x=%2752%27 y=%272%27 width=%2714%27 height=%2714%27 rx=%272%27 fill=%27none%27 stroke=%27white%27 stroke-width=%270.9%27 opacity=%270.1%27 transform=%27rotate(20 59 9)%27/%3E%3Cline x1=%2750%27 y1=%2740%27 x2=%2770%27 y2=%2760%27 stroke=%27white%27 stroke-width=%270.8%27 opacity=%270.08%27/%3E%3C/svg%3E');
+    "
+  >
 
       <!-- Tarjeta principal dividida en 2 -->
       <div class="w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden flex"
-           style="min-height: 420px;">
+        style="min-height: 420px;">
 
         <!-- Panel izquierdo verde -->
         <div class="w-1/2 flex flex-col justify-between p-10 text-white"
-             style="background: linear-gradient(135deg, #2d8400 0%, #39A900 60%, #4dc800 100%);">
+          style="background: linear-gradient(135deg, #2d8400 0%, #39A900 60%, #4dc800 100%);">
 
           <div>
             <h1 class="text-3xl font-bold mb-4 leading-tight">
@@ -33,8 +37,8 @@ import { AuthService } from '../../../core/services/auth.service';
           <!-- Imagen central -->
           <div class="flex justify-center my-6">
             <img src="/img/logo.png" alt="EPSAS"
-                 class="w-40 h-40 object-contain drop-shadow-xl"
-                 onerror="this.style.opacity='0'" />
+              class="w-40 h-40 object-contain drop-shadow-xl"
+              onerror="this.style.opacity='0'" />
           </div>
 
           <p class="text-white/60 text-xs">
@@ -79,9 +83,9 @@ import { AuthService } from '../../../core/services/auth.service';
                   name="login"
                   placeholder="usuario1"
                   required
-                  class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm
-                         focus:outline-none focus:ring-2 focus:ring-[#39A900]/30 focus:border-[#39A900]
-                         transition-colors bg-gray-50"
+                  class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm text-black
+                  focus:outline-none focus:ring-2 focus:ring-[#39A900]/30 focus:border-[#39A900]
+                  transition-colors bg-gray-50"
                 />
               </div>
             </div>
@@ -104,9 +108,9 @@ import { AuthService } from '../../../core/services/auth.service';
                   name="password"
                   placeholder="••••••••"
                   required
-                  class="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl text-sm
-                         focus:outline-none focus:ring-2 focus:ring-[#39A900]/30 focus:border-[#39A900]
-                         transition-colors bg-gray-50"
+                  class="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl text-sm text-black
+                  focus:outline-none focus:ring-2 focus:ring-[#39A900]/30 focus:border-[#39A900]
+                  transition-colors bg-gray-50"
                 />
                 <button type="button"
                   (click)="showPassword = !showPassword"
@@ -131,8 +135,8 @@ import { AuthService } from '../../../core/services/auth.service';
             <!-- Olvidaste contraseña -->
             <div class="text-right">
               <a routerLink="/ForgotPassword"
-                 class="text-sm font-medium hover:underline"
-                 style="color: #39A900;">
+                class="text-sm font-medium hover:underline"
+                style="color: #39A900;">
                 ¿Olvidaste tu contraseña?
               </a>
             </div>
@@ -142,9 +146,9 @@ import { AuthService } from '../../../core/services/auth.service';
               type="submit"
               [disabled]="loading()"
               class="w-full py-3.5 text-white font-semibold rounded-xl text-sm
-                     flex items-center justify-center gap-2
-                     transition-all disabled:opacity-60 disabled:cursor-not-allowed
-                     hover:brightness-110 active:scale-[0.98]"
+              flex items-center justify-center gap-2
+              transition-all disabled:opacity-60 disabled:cursor-not-allowed
+              hover:brightness-110 active:scale-[0.98]"
               style="background-color: #39A900;">
               @if (loading()) {
                 <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">

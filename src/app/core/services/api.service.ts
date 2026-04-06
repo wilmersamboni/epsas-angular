@@ -4,7 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { Area, Curso, Formato, Persona } from '../../shared/models';
 
 const BASE  = '/api';   // → http://localhost:3000 vía proxy
-const BASE2 = '/api2';  // → http://localhost:3001 vía proxy
+const BASE2 = '/v2';  // → http://localhost:3001 vía proxy
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -85,6 +85,20 @@ export class ApiService {
       if (resp?.matriculas && Array.isArray(resp.matriculas)) return resp.matriculas;
       return [];
     } catch { return []; }
+  }
+
+  // ✅ NUEVO: Obtener TODAS las matrículas de una vez (optimización)
+  async listarTodasMatriculas(): Promise<any[]> {
+    try {
+      const resp: any = await firstValueFrom(this.http.get(`${BASE}/matricula/todas`));
+      if (Array.isArray(resp)) return resp;
+      if (resp?.data       && Array.isArray(resp.data))       return resp.data;
+      if (resp?.matriculas && Array.isArray(resp.matriculas)) return resp.matriculas;
+      return [];
+    } catch (error) {
+      console.error('Error listando todas las matrículas:', error);
+      return [];
+    }
   }
 
   // ── Prácticas ─────────────────────────────────────────────────────────────
