@@ -44,7 +44,7 @@ interface NavLink { label: string; href: string; safeIcon:SafeHtml }
             [title]="!open ? link.label : ''"
             class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-left
                    transition-all duration-150 text-sm text-[#]/55
-                   hover:text-[#acd8a7] hover:bg-white/8"
+                   hover:text-[#3d474e] hover:bg-[#007832]/8"
             [class.justify-center]="!open"
           >
             <!-- Usar [innerHTML] con SafeHtml para SVGs -->

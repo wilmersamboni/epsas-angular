@@ -14,7 +14,7 @@ export interface Stats {
 })
 export class StatsService {
 
-  private apiUrl = 'http://localhost:3000/api'; // 👈 cambia por tu URL del backend
+  private apiUrl = 'http://localhost:3000/api'; 
 
   constructor(private http: HttpClient) {}
 
