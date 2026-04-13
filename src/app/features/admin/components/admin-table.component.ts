@@ -3,6 +3,7 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 /**
  * Tabla genérica reutilizable para el panel administrativo.
  * Recibe columnas, filas y emite eventos de editar/eliminar.
+ * El campo 'id' se excluye de la vista pero se incluye en los eventos.
  */
 @Component({
   selector: 'app-admin-table',
@@ -19,7 +20,7 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
         <table class="w-full text-sm">
           <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
             <tr>
-              @for (col of columns; track col) {
+              @for (col of visibleColumns; track col) {
                 <th class="px-4 py-3 text-left font-medium whitespace-nowrap">{{ col }}</th>
               }
               <th class="px-4 py-3 text-right font-medium">Acciones</th>
@@ -28,7 +29,7 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
           <tbody class="divide-y divide-gray-50">
             @for (row of rows; track $index) {
               <tr class="hover:bg-gray-50 transition-colors">
-                @for (col of columns; track col) {
+                @for (col of visibleColumns; track col) {
                   <td class="px-4 py-3 text-gray-700 max-w-[200px] truncate">
                     {{ row[col] ?? '—' }}
                   </td>
@@ -74,6 +75,13 @@ export class AdminTableComponent {
   @Input() canEdit  = true;
   @Input() canDelete = true;
 
+  /** Columnas a ocultar de la vista (el id sigue disponible en los eventos) */
+  @Input() hiddenColumns: string[] = ['idPersona'];
+
   @Output() edit   = new EventEmitter<any>();
   @Output() delete = new EventEmitter<any>();
+
+  get visibleColumns(): string[] {
+    return this.columns.filter(col => !this.hiddenColumns.includes(col));
+  }
 }

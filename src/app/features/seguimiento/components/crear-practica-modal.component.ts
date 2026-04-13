@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, signal } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 
@@ -69,8 +69,8 @@ import { ApiService } from '../../../core/services/api.service';
                   class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none
                          focus:ring-2 focus:ring-[#39A900]/30 focus:border-[#39A900]">
                   <option value="">Selecciona una modalidad</option>
-                  @for (m of modalidades(); track m.id_modalida) {
-                    <option [value]="m.id_modalida">{{ m.nombre }}</option>
+                  @for (m of modalidades(); track m.id) {
+                    <option [value]="m.id">{{ m.nombre }}</option>
                   }
                 </select>
               </div>
@@ -82,8 +82,8 @@ import { ApiService } from '../../../core/services/api.service';
                   class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none
                          focus:ring-2 focus:ring-[#39A900]/30 focus:border-[#39A900]">
                   <option value="">Selecciona una empresa</option>
-                  @for (e of empresas(); track e.id_empresa) {
-                    <option [value]="e.id_empresa">{{ e.nombre }}</option>
+                  @for (e of empresas(); track e.id) {
+                    <option [value]="e.id">{{ e.nombre }}</option>
                   }
                 </select>
               </div>
@@ -104,15 +104,60 @@ import { ApiService } from '../../../core/services/api.service';
                 </div>
               </div>
 
+              <!-- Instructor (autocomplete) -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                  Instructor responsable
+                </label>
+                <div class="relative">
+                  <input
+                    type="text"
+                    [value]="instructorTexto"
+                    (input)="onBuscarInstructor($any($event.target).value)"
+                    (focus)="mostrarListaInstructor = true"
+                    placeholder="Buscar instructor o administrador..."
+                    autocomplete="off"
+                    class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none
+                           focus:ring-2 focus:ring-[#39A900]/30 focus:border-[#39A900]" />
+
+                  @if (mostrarListaInstructor && instructoresFiltrados().length > 0) {
+                    <div class="absolute z-50 w-full mt-1 bg-white border border-gray-200
+                                rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      @for (inst of instructoresFiltrados(); track inst.idPersona ?? inst.id_persona) {
+                        <button type="button"
+                          (click)="seleccionarInstructor(inst)"
+                          class="w-full text-left px-4 py-2 text-sm hover:bg-[#39A900]/10
+                                 hover:text-[#39A900] transition-colors flex items-center gap-2">
+                          <span class="flex-1">{{ inst.nombre }}</span>
+                          <span class="text-[10px] px-1.5 py-0.5 rounded-full
+                                       bg-gray-100 text-gray-500 capitalize">
+                            {{ inst.cargo }}
+                          </span>
+                        </button>
+                      }
+                    </div>
+                  }
+
+                  @if (mostrarListaInstructor && instructoresFiltrados().length === 0 && instructorTexto.length > 0) {
+                    <div class="absolute z-50 w-full mt-1 bg-white border border-gray-200
+                                rounded-lg shadow-lg px-4 py-3 text-sm text-gray-400">
+                      Sin resultados para "{{ instructorTexto }}"
+                    </div>
+                  }
+                </div>
+              </div>
+
               <!-- Estado -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">Estado</label>
                 <select [(ngModel)]="form.estado"
                   class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none
                          focus:ring-2 focus:ring-[#39A900]/30 focus:border-[#39A900]">
-                  <option value="activa">Activa</option>
-                  <option value="inactiva">Inactiva</option>
-                  <option value="suspendida">Suspendida</option>
+                  <option value="activo">Activo</option>
+                  <option value="inactivo">Inactivo</option>
+                  <option value="suspendido">Suspendido</option>
+                  <option value="cerificado">Certificado</option>
+                  <option value="por certificar">Por certificar</option>
                 </select>
               </div>
 
@@ -159,13 +204,27 @@ export class CrearPracticaModalComponent implements OnChanges {
 
   modalidades  = signal<any[]>([]);
   empresas     = signal<any[]>([]);
+  instructores = signal<any[]>([]);
   loadingData  = signal(false);
   loading      = signal(false);
   error        = signal('');
 
+  // ── Autocomplete instructor ───────────────────────────────────
+  instructorTexto       = '';
+  mostrarListaInstructor = false;
+
+  instructoresFiltrados = computed(() => {
+    const texto = this.instructorTexto.toLowerCase().trim();
+    if (!texto) return this.instructores();
+    return this.instructores().filter((p: any) =>
+      (p.nombre ?? '').toLowerCase().includes(texto)
+    );
+  });
+
   form = {
     aprendizId: '', modalidadId: '', empresaId: '',
-    fechaInicio: '', fechaFin: '', estado: 'activa', observacion: '',
+    fechaInicio: '', fechaFin: '', estado: 'activo',
+    observacion: '', instructorId: '',
   };
 
   sinPractica = signal<any[]>([]);
@@ -184,50 +243,76 @@ export class CrearPracticaModalComponent implements OnChanges {
 
   resetForm(): void {
     this.form = {
-      aprendizId: this.alumnoPreseleccionado ? String(this.alumnoPreseleccionado.id) : '',
+      aprendizId: this.alumnoPreseleccionado
+        ? String(this.alumnoPreseleccionado.id ?? this.alumnoPreseleccionado.idPersona ?? '')
+        : '',
       modalidadId: '', empresaId: '',
-      fechaInicio: '', fechaFin: '', estado: 'activa', observacion: '',
+      fechaInicio: '', fechaFin: '', estado: 'activo',
+      observacion: '', instructorId: '',
     };
+    this.instructorTexto        = '';
+    this.mostrarListaInstructor = false;
     this.error.set('');
   }
 
   async cargarDatos(): Promise<void> {
     this.loadingData.set(true);
     try {
-      const [mods, emps] = await Promise.all([
+      const [mods, emps, insts] = await Promise.all([
         this.api.listarModalidades(),
         this.api.listarEmpresas(),
+        this.api.listarInstructores(),
       ]);
       this.modalidades.set(mods);
       this.empresas.set(emps);
+      this.instructores.set(insts);
     } catch { this.error.set('Error cargando datos.'); }
     finally { this.loadingData.set(false); }
   }
 
+  // ── Métodos autocomplete instructor ──────────────────────────
+  onBuscarInstructor(texto: string): void {
+    this.instructorTexto        = texto;
+    this.mostrarListaInstructor = true;
+    if (!texto.trim()) this.form.instructorId = '';
+  }
+
+  seleccionarInstructor(inst: any): void {
+    this.form.instructorId      = String(inst.idPersona ?? inst.id_persona ?? inst.id ?? '');
+    this.instructorTexto        = inst.nombre ?? '';
+    this.mostrarListaInstructor = false;
+  }
+
   async guardar(): Promise<void> {
     if (!this.form.aprendizId)  { this.error.set('Selecciona un aprendiz.'); return; }
-    if (!this.form.modalidadId) { this.error.set('Selecciona una modalidad.'); return; }
-    if (!this.form.empresaId)   { this.error.set('Selecciona una empresa.'); return; }
+    if (!this.form.modalidadId || this.form.modalidadId === 'undefined') { this.error.set('Selecciona una modalidad.'); return; }
+    if (!this.form.empresaId   || this.form.empresaId   === 'undefined') { this.error.set('Selecciona una empresa.'); return; }
     if (!this.form.fechaInicio) { this.error.set('Ingresa la fecha de inicio.'); return; }
     if (!this.form.fechaFin)    { this.error.set('Ingresa la fecha de fin.'); return; }
 
     this.loading.set(true);
     this.error.set('');
     try {
-      const matriculas = await this.api.listarMatriculasPorAlumno(Number(this.form.aprendizId));
+      const matriculas = await this.api.listarMatriculasPorAlumno(String(this.form.aprendizId));
       if (!matriculas.length) {
         this.error.set('El aprendiz no tiene matrícula registrada.');
         return;
       }
-      await this.api.crearPractica({
-        fk_matricula:  matriculas[0].id_matricula,
-        fk_modalidad:  Number(this.form.modalidadId),
-        fecha_inicio:  this.form.fechaInicio,
-        fecha_fin:     this.form.fechaFin,
-        fk_empresa:    Number(this.form.empresaId),
-        estado:        this.form.estado,
-        observacion:   this.form.observacion,
-      });
+      // Backend /api2 espera camelCase + UUIDs
+      const matriculaId = matriculas[0].idMatricula ?? matriculas[0].id_matricula;
+      const payload: any = {
+        matriculaId,
+        modalidadId:  String(this.form.modalidadId),
+        empresaId:    String(this.form.empresaId),
+        fecha_inicio: this.form.fechaInicio,
+        fecha_fin:    this.form.fechaFin,
+        estado:       this.form.estado,
+        observacion:  this.form.observacion,
+      };
+      if (this.form.instructorId) {
+        payload.instructorId = String(this.form.instructorId);
+      }
+      await this.api.crearPractica(payload);
       this.success.emit();
       this.closed.emit();
     } catch {
