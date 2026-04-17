@@ -17,6 +17,7 @@ export class AuthService {
   private _loadUser(): Usuario | null {
     const saved = localStorage.getItem('user');
     return saved ? JSON.parse(saved) : null;
+    
   }
 
   // ── login() ────────────────────────────────────────────────────────────────
@@ -32,20 +33,22 @@ export class AuthService {
     )
   );
   localStorage.setItem('user', JSON.stringify(resp.usuario));
-  localStorage.setItem('token', resp.token);
+  //localStorage.setItem('token', resp.token);
   localStorage.setItem('centroId', resp.centroId ?? '');
   localStorage.setItem('cargo', resp.usuario.cargo ?? '');
   this._user.set(resp.usuario);
+  
 }
 
   // ── logout() ──────────────────────────────────────────────────────────────
   logout(): void {
     localStorage.removeItem('user');
-    localStorage.removeItem('token');
+    //localStorage.removeItem('token');
     localStorage.removeItem('centroId');
     localStorage.removeItem('cargo');
     this._user.set(null);
     this.router.navigate(['/login'], { replaceUrl: true });
+    
   }
 
   // ── actualizarUser() — actualiza parcialmente el usuario ──────────────────
@@ -57,7 +60,8 @@ export class AuthService {
   }
 
   // ── Obtener el token del storage ──────────────────────────────────────────
-  getToken(): string | null {
-    return localStorage.getItem('token');
-  }
+  // getToken(): string | null {
+  //   return localStorage.getItem('token');
+  // }
+
 }

@@ -28,7 +28,7 @@ interface NavLink { label: string; href: string; safeIcon:SafeHtml }
           @if (open) {
             <div class="overflow-hidden">
               <p class="text-[#007832] text-xs font-medium truncate">{{ userName }}</p>
-              <p class="text-white/40 text-[10px] truncate">{{ userCargo }}</p>
+              <p class="text-black/90 text-[10px] truncate">{{ userCargo }}</p>
             </div>
           }
         </div>
@@ -108,9 +108,10 @@ export class SidebarComponent {
         safeIcon: this.safe(`<svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>`)
       },
     ];
+    console.log(this.auth.user())
   }
 
-  get userName(): string  { return this.auth.user()?.nombre ?? 'Usuario'; }
+  get userName(): string  { return this.auth.user()?.nombre ?? 'Usuario'; } 
   get userCargo(): string { return this.auth.user()?.cargo  ?? ''; }
   get userInitials(): string {
     return (this.auth.user()?.nombre ?? 'U')
@@ -120,4 +121,7 @@ export class SidebarComponent {
   private safe(svg: string): SafeHtml {
     return this.sanitizer.bypassSecurityTrustHtml(svg);
   }
+
+
+  
 }
