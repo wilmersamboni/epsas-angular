@@ -15,6 +15,7 @@ export interface LoginResponse {
   usuario: Usuario;
   accion: string;
   mensaje: string;
+  centroId: string; // ← nuevo
 }
 
 // ── Áreas ─────────────────────────────────────────────────────────────────────
@@ -43,7 +44,7 @@ export interface Formato {
 
 // ── Persona ───────────────────────────────────────────────────────────────────
 export interface Persona {
-  id_persona?: number;
+  id_persona?: string;
   nombre: string;
   correo: string;
   telefono: string;

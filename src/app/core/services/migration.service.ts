@@ -255,7 +255,13 @@ export class MigrationService {
   );
   results.push(fichaResult);
       // 3. Matrícula (persona + ficha)
-      const matriculaData = this.parser.rowToMatricula(row) as Matricula & Record<string, unknown>;
+      // Incluimos cedula y fichaNumero en el body para que el backend
+      // pueda resolver los UUIDs de persona y curso automáticamente.
+      const matriculaData = {
+        ...this.parser.rowToMatricula(row),
+        cedula:          row.numeroDocumento,
+        numeroDocumento: row.numeroDocumento,
+      } as Matricula & Record<string, unknown>;
       const matriculaResult = await this.upsertEntity<Matricula & Record<string, unknown>>(
         'matricula',
         matriculaData,

@@ -1,16 +1,21 @@
 const PROXY_CONFIG = {
-  "/api": {
+  "/api/": {
     target: "http://localhost:3000",
     secure: false,
     changeOrigin: true,
-    pathRewrite: { "^/api": "" },
     logLevel: "debug"
   },
-  "/v2/": {  // <--- Agrega una barra "/" aquí
+  "/uploads/": {
     target: "http://localhost:3001",
     secure: false,
     changeOrigin: true,
-    pathRewrite: { "^/v2/": "/" }, // <--- Asegúrate de que termine en barra
+    logLevel: "debug"
+  },
+  "/api2/": {  // <--- Agrega una barra "/" aquí
+    target: "http://localhost:3001",
+    secure: false,
+    changeOrigin: true,
+ // <--- Asegúrate de que termine en barra
     logLevel: "debug",
     cookieDomainRewrite: "localhost",
     onProxyReq(proxyReq, req) {

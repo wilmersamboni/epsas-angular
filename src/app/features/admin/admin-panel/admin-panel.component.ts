@@ -201,6 +201,8 @@ import { AdminModalComponent } from '../components/admin-modal.component';
         [labelSingular]="config[admin.activeTab()].label.slice(0,-1)"
         [columns]="admin.editableColumns()"
         [form]="admin.modalForm"
+        [opciones]="admin.opcionesModal"
+        [tiposCampo]="config[admin.activeTab()].tiposCampo ?? {}"
         [saving]="admin.saving()"
         [error]="admin.modalError()"
         (closed)="admin.cerrarModal()"

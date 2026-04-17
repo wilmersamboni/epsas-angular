@@ -17,6 +17,7 @@ export class AuthService {
   private _loadUser(): Usuario | null {
     const saved = localStorage.getItem('user');
     return saved ? JSON.parse(saved) : null;
+    
   }
 
   // ── login() ────────────────────────────────────────────────────────────────
@@ -24,24 +25,30 @@ export class AuthService {
   // reciba y guarde la cookie de sesión correctamente.
   // Esa misma cookie la envía luego en las peticiones a :3001 vía proxy.
   async login(data: LoginRequest): Promise<void> {
-    const resp = await firstValueFrom(
-      this.http.post<LoginResponse>(
-        'http://localhost:3000/token/generar_token_jwsv',
-        data,
-        { withCredentials: true }   // ← guarda la cookie que envía :3000
-      )
-    );
-    localStorage.setItem('user', JSON.stringify(resp.usuario));
-    localStorage.setItem('token', resp.token);
-    this._user.set(resp.usuario);
-  }
+  const resp = await firstValueFrom(
+    this.http.post<LoginResponse>(
+      'http://localhost:3000/api/auth/login',
+      data,
+      { withCredentials: true }
+    )
+  );
+  localStorage.setItem('user', JSON.stringify(resp.usuario));
+  //localStorage.setItem('token', resp.token);
+  localStorage.setItem('centroId', resp.centroId ?? '');
+  localStorage.setItem('cargo', resp.usuario.cargo ?? '');
+  this._user.set(resp.usuario);
+  
+}
 
   // ── logout() ──────────────────────────────────────────────────────────────
   logout(): void {
     localStorage.removeItem('user');
-    localStorage.removeItem('token');
+    //localStorage.removeItem('token');
+    localStorage.removeItem('centroId');
+    localStorage.removeItem('cargo');
     this._user.set(null);
     this.router.navigate(['/login'], { replaceUrl: true });
+    
   }
 
   // ── actualizarUser() — actualiza parcialmente el usuario ──────────────────
@@ -53,7 +60,8 @@ export class AuthService {
   }
 
   // ── Obtener el token del storage ──────────────────────────────────────────
-  getToken(): string | null {
-    return localStorage.getItem('token');
-  }
+  // getToken(): string | null {
+  //   return localStorage.getItem('token');
+  // }
+
 }

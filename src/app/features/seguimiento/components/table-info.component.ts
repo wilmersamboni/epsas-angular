@@ -106,7 +106,7 @@ function formatDate(d: string): string {
           <span class="text-sm text-gray-400">Total {{ filtered().length }} aprendices</span>
           <div class="flex items-center gap-2">
             <span class="text-xs text-gray-400">Filas por página:</span>
-            <select [(ngModel)]="rowsPerPage" (ngModelChange)="resetPage()"
+            <select [ngModel]="rowsPerPage()" (ngModelChange)="rowsPerPage.set(+$event); resetPage()"
               class="border border-gray-200 rounded-lg text-xs text-gray-600 py-1.5 px-2
                      focus:outline-none focus:border-[#39A900] hover:border-[#39A900]/50">
               <option [value]="5">5</option>
@@ -139,16 +139,16 @@ function formatDate(d: string): string {
                       <div class="relative">
                         <button (click)="$event.stopPropagation(); toggleAreaMenu()"
                           class="flex items-center gap-1.5 p-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all"
-                          [class.bg-green-50]="selectedAreas.length > 0"
-                          [class.text-green-700]="selectedAreas.length > 0"
-                          [class.text-gray-500]="selectedAreas.length === 0">
+                          [class.bg-green-50]="selectedAreas().length > 0"
+                          [class.text-green-700]="selectedAreas().length > 0"
+                          [class.text-gray-500]="selectedAreas().length === 0">
                           <svg width="12" height="12" viewBox="0 0 24 24"
-                            [attr.fill]="selectedAreas.length > 0 ? '#39A900' : 'none'"
-                            [attr.stroke]="selectedAreas.length > 0 ? '#39A900' : 'currentColor'" stroke-width="2">
+                            [attr.fill]="selectedAreas().length > 0 ? '#39A900' : 'none'"
+                            [attr.stroke]="selectedAreas().length > 0 ? '#39A900' : 'currentColor'" stroke-width="2">
                             <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
                           </svg>
                           Área
-                          @if (selectedAreas.length > 0) {
+                          @if (selectedAreas().length > 0) {
                             <span class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1
                                           bg-[#39A900] text-white text-[10px] font-bold rounded-full">
                               {{ selectedAreas().length }}
@@ -173,7 +173,7 @@ function formatDate(d: string): string {
                                 </label>
                               }
                             </div>
-                            @if (selectedAreas.length > 0) {
+                            @if (selectedAreas().length > 0) {
                               <div class="border-t border-gray-100 mt-2 pt-2">
                                 <button (click)="selectedAreas.set([]); resetPage()"
                                   class="w-full text-xs text-red-500 hover:text-red-600 py-1">
@@ -189,16 +189,16 @@ function formatDate(d: string): string {
                       <div class="relative">
                         <button (click)="$event.stopPropagation(); toggleStatusMenu()"
                           class="flex items-center gap-1.5 p-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all"
-                          [class.bg-green-50]="selectedStatuses.length > 0"
-                          [class.text-green-700]="selectedStatuses.length > 0"
-                          [class.text-gray-500]="selectedStatuses.length === 0">
+                          [class.bg-green-50]="selectedStatuses().length > 0"
+                          [class.text-green-700]="selectedStatuses().length > 0"
+                          [class.text-gray-500]="selectedStatuses().length === 0">
                           <svg width="12" height="12" viewBox="0 0 24 24"
-                            [attr.fill]="selectedStatuses.length > 0 ? '#39A900' : 'none'"
-                            [attr.stroke]="selectedStatuses.length > 0 ? '#39A900' : 'currentColor'" stroke-width="2">
+                            [attr.fill]="selectedStatuses().length > 0 ? '#39A900' : 'none'"
+                            [attr.stroke]="selectedStatuses().length > 0 ? '#39A900' : 'currentColor'" stroke-width="2">
                             <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
                           </svg>
                           Estado
-                          @if (selectedStatuses.length > 0) {
+                          @if (selectedStatuses().length > 0) {
                             <span class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1
                                           bg-[#39A900] text-white text-[10px] font-bold rounded-full">
                               {{ selectedStatuses().length }}
@@ -225,7 +225,7 @@ function formatDate(d: string): string {
                                 </label>
                               }
                             </div>
-                            @if (selectedStatuses.length > 0) {
+                            @if (selectedStatuses().length > 0) {
                               <div class="border-t border-gray-100 mt-2 pt-2">
                                 <button (click)="selectedStatuses.set([]); resetPage()"
                                   class="w-full text-xs text-red-500 hover:text-red-600 py-1">
@@ -564,14 +564,19 @@ export class TableInfoComponent implements OnInit {
     });
 
     // Crear mapas para búsquedas O(1) - Súper rápido
-    const practicaMap = new Map<number, any>();
+    // Soporta campo nuevo (matriculaId, camelCase) y viejo (fk_matricula, snake_case)
+    if (practicas.length) console.log('[Practica] primera →', practicas[0]);
+    const practicaMap = new Map<any, any>();
     practicas.forEach((p: any) => {
-      practicaMap.set(p.fk_matricula, p);
+      const key = p.matriculaId ?? p.fk_matricula;
+      if (key != null) practicaMap.set(key, p);
     });
 
-    const matriculasPorPersona = new Map<number, any[]>();
+    // Soporta camelCase (idPersona) devuelto por TypeORM y snake_case (id_persona) como fallback
+    const matriculasPorPersona = new Map<any, any[]>();
     todasMatriculas.forEach((m: any) => {
-      const personaId = m.fk_persona;
+      const personaId = m.idPersona ?? m.id_persona ?? m.fk_persona;
+      if (personaId == null) return;
       if (!matriculasPorPersona.has(personaId)) {
         matriculasPorPersona.set(personaId, []);
       }
@@ -580,26 +585,34 @@ export class TableInfoComponent implements OnInit {
 
     // ✅ Transformar datos SIN await - Súper rápido
     const transformados = aprendices.map((persona: any) => {
-      const matriculas = matriculasPorPersona.get(persona.id_persona) || [];
-      
+      // Soporta camelCase (idPersona) y snake_case (id_persona)
+      const personaId = persona.idPersona ?? persona.id_persona;
+      const matriculas = matriculasPorPersona.get(personaId) || [];
+
       const practica = matriculas
-        .map((m: any) => practicaMap.get(m.id_matricula))
+        .map((m: any) => practicaMap.get(m.idMatricula ?? m.id_matricula))
         .find((p: any) => p != null) ?? null;
 
+      // Datos del curso vienen anidados en la matrícula (eager loading)
+      const primeraMatricula = matriculas[0] ?? null;
+      const curso = primeraMatricula?.curso ?? null;
+
       return {
-        id: persona.id_persona,
+        id: personaId,
         name: persona.nombre,
-        age: persona.identificacion,
+        age: persona.cedula,
         email: persona.correo,
-        programa: persona.programa,
-        area: persona.area ?? '',
-        number: persona.ficha,
+        programa: curso?.programa?.nombre ?? '',
+        area: curso?.area?.nombre ?? '',
+        number: curso?.codigo ?? '',
         estado: persona.estado,
-        startDate: practica?.fecha_inicio ? formatDate(practica.fecha_inicio) : '',
-        endDate:   practica?.fecha_fin    ? formatDate(practica.fecha_fin)    : '',
+        startDate: (practica?.fecha_inicio ?? practica?.fechaInicio)
+          ? formatDate(practica.fecha_inicio ?? practica.fechaInicio) : '',
+        endDate:   (practica?.fecha_fin    ?? practica?.fechaFin)
+          ? formatDate(practica.fecha_fin    ?? practica.fechaFin)    : '',
         avance:      practica?.avance      ?? '',
         observacion: practica?.observacion ?? '',
-        id_practica: practica?.id_etapa_practica ?? null,
+        id_practica: practica?.id ?? practica?.id_etapa_practica ?? null,
         seguimientos: persona.total_seguimientos ?? 0,
       };
     });

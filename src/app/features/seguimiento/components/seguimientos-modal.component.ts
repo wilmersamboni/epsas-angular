@@ -200,7 +200,11 @@ export class SeguimientosModalComponent implements OnChanges {
     if (!this.alumno) return;
     this.loading.set(true);
     try {
-      const data = await this.api.obtenerSeguimientos(this.alumno.id);
+      // Si el alumno ya tiene id_practica, lo usamos directamente (más eficiente)
+      const etapaId = this.alumno.id_practica ?? this.alumno.idPractica ?? null;
+      const data = etapaId
+        ? await this.api.obtenerSeguimientosPorEtapa(etapaId)
+        : await this.api.obtenerSeguimientos(this.alumno.id);
       this.seguimientos.set(data);
     } catch (e) { console.error(e); }
     finally { this.loading.set(false); }

@@ -1,562 +1,388 @@
 import {
-  Component, OnInit, OnDestroy, signal, computed, ChangeDetectionStrategy
+  Component, OnDestroy, OnInit, signal, computed, ChangeDetectionStrategy, inject
 } from '@angular/core';
-import { CommonModule }           from '@angular/common';
-import { FormsModule }            from '@angular/forms';
-import { HttpClientModule }       from '@angular/common/http';
-import { MigrationService }       from '../../core/services/migration.service';
-import { ExcelParserService, ParsedSheets } from '../../core/services/excel-parser.service';
-import {
-  MigrationConfig, MigrationLogEntry, MigrationSummary,
-  EntityType, DEFAULT_MIGRATION_CONFIG
-} from '../../features/migracion/models/migration.models';
+import { CommonModule } from '@angular/common';
+import { HttpClient }   from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 
+// ── Tipos ──────────────────────────────────────────────────────────────────────
+interface ResumenMigracion {
+  programas_insertados:  number;
+  cursos_insertados:     number;
+  cursos_actualizados:   number;
+  personas_insertadas:   number;
+  personas_actualizadas: number;
+  matriculas_insertadas: number;
+  omitidas:              number;
+  errores:               number;
+}
+
+interface EstadoMigracion {
+  status:    'idle' | 'running' | 'completed' | 'error';
+  startTime?: string;
+  endTime?:   string;
+  duracion?:  string;
+  logs:       string[];
+  resumen?:   ResumenMigracion;
+  mensaje?:   string;
+}
+
+// ── Componente ─────────────────────────────────────────────────────────────────
 @Component({
-  selector:    'app-migration',
-  standalone:  true,
-  imports:     [CommonModule, FormsModule, HttpClientModule],
+  selector:        'app-migration',
+  standalone:      true,
+  imports:         [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-<div class="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50">
+<div class="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 p-6">
 
-  <!-- Header -->
-  <header class="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
-    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-600/20">
-          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-          </svg>
-        </div>
-        <div>
-          <h1 class="text-xl font-bold text-gray-900">Migración de Base de Datos</h1>
-          <p class="text-xs text-gray-500">SENA – Centro Yamboró</p>
-        </div>
+  <!-- ── Encabezado ── -->
+  <div class="max-w-4xl mx-auto">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700
+                  flex items-center justify-center shadow-lg shadow-blue-600/20">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0
+               0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
       </div>
-      <span class="px-3 py-1.5 rounded-full text-xs font-semibold"
-        [ngClass]="{
-          'bg-gray-100 text-gray-600': state().status === 'idle',
-          'bg-blue-100 text-blue-700': state().status === 'parsing',
-          'bg-blue-600 text-white animate-pulse': state().status === 'running',
-          'bg-yellow-100 text-yellow-700': state().status === 'paused',
-          'bg-green-100 text-green-700': state().status === 'completed',
-          'bg-red-100 text-red-700': state().status === 'error'
-        }">
-        {{ statusLabel[state().status] }}
+      <div>
+        <h1 class="text-xl font-bold text-gray-900">Migración de Base de Datos</h1>
+        <p class="text-xs text-gray-500">SENA – Centro Yamboró · El proceso corre en el servidor</p>
+      </div>
+
+      <!-- Badge de estado -->
+      <span class="ml-auto px-3 py-1.5 rounded-full text-xs font-semibold"
+        [class]="estadoBadgeClass()">
+        {{ estadoLabel() }}
       </span>
     </div>
-  </header>
 
-  <!-- Main Content -->
-  <main class="max-w-7xl mx-auto px-6 py-8 space-y-6">
+    <!-- ── Notificación de finalización ── -->
+    @if (mostrarNotificacion()) {
+      <div class="mb-4 rounded-xl p-4 flex items-start gap-3 shadow"
+        [class]="estado().status === 'completed'
+          ? 'bg-green-50 border border-green-200'
+          : 'bg-red-50 border border-red-200'">
+        <span class="text-2xl">{{ estado().status === 'completed' ? '✅' : '❌' }}</span>
+        <div class="flex-1">
+          <p class="font-semibold"
+            [class]="estado().status === 'completed' ? 'text-green-800' : 'text-red-800'">
+            {{ estado().status === 'completed' ? '¡Migración completada!' : 'Migración finalizada con errores' }}
+          </p>
+          <p class="text-sm mt-0.5"
+            [class]="estado().status === 'completed' ? 'text-green-700' : 'text-red-700'">
+            Duración: {{ estado().duracion }} ·
+            Personas: {{ estado().resumen?.personas_insertadas ?? 0 }} nuevas,
+            {{ estado().resumen?.personas_actualizadas ?? 0 }} actualizadas ·
+            Errores: {{ estado().resumen?.errores ?? 0 }}
+          </p>
+        </div>
+        <button (click)="cerrarNotificacion()"
+          class="text-gray-400 hover:text-gray-600 text-lg leading-none">×</button>
+      </div>
+    }
 
-    <!-- Sección 1: Cargar archivo -->
-    <section class="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
-      <h2 class="text-lg font-bold text-gray-900 mb-4">Cargar archivo Excel</h2>
+    <!-- ── Zona de carga ── -->
+    <div class="bg-white rounded-2xl shadow border border-gray-200 p-6 mb-4">
+      <h2 class="text-base font-bold text-gray-800 mb-4">1 · Seleccionar archivo Excel</h2>
 
-      <div 
-        class="relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200"
-        [ngClass]="{
-          'border-blue-400 bg-blue-50': dragging(),
-          'border-gray-300 hover:border-blue-400 hover:bg-blue-50/50': !dragging()
-        }"
+      <div
+        class="relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer
+               transition-all duration-200"
+        [class]="dragging()
+          ? 'border-blue-400 bg-blue-50'
+          : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50/50'"
         (click)="fileInput.click()"
         (dragover)="$event.preventDefault(); dragging.set(true)"
         (dragleave)="dragging.set(false)"
         (drop)="onDrop($event)">
-        
-        <input #fileInput type="file" accept=".xlsx,.xls" (change)="onFileChange($event)" hidden>
 
-        @if (!selectedFile()) {
-          <div class="space-y-3">
+        <input #fileInput type="file" accept=".xlsx,.xls"
+          (change)="onFileChange($event)" hidden>
+
+        @if (!archivo()) {
+          <div class="space-y-2">
             <div class="text-5xl">📂</div>
-            <div>
-              <p class="text-base text-gray-700 font-medium">
-                Arrastra el archivo Excel aquí o <span class="text-blue-600 font-bold">haz clic para seleccionar</span>
-              </p>
-              <p class="text-xs text-gray-500 mt-2">
-                Soporta: Base_de_datos_Aprendices_SENA_Yamboro.xlsx
-              </p>
-            </div>
+            <p class="font-medium text-gray-700">
+              Arrastra el archivo aquí o
+              <span class="text-blue-600 font-bold">haz clic para seleccionar</span>
+            </p>
+            <p class="text-xs text-gray-400">Formatos aceptados: .xlsx · .xls · máx. 50 MB</p>
           </div>
         } @else {
           <div class="flex items-center justify-center gap-4">
-            <div class="text-5xl">📊</div>
+            <span class="text-4xl">📊</span>
             <div class="text-left">
-              <p class="font-bold text-gray-900">{{ selectedFile()!.name }}</p>
+              <p class="font-bold text-gray-900">{{ archivo()!.name }}</p>
               <p class="text-xs text-gray-500 mt-1">
-                {{ (selectedFile()!.size / 1024 / 1024).toFixed(2) }} MB · Clic para cambiar
+                {{ (archivo()!.size / 1024 / 1024).toFixed(2) }} MB · clic para cambiar
               </p>
             </div>
           </div>
         }
       </div>
 
-      <!-- Resumen de hojas -->
-      @if (sheets()) {
-        <div class="mt-6">
-          <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Hojas detectadas</h3>
-          <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-            @for (s of sheetStats(); track s.name) {
-              <div class="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-3 text-center">
-                <div class="text-2xl font-bold text-blue-600">{{ s.count }}</div>
-                <div class="text-xs text-gray-600 mt-1">{{ s.name }}</div>
-              </div>
-            }
-          </div>
-          <p class="text-sm text-gray-600 mt-4">
-            Total: <span class="font-bold text-gray-900">{{ totalRows() }} registros</span>
-          </p>
-        </div>
-      }
-    </section>
-
-    <!-- Indicador de carga grande (mientras procesa) -->
-    @if (state().status === 'running' && state().percentage < 5) {
-      <section class="bg-white rounded-2xl shadow-xl border border-gray-200 p-12">
-        <div class="flex flex-col items-center justify-center space-y-6">
-          <div class="relative">
-            <div class="w-24 h-24 border-8 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-            <div class="absolute inset-0 flex items-center justify-center">
-              <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+      <!-- Botón principal -->
+      <div class="mt-4 flex gap-3">
+        <button
+          [disabled]="!archivo() || estado().status === 'running' || subiendo()"
+          (click)="iniciar()"
+          class="flex-1 py-3 rounded-xl font-semibold text-sm transition-all
+                 disabled:opacity-40 disabled:cursor-not-allowed"
+          [class]="estado().status === 'running' || subiendo()
+            ? 'bg-blue-100 text-blue-600 cursor-not-allowed'
+            : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/20'">
+          @if (subiendo()) {
+            <span class="flex items-center justify-center gap-2">
+              <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10"
+                  stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8H4z"/>
               </svg>
-            </div>
-          </div>
-          <div class="text-center">
-            <h3 class="text-xl font-bold text-gray-900 mb-2">Procesando archivo...</h3>
-            <p class="text-sm text-gray-600">
-              Analizando datos y preparando migración
-            </p>
-          </div>
-          <div class="flex items-center gap-2">
-            <div class="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
-            <div class="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-            <div class="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
-          </div>
-        </div>
-      </section>
-    }
-
-    <!-- Sección 2: Progreso -->
-    @if (state().status === 'running' && state().percentage >= 5 || state().status === 'paused' || state().status === 'completed' || state().status === 'error') {
-      <section class="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
-        <h2 class="text-lg font-bold text-gray-900 mb-4">Progreso de migración</h2>
-
-        <!-- Barra de progreso -->
-        <div class="flex items-center gap-3 mb-3">
-          <div class="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
-            <div 
-              class="h-full rounded-full transition-all duration-300"
-              [ngClass]="state().status === 'completed' ? 'bg-green-500' : 'bg-blue-600'"
-              [style.width.%]="state().percentage">
-            </div>
-          </div>
-          <span class="text-sm font-bold text-gray-900 min-w-[45px] text-right">
-            {{ state().percentage }}%
-          </span>
-        </div>
-
-        <p class="text-sm text-gray-600 mb-6">
-          Fila {{ state().currentRow }} de {{ state().totalRows }}
-          @if (state().currentEntity) {
-            · procesando <span class="font-medium text-gray-900">{{ state().currentEntity }}</span>
+              Subiendo archivo…
+            </span>
+          } @else if (estado().status === 'running') {
+            🔄 Migración en curso…
+          } @else {
+            🚀 Iniciar Migración
           }
-        </p>
+        </button>
 
-        <!-- Métricas -->
-        @if (state().summary) {
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-            <div class="bg-green-50 border border-green-200 rounded-xl p-4">
-              <div class="text-3xl font-bold text-green-600">{{ state().summary!.created }}</div>
-              <div class="text-xs text-green-700 font-medium uppercase tracking-wide mt-1">Creados</div>
-            </div>
-            <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
-              <div class="text-3xl font-bold text-blue-600">{{ state().summary!.updated }}</div>
-              <div class="text-xs text-blue-700 font-medium uppercase tracking-wide mt-1">Actualizados</div>
-            </div>
-            <div class="bg-gray-50 border border-gray-200 rounded-xl p-4">
-              <div class="text-3xl font-bold text-gray-600">{{ state().summary!.skipped }}</div>
-              <div class="text-xs text-gray-700 font-medium uppercase tracking-wide mt-1">Omitidos</div>
-            </div>
-            <div class="bg-red-50 border border-red-200 rounded-xl p-4">
-              <div class="text-3xl font-bold text-red-600">{{ state().summary!.errors }}</div>
-              <div class="text-xs text-red-700 font-medium uppercase tracking-wide mt-1">Errores</div>
+        @if (estado().status === 'completed' || estado().status === 'error') {
+          <button (click)="nuevaMigracion()"
+            class="px-5 py-3 rounded-xl font-semibold text-sm border border-gray-300
+                   hover:bg-gray-50 transition-all text-gray-700">
+            Nueva migración
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- ── Panel de progreso / logs ── -->
+    @if (estado().status !== 'idle') {
+      <div class="bg-white rounded-2xl shadow border border-gray-200 p-6 mb-4">
+        <h2 class="text-base font-bold text-gray-800 mb-4">2 · Progreso en tiempo real</h2>
+
+        <!-- Barra de progreso indeterminada mientras corre -->
+        @if (estado().status === 'running') {
+          <div class="w-full bg-gray-100 rounded-full h-2 mb-4 overflow-hidden">
+            <div class="h-2 bg-blue-500 rounded-full animate-pulse"
+              style="width: 100%; animation: progress-bar 1.5s ease-in-out infinite alternate;">
             </div>
           </div>
+          <p class="text-xs text-blue-600 mb-3 font-medium animate-pulse">
+            ⏳ Procesando en el servidor… puedes seguir trabajando
+          </p>
+        }
 
-          <!-- Desglose por entidad -->
-          <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Desglose por entidad</h3>
-          <div class="space-y-2">
-            @for (entry of entityBreakdown(); track entry.entity) {
-              <div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
-                <span class="text-sm font-medium text-gray-900 capitalize min-w-[140px]">{{ entry.entity }}</span>
-                <div class="flex flex-wrap gap-2">
-                  <span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
-                    +{{ entry.created }}
-                  </span>
-                  <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
-                    ≈{{ entry.updated }}
-                  </span>
-                  <span class="px-2 py-1 bg-gray-200 text-gray-700 text-xs font-semibold rounded-full">
-                    –{{ entry.skipped }}
-                  </span>
-                  @if (entry.errors > 0) {
-                    <span class="px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-full">
-                      ✗{{ entry.errors }}
-                    </span>
-                  }
-                </div>
+        <!-- Terminal de logs -->
+        <div class="bg-gray-900 rounded-xl p-4 font-mono text-xs text-green-300
+                    h-64 overflow-y-auto scroll-smooth" #logBox>
+          @for (line of logsVisibles(); track $index) {
+            <div [class]="lineClass(line)">{{ line }}</div>
+          }
+          @if (estado().status === 'running') {
+            <div class="text-blue-400 animate-pulse">█</div>
+          }
+        </div>
+      </div>
+
+      <!-- ── Resumen final ── -->
+      @if (estado().resumen && estado().status !== 'running') {
+        <div class="bg-white rounded-2xl shadow border border-gray-200 p-6">
+          <h2 class="text-base font-bold text-gray-800 mb-4">3 · Resumen</h2>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            @for (item of resumenItems(); track item.label) {
+              <div class="rounded-xl p-4 text-center"
+                [class]="item.color">
+                <div class="text-2xl font-bold">{{ item.valor }}</div>
+                <div class="text-xs mt-1 opacity-75">{{ item.label }}</div>
               </div>
             }
           </div>
-        }
 
-        <!-- Duración -->
-        @if (state().summary?.durationMs) {
-          <p class="text-sm text-gray-600 mt-4">
-            Tiempo total: <span class="font-bold text-gray-900">{{ formatDuration(state().summary!.durationMs!) }}</span>
-          </p>
-        }
-      </section>
-    }
-
-    <!-- Sección 3: Log -->
-    @if (state().logs.length > 0) {
-      <section class="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 class="text-lg font-bold text-gray-900">Registro de actividad</h2>
-          <div class="flex items-center gap-3">
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" [(ngModel)]="autoScroll" 
-                class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500">
-              <span class="text-xs text-gray-600">Auto-scroll</span>
-            </label>
-            <button (click)="clearLogs()" 
-              class="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
-              Limpiar
-            </button>
-          </div>
-        </div>
-
-        <div class="h-64 overflow-y-auto bg-gray-900 font-mono text-xs leading-relaxed p-4 space-y-1" #logBox>
-          @for (entry of visibleLogs(); track $index) {
-            <div class="flex items-baseline gap-2">
-              <span class="text-gray-500 min-w-[70px] flex-shrink-0">
-                {{ entry.timestamp | date:'HH:mm:ss' }}
-              </span>
-              <span class="min-w-[16px]">
-                {{ logIcons[entry.level] }}
-              </span>
-              <span class="flex-1"
-                [ngClass]="{
-                  'text-gray-300': entry.level === 'info',
-                  'text-green-400': entry.level === 'success',
-                  'text-yellow-400': entry.level === 'warning',
-                  'text-red-400': entry.level === 'error'
-                }">
-                {{ entry.message }}
-              </span>
-              @if (entry.details) {
-                <span class="text-gray-500 text-[11px]">{{ entry.details }}</span>
-              }
+          @if (estado().resumen!.errores > 0) {
+            <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              ⚠ Hubo <strong>{{ estado().resumen!.errores }}</strong> errores durante la migración.
+              Revisa el archivo <code class="bg-red-100 px-1 rounded">scripts/migrate_aprendices.log</code>
+              en el servidor para ver el detalle.
             </div>
           }
         </div>
-
-        @if (state().logs.length > 100) {
-          <p class="text-xs text-gray-500 text-center py-2 border-t border-gray-200">
-            Mostrando los últimos 100 de {{ state().logs.length }} entradas
-          </p>
-        }
-      </section>
+      }
     }
 
-    <!-- Sección 4: Errores -->
-    @if (errorResults().length > 0) {
-      <section class="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
-        <h2 class="text-lg font-bold text-gray-900 mb-4">
-          Registros con errores ({{ errorResults().length }})
-        </h2>
-        
-        <div class="overflow-x-auto rounded-lg border border-gray-200 mb-4">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Fila</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Entidad</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Identificador</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Error</th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              @for (r of errorResults().slice(0, 50); track $index) {
-                <tr class="hover:bg-red-50 transition-colors">
-                  <td class="px-4 py-3 text-sm text-gray-900 font-medium">{{ r.rowIndex + 1 }}</td>
-                  <td class="px-4 py-3 text-sm">
-                    <code class="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs font-mono">
-                      {{ r.entity }}
-                    </code>
-                  </td>
-                  <td class="px-4 py-3 text-sm text-gray-700">{{ r.identifier }}</td>
-                  <td class="px-4 py-3 text-sm text-red-600 max-w-md">{{ r.error }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-
-        @if (errorResults().length > 50) {
-          <p class="text-xs text-gray-500 mb-4">
-            … y {{ errorResults().length - 50 }} más. Exporta el informe para ver todos.
-          </p>
-        }
-
-        <button (click)="exportErrors()" 
-          class="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 text-sm font-medium rounded-lg transition-colors">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-          </svg>
-          Exportar errores como CSV
-        </button>
-      </section>
-    }
-
-  </main>
-
-  <!-- Footer / Acciones -->
-  <footer class="sticky bottom-0 bg-white border-t border-gray-200 shadow-lg">
-    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-end gap-3">
-
-      @if (state().status === 'idle' || state().status === 'parsing') {
-        <button 
-  [disabled]="!sheets() || state().status === 'parsing'"
-  (click)="start()"
-  class="group relative flex items-center gap-2 px-6 py-3 text-white text-sm font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
-  [style.background]="'linear-gradient(to right, #2563eb, #1d4ed8)'">
-  <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent 
-              translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-  <svg class="w-5 h-5 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-  </svg>
-  <span class="relative z-10">Iniciar migración</span>
-</button>
-      }
-
-      @if (state().status === 'running') {
-        <button (click)="pause()" 
-          class="px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-bold rounded-xl transition-colors shadow-lg">
-          ⏸ Pausar
-        </button>
-        <button (click)="stop()" 
-          class="px-6 py-3 bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-xl transition-colors shadow-lg">
-          ⏹ Detener
-        </button>
-      }
-
-      @if (state().status === 'paused') {
-        <button (click)="resume()" 
-          class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-colors shadow-lg">
-          ▶ Reanudar
-        </button>
-        <button (click)="stop()" 
-          class="px-6 py-3 bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-xl transition-colors shadow-lg">
-          ⏹ Detener
-        </button>
-      }
-
-      @if (state().status === 'completed' || state().status === 'error') {
-        <button (click)="reset()" 
-          class="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 text-sm font-bold rounded-xl transition-colors border border-gray-300">
-          🔄 Nueva migración
-        </button>
-        <button (click)="exportReport()" 
-          class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-bold rounded-xl transition-colors shadow-lg">
-          📊 Exportar informe
-        </button>
-      }
-
-    </div>
-  </footer>
-
+  </div><!-- /max-w-4xl -->
 </div>
-  `
+
+<style>
+@keyframes progress-bar {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+</style>
+  `,
 })
 export class MigrationComponent implements OnInit, OnDestroy {
 
-  // ── Signals de la UI ──
-  readonly selectedFile = signal<File | null>(null);
-  readonly sheets       = signal<ParsedSheets | null>(null);
-  readonly dragging     = signal(false);
+  private readonly http = inject(HttpClient);
 
-  // ── Config por defecto (sin modificaciones del usuario) ──
-  private readonly cfg: MigrationConfig = { ...DEFAULT_MIGRATION_CONFIG };
+  // ── Signals ──────────────────────────────────────────────────────────────────
+  archivo  = signal<File | null>(null);
+  dragging = signal(false);
+  subiendo = signal(false);
+  private _notificacionVisible = signal(false);
+  private _estado = signal<EstadoMigracion>({ status: 'idle', logs: [] });
 
-  autoScroll = true;
+  readonly estado          = this._estado.asReadonly();
+  readonly mostrarNotificacion = computed(() =>
+    this._notificacionVisible() &&
+    (this._estado().status === 'completed' || this._estado().status === 'error')
+  );
 
-  // ── Inyección del servicio (expone el estado) ──
-  get state() { return this.migrationSvc.state; }
+  readonly logsVisibles = computed(() => this._estado().logs.slice(-80));
 
-  // ── Labels / iconos ──
-  readonly statusLabel: Record<string, string> = {
-    idle: 'Listo', parsing: 'Analizando',
-    running: 'En proceso', paused: 'Pausado',
-    completed: 'Completado', error: 'Con errores'
-  };
-  readonly logIcons: Record<MigrationLogEntry['level'], string> = {
-    info: '·', success: '✓', warning: '⚠', error: '✗'
-  };
-
-  // ── Computed ──
-  readonly totalRows = computed(() => {
-    const s = this.sheets();
-    if (!s) return 0;
-    return s.yamboro.length + s.deportes.length + s.cancelados.length +
-           s.acumulado.length + s.aprendices2025.length +
-           s.aprendices2025111.length + s.instructores.length;
-  });
-
-  readonly sheetStats = computed(() => {
-    const s = this.sheets();
-    if (!s) return [];
+  readonly resumenItems = computed(() => {
+    const r = this._estado().resumen;
+    if (!r) return [];
     return [
-      { name: 'Yamboró',      count: s.yamboro.length },
-      { name: 'Deportes',     count: s.deportes.length },
-      { name: 'Cancelados',   count: s.cancelados.length },
-      { name: 'Acumulado',    count: s.acumulado.length },
-      { name: '2025 v1',      count: s.aprendices2025.length },
-      { name: '2025 v2',      count: s.aprendices2025111.length },
-      { name: 'Instructores', count: s.instructores.length }
+      { label: 'Personas nuevas',     valor: r.personas_insertadas,   color: 'bg-blue-50 text-blue-700' },
+      { label: 'Personas actualizadas', valor: r.personas_actualizadas, color: 'bg-indigo-50 text-indigo-700' },
+      { label: 'Cursos (fichas)',      valor: r.cursos_insertados,     color: 'bg-purple-50 text-purple-700' },
+      { label: 'Matrículas',          valor: r.matriculas_insertadas,  color: 'bg-green-50 text-green-700' },
+      { label: 'Programas',           valor: r.programas_insertados,   color: 'bg-yellow-50 text-yellow-700' },
+      { label: 'Omitidas',            valor: r.omitidas,               color: 'bg-gray-50 text-gray-600' },
+      { label: 'Errores',             valor: r.errores,
+        color: r.errores > 0 ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700' },
     ];
   });
 
-  readonly visibleLogs = computed(() =>
-    this.state().logs.slice(-100)
-  );
-
-  readonly errorResults = computed(() =>
-    this.state().summary?.results.filter(r => r.action === 'error') ?? []
-  );
-
-  readonly entityBreakdown = computed(() => {
-    const eb = this.state().summary?.entityBreakdown;
-    if (!eb) return [];
-    return Object.entries(eb).map(([entity, counts]) => ({
-      entity: entity as EntityType, ...counts
-    }));
+  readonly estadoBadgeClass = computed(() => {
+    const map: Record<string, string> = {
+      idle:      'bg-gray-100 text-gray-600',
+      running:   'bg-blue-600 text-white animate-pulse',
+      completed: 'bg-green-100 text-green-700',
+      error:     'bg-red-100 text-red-700',
+    };
+    return map[this._estado().status] ?? map['idle'];
   });
 
-  constructor(
-    private readonly migrationSvc: MigrationService,
-    private readonly parser: ExcelParserService
-  ) {}
+  readonly estadoLabel = computed(() => {
+    const map: Record<string, string> = {
+      idle: 'Listo', running: 'Procesando…',
+      completed: 'Completado', error: 'Con errores',
+    };
+    return map[this._estado().status] ?? 'Listo';
+  });
 
-  ngOnInit(): void {}
-  ngOnDestroy(): void { this.migrationSvc.stop(); }
+  // ── Ciclo de vida ─────────────────────────────────────────────────────────────
+  async ngOnInit(): Promise<void> {
+    try {
+      const data = await firstValueFrom(
+        this.http.get<EstadoMigracion>('/api/migracion/estado')
+      );
+      this._estado.set(data);
 
-  // ── Manejo de archivo ──
-  onFileChange(event: Event): void {
-    const f = (event.target as HTMLInputElement).files?.[0];
-    if (f) this.loadFile(f);
+      if (data.status === 'running') {
+        // Migración en curso: retomar polling
+        this.iniciarPolling();
+      } else if (data.status === 'completed' || data.status === 'error') {
+        // Ya terminó mientras estábamos fuera: mostrar notificación
+        this._notificacionVisible.set(true);
+      }
+    } catch { /* sin conexión al arrancar — mostramos estado idle */ }
   }
 
-  onDrop(event: DragEvent): void {
-    event.preventDefault();
+  // ── Polling ───────────────────────────────────────────────────────────────────
+  private pollingId?: ReturnType<typeof setInterval>;
+
+  private iniciarPolling(): void {
+    this.stopPolling();
+    this.pollingId = setInterval(async () => {
+      try {
+        const data = await firstValueFrom(
+          this.http.get<EstadoMigracion>('/api/migracion/estado')
+        );
+        this._estado.set(data);
+
+        if (data.status === 'completed' || data.status === 'error') {
+          this.stopPolling();
+          this._notificacionVisible.set(true);
+        }
+      } catch { /* error de red — seguimos intentando */ }
+    }, 2000);
+  }
+
+  private stopPolling(): void {
+    if (this.pollingId) {
+      clearInterval(this.pollingId);
+      this.pollingId = undefined;
+    }
+  }
+
+  ngOnDestroy(): void { this.stopPolling(); }
+
+  // ── Acciones ──────────────────────────────────────────────────────────────────
+  onFileChange(ev: Event): void {
+    const f = (ev.target as HTMLInputElement).files?.[0];
+    if (f) this.archivo.set(f);
+  }
+
+  onDrop(ev: DragEvent): void {
+    ev.preventDefault();
     this.dragging.set(false);
-    const f = event.dataTransfer?.files?.[0];
-    if (f) this.loadFile(f);
+    const f = ev.dataTransfer?.files?.[0];
+    if (f) this.archivo.set(f);
   }
 
-  private async loadFile(file: File): Promise<void> {
-    this.selectedFile.set(file);
-    const sheets = await this.migrationSvc.loadFile(file);
-    this.sheets.set(sheets);
+  async iniciar(): Promise<void> {
+    const file = this.archivo();
+    if (!file || this._estado().status === 'running') return;
+
+    this.subiendo.set(true);
+    this._notificacionVisible.set(false);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await firstValueFrom(
+        this.http.post<EstadoMigracion>('/api/migracion/iniciar', formData)
+      );
+      this._estado.set({ ...res, status: 'running' });
+      this.iniciarPolling();
+    } catch (err: any) {
+      this._estado.set({
+        status: 'error',
+        logs: [`Error al iniciar: ${err?.error?.message ?? err?.message ?? 'Error desconocido'}`],
+      });
+    } finally {
+      this.subiendo.set(false);
+    }
   }
 
-  // ── Acciones ──
-  async start(): Promise<void> {
-  const file = this.selectedFile();
-  if (!file) return;
-
-  try {
-    // 1. Cambiamos el estado a 'parsing' (Analizando Excel)
-    this.migrationSvc.patchState({ 
-      status: 'parsing', 
-      percentage: 0, 
-      currentRow: 0 
-    });
-
-    // 2. El ExcelParserService lee el archivo y lo convierte en objetos JSON
-    const sheets = await this.migrationSvc.loadFile(file);
-
-    // 3. Iniciamos la "Orquesta": startMigration recorre el array
-    // y hace peticiones individuales por cada aprendiz/instructor.
-    // ESTO es lo que mueve la barra de 0 a 100.
-    await this.migrationSvc.startMigration(sheets);
-
-    console.log('✅ Proceso finalizado');
-
-  } catch (error) {
-    this.migrationSvc.patchState({ status: 'error' });
-    console.error('❌ Error crítico:', error);
-  }
-}
-
-  pause():  void { this.migrationSvc.pause(); }
-  resume(): void { this.migrationSvc.resume(); }
-  stop():   void { this.migrationSvc.stop(); }
-
-  reset(): void {
-    this.selectedFile.set(null);
-    this.sheets.set(null);
-    this.migrationSvc.reset();
+  async nuevaMigracion(): Promise<void> {
+    try {
+      await firstValueFrom(this.http.delete('/api/migracion/resetear'));
+    } catch { /* ignorar */ }
+    this.archivo.set(null);
+    this._estado.set({ status: 'idle', logs: [] });
+    this._notificacionVisible.set(false);
   }
 
-  clearLogs(): void {
-    // Implementar método en el servicio si es necesario
-  }
+  cerrarNotificacion(): void { this._notificacionVisible.set(false); }
 
-  // ── Exportar informe de errores como CSV ──
-  exportErrors(): void {
-    const rows = this.errorResults();
-    if (!rows.length) return;
-
-    const header = 'Fila,Entidad,Identificador,Error\n';
-    const csv    = rows.map(r =>
-      `${r.rowIndex + 1},"${r.entity}","${r.identifier}","${(r.error ?? '').replace(/"/g, '""')}"`
-    ).join('\n');
-
-    this.downloadCsv('errores_migracion.csv', header + csv);
-  }
-
-  exportReport(): void {
-    const s = this.state().summary;
-    if (!s) return;
-
-    const header = 'Fila,Entidad,Accion,Identificador,Duracion_ms,Error\n';
-    const csv    = s.results.map(r =>
-      `${r.rowIndex + 1},"${r.entity}","${r.action}","${r.identifier}",${r.duration ?? ''},"${(r.error ?? '').replace(/"/g, '""')}"`
-    ).join('\n');
-
-    this.downloadCsv('informe_migracion.csv', header + csv);
-  }
-
-  private downloadCsv(filename: string, content: string): void {
-    const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  // ── Helpers ──
-  formatDuration(ms: number): string {
-    if (ms < 1000) return `${ms}ms`;
-    if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
-    const m = Math.floor(ms / 60000);
-    const s = Math.round((ms % 60000) / 1000);
-    return `${m}m ${s}s`;
+  // ── Helpers de UI ─────────────────────────────────────────────────────────────
+  lineClass(line: string): string {
+    if (line.includes('[ERROR]') || line.includes('ERROR'))  return 'text-red-400';
+    if (line.includes('[INFO]'))  return 'text-green-300';
+    if (line.includes('✓') || line.includes('Completada') || line.includes('completad'))
+      return 'text-green-400 font-semibold';
+    if (line.includes('⚠') || line.includes('WARNING'))     return 'text-yellow-300';
+    return 'text-gray-400';
   }
 }

@@ -54,22 +54,19 @@
           "defaultConfiguration": "production"
         },
         "serve": {
-          "builder": "@angular/build:dev-server",
-          "options": {
-            "proxyConfig": "proxy.conf.json"
-            },         
-        "configurations": {
-            
-            "production": {
-              "buildTarget": "epsas-angular:build:production"
-            },
-            "development": {
-              "buildTarget": "epsas-angular:build:development",
-               "proxyConfig": "proxy.conf.js"
-            }
-          },
-          "defaultConfiguration": "development"
-        },
+  "builder": "@angular/build:dev-server",
+  "options": {},
+  "configurations": {
+    "production": {
+      "buildTarget": "epsas-angular:build:production"
+    },
+    "development": {
+      "buildTarget": "epsas-angular:build:development",
+      "proxyConfig": "proxy.conf.js"
+    }
+  },
+  "defaultConfiguration": "development"
+},
         "test": {
           "builder": "@angular/build:unit-test"
         }
