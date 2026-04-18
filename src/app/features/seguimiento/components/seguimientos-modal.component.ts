@@ -164,15 +164,18 @@ import { BitacorasModalComponent } from './bitacoras-modal.component';
       [isOpen]="bitacorasOpen()"
       [alumno]="alumno"
       [seguimiento]="seguimientoSeleccionado()"
+      [practicaId]="alumno?.id_practica"
       (closed)="bitacorasOpen.set(false); reopened.emit()"
+      (avanceActualizado)="onAvanceActualizado($event)"
     />
   `,
 })
 export class SeguimientosModalComponent implements OnChanges {
   @Input() isOpen  = false;
   @Input() alumno: any = null;
-  @Output() closed   = new EventEmitter<void>();
-  @Output() reopened = new EventEmitter<void>();
+  @Output() closed            = new EventEmitter<void>();
+  @Output() reopened          = new EventEmitter<void>();
+  @Output() avanceActualizado = new EventEmitter<{ id: any; avance: number }>();
 
   seguimientos = signal<any[]>([]);
   loading      = signal(false);
@@ -265,5 +268,11 @@ export class SeguimientosModalComponent implements OnChanges {
     this.openMenu.set(null);
     if (!item.actas_pdf) return;
     window.open(`http://localhost:3001/uploads/actas/${item.actas_pdf}`, '_blank');
+  }
+
+  onAvanceActualizado(avance: number): void {
+    if (this.alumno) {
+      this.avanceActualizado.emit({ id: this.alumno.id, avance });
+    }
   }
 }

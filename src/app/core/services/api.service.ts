@@ -132,6 +132,12 @@ export class ApiService {
       this.http.patch(`${BASE2}/etapa-practica/observacion/${idPractica}`, { observacion })
     );
   }
+  async actualizarAvancePractica(idPractica: string | number): Promise<any> {
+    // El backend calcula el avance internamente — no necesitamos enviar el valor
+    return firstValueFrom(
+      this.http.patch(`${BASE2}/etapa-practica/avance/${idPractica}`, {})
+    );
+  }
 
   // ── Seguimientos ──────────────────────────────────────────────────────────
   async obtenerSeguimientos(idAlumno: string): Promise<any[]> {

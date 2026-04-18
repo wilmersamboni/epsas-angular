@@ -184,11 +184,11 @@ import { ApiService } from '../../../core/services/api.service';
               Cancelar
             </button>
             <button (click)="guardar()" [disabled]="loading() || loadingData()"
-              class="px-5 py-2 text-sm text-white font-medium rounded-lg transition-all
-                     bg-gradient-to-r from-[#39A900] to-[#5cd600]
-                     hover:opacity-90 disabled:opacity-60">
-              {{ loading() ? 'Creando...' : 'Crear etapa práctica' }}
-            </button>
+  class="px-5 py-2 text-sm text-white font-medium rounded-lg transition-all
+         bg-sena-gradient hover:opacity-90 
+         disabled:opacity-60 disabled:grayscale disabled:cursor-not-allowed">
+  {{ loading() ? 'Creando...' : 'Crear etapa práctica' }}
+</button>
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges,
-         signal, OnInit, ViewChild, ElementRef, HostListener } from '@angular/core';
+         signal, OnInit, ViewChild, ElementRef, HostListener, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
 import { DomSanitizer } from '@angular/platform-browser';
@@ -77,7 +77,7 @@ import { ApiService } from '../../../core/services/api.service';
               </div>
             } @else {
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                @for (item of bitacoras(); track item.id) {
+                @for (item of bitacoras(); track (item.id || $index)) {
                   <div class="bg-white rounded-xl border border-gray-200 hover:border-[#39A900]/30
                               hover:shadow-lg transition-all duration-200 overflow-hidden">
 
@@ -173,30 +173,6 @@ import { ApiService } from '../../../core/services/api.service';
                             </svg>
                             Evaluar
                           </button>
-                          <!-- Dropdown flotante — FUERA del grid de cards, dentro del @if principal -->
-@if (openDropdown() && dropdownPos()) {
-  <div class="fixed z-[70] bg-white border border-gray-200 rounded-xl shadow-xl py-1.5 min-w-[160px]"
-    [style.top.px]="dropdownPos()!.top"
-    [style.left.px]="dropdownPos()!.left">
-    <button type="button"
-      (click)="cambiarEstadoById(openDropdown()!, 'pendiente')"
-      class="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-medium text-yellow-600 hover:bg-yellow-50 transition-colors">
-      <span>🕒</span><span>Pendiente</span>
-    </button>
-    <div class="h-px bg-gray-100 my-1"></div>
-    <button type="button"
-      (click)="cambiarEstadoById(openDropdown()!, 'aceptada')"
-      class="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-medium text-green-600 hover:bg-green-50 transition-colors">
-      <span>✅</span><span>Aceptar</span>
-    </button>
-    <div class="h-px bg-gray-100 my-1"></div>
-    <button type="button"
-      (click)="cambiarEstadoById(openDropdown()!, 'rechazada')"
-      class="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors">
-      <span>❌</span><span>Rechazar</span>
-    </button>
-  </div>
-}
                         </div>
 
                       </div>
@@ -217,6 +193,31 @@ import { ApiService } from '../../../core/services/api.service';
           </div>
         </div>
       </div>
+
+      <!-- Dropdown flotante para evaluar — UNA SOLA instancia, FUERA del @for -->
+      @if (openDropdown() && dropdownPos()) {
+        <div class="fixed z-[70] bg-white border border-gray-200 rounded-xl shadow-xl py-1.5 min-w-[160px]"
+          [style.top.px]="dropdownPos()!.top"
+          [style.left.px]="dropdownPos()!.left">
+          <button type="button"
+            (click)="cambiarEstadoById(openDropdown()!, 'pendiente')"
+            class="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-medium text-yellow-600 hover:bg-yellow-50 transition-colors">
+            <span>🕒</span><span>Pendiente</span>
+          </button>
+          <div class="h-px bg-gray-100 my-1"></div>
+          <button type="button"
+            (click)="cambiarEstadoById(openDropdown()!, 'aceptada')"
+            class="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-medium text-green-600 hover:bg-green-50 transition-colors">
+            <span>✅</span><span>Aceptar</span>
+          </button>
+          <div class="h-px bg-gray-100 my-1"></div>
+          <button type="button"
+            (click)="cambiarEstadoById(openDropdown()!, 'rechazada')"
+            class="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors">
+            <span>❌</span><span>Rechazar</span>
+          </button>
+        </div>
+      }
 
       <!-- Visor PDF -->
       @if (detalleOpen() && bitacoraSeleccionada()) {
@@ -299,10 +300,12 @@ import { ApiService } from '../../../core/services/api.service';
   `,
 })
 export class BitacorasModalComponent implements OnChanges, OnInit {
-  @Input() isOpen      = false;
-  @Input() alumno:     any = null;
+  @Input() isOpen       = false;
+  @Input() alumno:      any = null;
   @Input() seguimiento: any = null;
-  @Output() closed = new EventEmitter<void>();
+  @Input() practicaId:  any = null;   // id de etapa_practica para actualizar avance
+  @Output() closed             = new EventEmitter<void>();
+  @Output() avanceActualizado  = new EventEmitter<number>();
 
   // Agrega estas propiedades en la clase:
   dropdownPos = signal<{ top: number; left: number } | null>(null);
@@ -351,9 +354,35 @@ onDocumentClick(): void {
   resetPdf(): void { this.pdfPage = 1; this.pdfZoom = 1.0; this.pdfTotalPages = 1; }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['isOpen']?.currentValue && this.seguimiento) {
+    const openChange = changes['isOpen'];
+    const segChange  = changes['seguimiento'];
+
+    if (openChange) {
+      if (openChange.currentValue) {
+        // Modal se abre: limpiar datos anteriores y cargar frescos
+        this.resetState();
+        if (this.seguimiento) this.cargarBitacoras();
+      } else {
+        // Modal se cierra: limpiar todo para no mostrar datos viejos al reabrir
+        this.resetState();
+      }
+    } else if (segChange?.currentValue && this.isOpen) {
+      // Cambió el seguimiento con el modal ya abierto (otro alumno)
+      this.resetState();
       this.cargarBitacoras();
     }
+  }
+
+  private resetState(): void {
+    this.bitacoras.set([]);
+    this.openDropdown.set(null);
+    this.dropdownPos.set(null);
+    this.detalleOpen.set(false);
+    this.bitacoraSeleccionada.set(null);
+    this.uploadingId.set(null);
+    this.uploadError.set('');
+    this.pendingUploadItem = null;
+    this.resetPdf();
   }
 
   ngOnInit(): void {
@@ -400,17 +429,37 @@ toggleDropdown(item: any, event: MouseEvent): void {
 
   async cambiarEstado(item: any, estado: string): Promise<void> {
     this.openDropdown.set(null);
+    this.dropdownPos.set(null);
     const bitacoraId = item.id ?? item.id_bitacora;
     try {
       await this.api.actualizarEstadoBitacora(bitacoraId, estado);
-      // Actualiza solo el elemento cambiado sin recargar todo
+
+      // Actualiza el item localmente
       this.bitacoras.update(lista =>
         lista.map(b => (b.id ?? b.id_bitacora) === bitacoraId ? { ...b, estado } : b)
       );
+
+      // Recalcula avance: aceptadas / total * 100
+      this.recalcularAvance();
+
     } catch (e) {
       console.error('Error actualizando estado:', e);
       await this.cargarBitacoras();
     }
+  }
+
+  private recalcularAvance(): void {
+    if (this.practicaId == null) return;
+
+    // El backend suma las bitácoras aceptadas de TODOS los seguimientos
+    // de la etapa práctica (no solo las del seguimiento actual).
+    this.api.actualizarAvancePractica(this.practicaId)
+      .then((res: any) => {
+        const avance = res?.avance ?? 0;
+        console.log(`[Avance] backend calculó → ${avance}%`);
+        this.avanceActualizado.emit(avance);
+      })
+      .catch(e => console.error('[Avance] Error al actualizar en backend:', e));
   }
 
   cambiarEstadoById(id: string, estado: string): void {

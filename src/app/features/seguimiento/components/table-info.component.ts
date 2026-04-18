@@ -445,6 +445,7 @@ function formatDate(d: string): string {
       [alumno]="alumnoSeleccionado"
       (closed)="modalSeguimientos = false"
       (reopened)="modalSeguimientos = true"
+      (avanceActualizado)="onAvanceActualizado($event)"
     />
     <app-observacion-modal
       [isOpen]="modalObservacion"
@@ -491,6 +492,8 @@ export class TableInfoComponent implements OnInit {
   // Computed
   filtered = computed(() => {
   let rows = this.data();
+
+  
 
   const filter = this.filterValue();
   const areas = this.selectedAreas();
@@ -547,45 +550,43 @@ export class TableInfoComponent implements OnInit {
 
   async cargar(): Promise<void> {
   this.loading.set(true);
+
   try {
-    // 🚀 OPTIMIZACIÓN CRÍTICA: Cargar TODO en paralelo
-    const [aprendices, areasData, practicas, todasMatriculas] = await Promise.all([
+    const [
+      aprendices,
+      areasData,
+      practicas,
+      todasMatriculas,
+    ] = await Promise.all([
       this.api.listarAprendices(),
       this.api.listarAreas(),
       this.api.listarPracticas(),
-      this.api.listarTodasMatriculas() // ✅ Nueva llamada optimizada
+      this.api.listarTodasMatriculas()
     ]);
 
-    console.log('📊 Datos cargados:', {
-      aprendices: aprendices.length,
-      areas: areasData.length,
-      practicas: practicas.length,
-      matriculas: todasMatriculas.length
-    });
-
-    // Crear mapas para búsquedas O(1) - Súper rápido
-    // Soporta campo nuevo (matriculaId, camelCase) y viejo (fk_matricula, snake_case)
-    if (practicas.length) console.log('[Practica] primera →', practicas[0]);
+    // 🔹 MAP prácticas por matrícula
     const practicaMap = new Map<any, any>();
     practicas.forEach((p: any) => {
       const key = p.matriculaId ?? p.fk_matricula;
       if (key != null) practicaMap.set(key, p);
     });
 
-    // Soporta camelCase (idPersona) devuelto por TypeORM y snake_case (id_persona) como fallback
+    // 🔹 MAP matrículas por persona
     const matriculasPorPersona = new Map<any, any[]>();
     todasMatriculas.forEach((m: any) => {
       const personaId = m.idPersona ?? m.id_persona ?? m.fk_persona;
       if (personaId == null) return;
+
       if (!matriculasPorPersona.has(personaId)) {
         matriculasPorPersona.set(personaId, []);
       }
+
       matriculasPorPersona.get(personaId)!.push(m);
     });
 
-    // ✅ Transformar datos SIN await - Súper rápido
+    // 🔄 TRANSFORMACIÓN FINAL — síncrona, sin llamadas extra por fila
     const transformados = aprendices.map((persona: any) => {
-      // Soporta camelCase (idPersona) y snake_case (id_persona)
+
       const personaId = persona.idPersona ?? persona.id_persona;
       const matriculas = matriculasPorPersona.get(personaId) || [];
 
@@ -593,9 +594,11 @@ export class TableInfoComponent implements OnInit {
         .map((m: any) => practicaMap.get(m.idMatricula ?? m.id_matricula))
         .find((p: any) => p != null) ?? null;
 
-      // Datos del curso vienen anidados en la matrícula (eager loading)
       const primeraMatricula = matriculas[0] ?? null;
       const curso = primeraMatricula?.curso ?? null;
+
+      // Avance viene directamente del campo guardado en etapa_practica
+      const avance = practica?.avance ?? 0;
 
       return {
         id: personaId,
@@ -605,22 +608,19 @@ export class TableInfoComponent implements OnInit {
         programa: curso?.programa?.nombre ?? '',
         area: curso?.area?.nombre ?? '',
         number: curso?.codigo ?? '',
-        estado: persona.estado,
+        estado: practica?.estado ?? persona.estado,
         startDate: (practica?.fecha_inicio ?? practica?.fechaInicio)
           ? formatDate(practica.fecha_inicio ?? practica.fechaInicio) : '',
-        endDate:   (practica?.fecha_fin    ?? practica?.fechaFin)
-          ? formatDate(practica.fecha_fin    ?? practica.fechaFin)    : '',
-        avance:      practica?.avance      ?? '',
+        endDate: (practica?.fecha_fin ?? practica?.fechaFin)
+          ? formatDate(practica.fecha_fin ?? practica.fechaFin) : '',
+        avance,
         observacion: practica?.observacion ?? '',
-        id_practica: practica?.id ?? practica?.id_etapa_practica ?? null,
-        seguimientos: persona.total_seguimientos ?? 0,
+        id_practica: practica?.id ?? null,
       };
     });
 
     this.data.set(transformados);
     this.areas.set(areasData.map((a: any) => a.nombre));
-
-    console.log('✅ Transformación completada:', transformados.length, 'registros');
 
   } catch (e: any) {
     console.error('[TableInfo] Error:', e?.message ?? e);
@@ -720,4 +720,13 @@ pageRange(): number[] {
   abrirSeguimientos(item: any):  void { this.alumnoSeleccionado = item; this.modalSeguimientos  = true; }
   abrirObservacion(item: any):   void { this.alumnoObservacion  = item; this.modalObservacion   = true; }
   abrirCrearPractica(item: any): void { this.alumnoParaPractica = item; this.modalCrearPractica = true; }
+
+  /** Actualiza el avance de un aprendiz en caliente sin recargar toda la tabla */
+  onAvanceActualizado(event: { id: any; avance: number }): void {
+    this.data.update(lista =>
+      lista.map(item =>
+        item.id === event.id ? { ...item, avance: event.avance } : item
+      )
+    );
+  }
 }
