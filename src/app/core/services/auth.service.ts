@@ -9,72 +9,59 @@ export class AuthService {
 
   private USE_BACKEND = false;
 
-  // ── Estado reactivo (señales, equivale al useState de React) ──────────────
+  // ── Estado reactivo ─────────────────────────────────────────
   private _user = signal<Usuario | null>(this._loadUser());
   readonly user = this._user.asReadonly();
   readonly isAuthenticated = computed(() => this._user() !== null);
 
   constructor(private http: HttpClient, private router: Router) {}
 
-  // ── Inicializar desde localStorage ────────────────────────────────────────
+  // ── Inicializar desde localStorage ─────────────────────────
   private _loadUser(): Usuario | null {
     const saved = localStorage.getItem('user');
     return saved ? JSON.parse(saved) : null;
-    
   }
 
-  // ── login() ────────────────────────────────────────────────────────────────
+  // ── login() ────────────────────────────────────────────────
   async login(data: LoginRequest): Promise<void> {
-<<<<<<< HEAD
     const resp = await firstValueFrom(
       this.http.post<LoginResponse>(
-        'http://localhost:3000/token/generar_token_jwsv',
+        'http://localhost:3000/api/auth/login',
         data,
         { withCredentials: true }
       )
     );
+
     localStorage.setItem('user', JSON.stringify(resp.usuario));
+    localStorage.setItem('centroId', resp.centroId ?? '');
+    localStorage.setItem('cargo', resp.usuario.cargo ?? '');
     localStorage.setItem('token', resp.token);
+
     this._user.set(resp.usuario);
   }
-=======
-  const resp = await firstValueFrom(
-    this.http.post<LoginResponse>(
-      'http://localhost:3000/api/auth/login',
-      data,
-      { withCredentials: true }
-    )
-  );
-  localStorage.setItem('user', JSON.stringify(resp.usuario));
-  //localStorage.setItem('token', resp.token);
-  localStorage.setItem('centroId', resp.centroId ?? '');
-  localStorage.setItem('cargo', resp.usuario.cargo ?? '');
-  this._user.set(resp.usuario);
-  
-}
->>>>>>> origin/master
 
-  // ── logout() ──────────────────────────────────────────────────────────────
+  // ── logout() ──────────────────────────────────────────────
   logout(): void {
     localStorage.removeItem('user');
-    //localStorage.removeItem('token');
+    localStorage.removeItem('token');
     localStorage.removeItem('centroId');
     localStorage.removeItem('cargo');
+
     this._user.set(null);
     this.router.navigate(['/login'], { replaceUrl: true });
-    
   }
 
-  // ── actualizarUser() ──────────────────────────────────────────────────────
+  // ── actualizarUser() ──────────────────────────────────────
   actualizarUser(datos: Partial<Usuario>): void {
     const current = this._user();
     const nuevo = { ...current, ...datos };
+
     localStorage.setItem('user', JSON.stringify(nuevo));
     this._user.set(nuevo);
   }
 
-  // ── Obtener token ─────────────────────────────────────────────────────────
+  // ── Obtener token ─────────────────────────────────────────
   getToken(): string | null {
     return localStorage.getItem('token');
   }
-
+}

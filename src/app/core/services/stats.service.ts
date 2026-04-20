@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Observable, forkJoin, map } from 'rxjs';
-import { from } from 'rxjs';
-import { ApiService } from './api.service'; // ajusta la ruta
+import { Observable, forkJoin, map, from } from 'rxjs';
+import { ApiService } from './api.service';
 
 export interface Stats {
   aprendices: number;
@@ -24,15 +23,9 @@ export interface DashboardData {
 @Injectable({ providedIn: 'root' })
 export class StatsService {
 
-<<<<<<< HEAD
-  private apiUrl = 'http://localhost:3000/api'; 
-
-  constructor(private http: HttpClient) {}
-=======
   constructor(private apiService: ApiService) {}
->>>>>>> origin/master
 
-  // Mantener por compatibilidad — ahora delega a getDashboardData
+  // Mantener por compatibilidad
   getStats(): Observable<Stats> {
     return this.getDashboardData().pipe(map(d => d.stats));
   }
@@ -44,40 +37,43 @@ export class StatsService {
     }).pipe(
       map(({ aprendices, practicas }) => {
 
-        // ── Tarjetas ────────────────────────────────────────────────────────
-        const totalAprendices  = aprendices.length;
+        const totalAprendices = aprendices.length;
 
-        const activas = practicas.filter(p =>
-          ['activa', 'activo', 'en_curso', 'en curso'].includes(p.estado?.toLowerCase())
+        const activas = practicas.filter((p: any) =>
+          ['activa', 'activo', 'en_curso', 'en curso']
+            .includes(p.estado?.toLowerCase())
         );
-        const desertadas = practicas.filter(p =>
-          ['desercion', 'desertada', 'desertado', 'retirado', 'retirada'].includes(p.estado?.toLowerCase())
+
+        const desertadas = practicas.filter((p: any) =>
+          ['desercion', 'desertada', 'desertado', 'retirado', 'retirada']
+            .includes(p.estado?.toLowerCase())
         );
-        const certificadas = practicas.filter(p =>
-          ['certificada', 'certificado', 'completada', 'completado'].includes(p.estado?.toLowerCase())
+
+        const certificadas = practicas.filter((p: any) =>
+          ['certificada', 'certificado', 'completada', 'completado']
+            .includes(p.estado?.toLowerCase())
         );
+
         const instructores = aprendices.filter((p: any) =>
           p.cargo === 'instructor' || p.cargo === 'administrador'
         );
 
         const stats: Stats = {
-          aprendices:   totalAprendices,
-          seguimientos: activas.length,      // etapas productivas activas
-          documentos:   desertadas.length,   // etapas desertadas
-          instructores: certificadas.length  // ejecuciones con éxito
+          aprendices: totalAprendices,
+          seguimientos: activas.length,
+          documentos: desertadas.length,
+          instructores: certificadas.length
         };
-        console.log('Práctica enriquecida:', practicas[0])
 
-        // ── Donas ───────────────────────────────────────────────────────────
-        const base = totalAprendices || 1; // evita división por 0
+        const base = totalAprendices || 1;
 
         const etapaActiva: DonaStats = {
-          total:      activas.length,
+          total: activas.length,
           porcentaje: Math.round((activas.length / base) * 100)
         };
 
         const etapaCertificada: DonaStats = {
-          total:      certificadas.length,
+          total: certificadas.length,
           porcentaje: Math.round((certificadas.length / base) * 100)
         };
 
