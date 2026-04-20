@@ -73,16 +73,8 @@ export class AuthService {
     this._user.set(nuevo);
   }
 
-<<<<<<< HEAD
   // ── Obtener token ─────────────────────────────────────────────────────────
   getToken(): string | null {
     return localStorage.getItem('token');
   }
-=======
-  // ── Obtener el token del storage ──────────────────────────────────────────
-  // getToken(): string | null {
-  //   return localStorage.getItem('token');
-  // }
 
->>>>>>> origin/master
-}
