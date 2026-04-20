@@ -4,6 +4,11 @@ import { firstValueFrom } from 'rxjs';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { CONFIG, MODULOS, Modulo } from '../config/admin.config';
 
+export interface OpcionSelect {
+  label: string;
+  value: any;
+}
+
 @Injectable()
 export class AdminService {
 
@@ -19,6 +24,9 @@ export class AdminService {
   saving        = signal(false);
   modalError    = signal<string | null>(null);
   modalForm:    Record<string, any> = {};
+
+  /** Opciones de selects para el modal activo: { campo → [{label, value}] } */
+  opcionesModal: Record<string, OpcionSelect[]> = {};
 
   // ── Paginación ─────────────────────────────────────────
   paginaActual       = signal(1);
@@ -36,7 +44,7 @@ export class AdminService {
   }
 
   // ── DATA BASE ──────────────────────────────────────────
-  private allActiveData = computed(() => 
+  private allActiveData = computed(() =>
     this.data()[this.activeTab()] ?? []
   );
 
@@ -58,35 +66,38 @@ export class AdminService {
   activeData = computed(() => {
     const inicio = (this.paginaActual() - 1) * this.registrosPorPagina();
     const fin = inicio + this.registrosPorPagina();
-
     return this.filteredData().slice(inicio, fin);
   });
 
   // ── COLUMNAS ──────────────────────────────────────────
- activeColumns = computed(() => {
-  const mod = this.activeTab();
-  const cfg = CONFIG[mod];
+  activeColumns = computed(() => {
+    const mod = this.activeTab();
+    const cfg = CONFIG[mod];
 
-  // 🔥 prioridad a columnas definidas
-  if (cfg.columnas) return cfg.columnas;
+    if (cfg.columnas) return cfg.columnas;
 
-  const rows = this.allActiveData();
-  if (!rows.length) return [];
+    const rows = this.allActiveData();
+    if (!rows.length) return [];
 
-  return Object.keys(rows[0]).filter(k => {
-    const key = k.toLowerCase();
-    return (
-      !key.includes('password') &&
-      !key.includes('token') &&
-      !key.includes('secret') &&
-      !key.startsWith('id_') &&
-      !key.startsWith('fk_') &&
-      key !== 'id'
-    );
+    return Object.keys(rows[0]).filter(k => {
+      const key = k.toLowerCase();
+      return (
+        !key.includes('password') &&
+        !key.includes('token') &&
+        !key.includes('secret') &&
+        !key.startsWith('id_') &&
+        !key.startsWith('fk_') &&
+        key !== 'id'
+      );
+    });
   });
-});
 
   editableColumns = computed(() => {
+    const mod = this.activeTab();
+    const cfg = CONFIG[mod];
+
+    if (cfg.campos) return cfg.campos;
+
     return this.activeColumns().filter(c =>
       !c.startsWith('id_') && !c.startsWith('fk_')
     );
@@ -112,62 +123,108 @@ export class AdminService {
 
   // ── HTTP ──────────────────────────────────────────────
   async cargarTodos(): Promise<void> {
-  // 🔥 primero los datos base
-  await this.cargar('personas');
-  await this.cargar('cursos');
+    // Primero catálogos base que otros módulos necesitan como selectores
+    await this.cargar('departamentos');
+    await this.cargar('municipios');
+    await this.cargar('centros');
+    await this.cargar('sedes');
+    await this.cargar('areas');
+    await this.cargar('programas');
+    await this.cargar('personas');
+    await this.cargar('cursos');
 
-  // luego el resto
-  for (const mod of MODULOS) {
-    if (mod !== 'personas' && mod !== 'cursos') {
-      await this.cargar(mod);
+    // Resto de módulos
+    for (const mod of MODULOS) {
+      const yaResueltos = ['departamentos','municipios','centros','sedes','areas','programas','personas','cursos'];
+      if (!yaResueltos.includes(mod)) {
+        await this.cargar(mod);
+      }
     }
   }
-}
+
+  /**
+   * Aplana los campos de una fila que sean objetos anidados.
+   * Extrae el valor más representativo para mostrar en la tabla.
+   */
+  private aplanarFila(fila: any): any {
+    const resultado: any = {};
+    for (const [clave, valor] of Object.entries(fila)) {
+      if (
+        valor !== null &&
+        typeof valor === 'object' &&
+        !Array.isArray(valor) &&
+        !(valor instanceof Date)
+      ) {
+        const obj = valor as any;
+        resultado[clave] =
+          obj.nombre ??
+          obj.codigo ??
+          obj.descripcion ??
+          obj.name ??
+          Object.values(obj).find(v => typeof v === 'string') ??
+          '—';
+      } else {
+        resultado[clave] = valor;
+      }
+    }
+    return resultado;
+  }
 
   async cargar(mod: Modulo): Promise<void> {
-    
-  this.loading.set(true);
-  try {
-    const result: any = await firstValueFrom(this.http.get(CONFIG[mod].listar));
-    let rows = Array.isArray(result) ? result : result?.data ?? [];
+    this.loading.set(true);
+    try {
+      const result: any = await firstValueFrom(this.http.get(CONFIG[mod].listar));
+      let rows = Array.isArray(result) ? result : result?.data ?? [];
 
-    // 🔥 transformación para matriculas
-    if (mod === 'matriculas') {
-      const personas = this.data()['personas'] || [];
-      const cursos = this.data()['cursos'] || [];
-
-      rows = rows.map((m: any) => {
-        const estudiante = personas.find(p => p.id_persona === m.fk_persona);
-        const curso = cursos.find(c => c.id_curso === m.fk_curso);
-
-        return {
+      // Transformación especial para matrículas
+      // Usa las relaciones eager cargadas directamente (m.persona, m.curso)
+      // ANTES de que aplanarFila las sobrescriba con strings
+      if (mod === 'matriculas') {
+        rows = rows.map((m: any) => ({
           ...m,
-          estudiante: estudiante?.nombre || '—',
-          curso: curso?.codigo || '—',
-        };
-      });
+          estudiante: m.persona?.nombre  ?? m.persona?.name  ?? '—',
+          curso:      m.curso?.codigo    ?? m.curso?.nombre  ?? '—',
+        }));
+      }
+
+      // Aplana objetos anidados (relaciones eager) para mostrar texto en tabla
+      rows = rows.map((fila: any) => this.aplanarFila(fila));
+
+      this.data.update(d => ({ ...d, [mod]: rows }));
+
+    } catch (e: any) {
+      console.error(`[Admin] Error cargando ${mod}:`, e?.message);
+    } finally {
+      this.loading.set(false);
     }
-
-    this.data.update(d => ({ ...d, [mod]: rows }));
-
-    if (mod === 'matriculas') {
-  console.log('MATRICULAS RAW:', rows);
-  console.log('PERSONAS:', this.data()['personas']);
-  console.log('CURSOS:', this.data()['cursos']);
-}
-
-  } catch (e: any) {
-    console.error(`[Admin] Error cargando ${mod}:`, e?.message);
-  } finally {
-    this.loading.set(false);
   }
-}
+
+  // ── SELECTORES ────────────────────────────────────────
+  /**
+   * Construye las opciones de los <select> del módulo activo
+   * a partir de los datos ya cargados en memoria.
+   */
+  private buildOpciones(mod: Modulo): Record<string, OpcionSelect[]> {
+    const cfg = CONFIG[mod];
+    if (!cfg.selectores) return {};
+
+    const opciones: Record<string, OpcionSelect[]> = {};
+    for (const [campo, selector] of Object.entries(cfg.selectores)) {
+      const items = this.data()[selector.modulo] ?? [];
+      opciones[campo] = items.map(item => ({
+        label: item[selector.label] ?? '—',
+        value: item[selector.value],
+      }));
+    }
+    return opciones;
+  }
 
   // ── MODAL ─────────────────────────────────────────────
   abrirModal(): void {
     this.editando.set(null);
     this.modalForm = {};
     this.editableColumns().forEach(c => (this.modalForm[c] = ''));
+    this.opcionesModal = this.buildOpciones(this.activeTab());
     this.modalError.set(null);
     this.modalOpen.set(true);
   }
@@ -175,6 +232,7 @@ export class AdminService {
   editarFila(row: any): void {
     this.editando.set(row);
     this.modalForm = { ...row };
+    this.opcionesModal = this.buildOpciones(this.activeTab());
     this.modalError.set(null);
     this.modalOpen.set(true);
   }
@@ -183,6 +241,24 @@ export class AdminService {
     this.modalOpen.set(false);
     this.editando.set(null);
     this.modalError.set(null);
+  }
+
+  /**
+   * Sanitiza el formulario antes de enviarlo al backend:
+   * - Omite campos vacíos
+   * - Convierte strings numéricos puros a number (ej: "5" → 5)
+   */
+  private sanitizarForm(form: Record<string, any>): Record<string, any> {
+    const resultado: Record<string, any> = {};
+    for (const [clave, valor] of Object.entries(form)) {
+      if (valor === '' || valor === null || valor === undefined) continue;
+      if (typeof valor === 'string' && /^\d+$/.test(valor.trim())) {
+        resultado[clave] = parseInt(valor.trim(), 10);
+      } else {
+        resultado[clave] = valor;
+      }
+    }
+    return resultado;
   }
 
   // ── CRUD ──────────────────────────────────────────────
@@ -194,13 +270,14 @@ export class AdminService {
 
     try {
       const registroExistente = this.editando();
+      const formData = this.sanitizarForm(this.modalForm);
 
       if (registroExistente) {
         await firstValueFrom(
-          this.http.put(cfg.actualizar!(registroExistente[cfg.idKey]), this.modalForm)
+          this.http.put(cfg.actualizar!(registroExistente[cfg.idKey]), formData)
         );
       } else {
-        await firstValueFrom(this.http.post(cfg.crear!, this.modalForm));
+        await firstValueFrom(this.http.post(cfg.crear!, formData));
       }
 
       this.cerrarModal();
@@ -239,13 +316,13 @@ export class AdminService {
             severity: 'success',
             summary: 'Eliminado',
             detail: 'Registro eliminado correctamente.',
-            life: 3000
+            life: 3000,
           });
         } catch (e: any) {
           const detail = e?.error?.mensaje ?? e?.error?.error ?? 'No se pudo eliminar.';
           this.msg.add({ severity: 'error', summary: 'No se pudo eliminar', detail, life: 5000 });
         }
-      }
+      },
     });
   }
 }

@@ -1,5 +1,44 @@
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap');
 
+.export-buttons {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.btn-export {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.btn-export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-export:not(:disabled):hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.btn-pdf {
+  background: #dc2626;
+  color: #fff;
+}
+
+.btn-excel {
+  background: #16a34a;
+  color: #fff;
+}
+
 .dashboard {
   font-family: 'Sora', sans-serif;
   padding: 32px;

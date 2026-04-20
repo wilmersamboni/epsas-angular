@@ -1,4 +1,8 @@
-/* You can add global styles to this file, and also import other style files */
-
-@import 'tailwindcss';
+@import "tailwindcss";
 @import 'primeicons/primeicons.css';
+
+@layer components {
+  .bg-sena-gradient {
+    background: linear-gradient(to right, #39A900, #5cd600) !important;
+  }
+}

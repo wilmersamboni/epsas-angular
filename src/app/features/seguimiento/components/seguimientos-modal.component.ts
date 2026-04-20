@@ -164,15 +164,18 @@ import { BitacorasModalComponent } from './bitacoras-modal.component';
       [isOpen]="bitacorasOpen()"
       [alumno]="alumno"
       [seguimiento]="seguimientoSeleccionado()"
+      [practicaId]="alumno?.id_practica"
       (closed)="bitacorasOpen.set(false); reopened.emit()"
+      (avanceActualizado)="onAvanceActualizado($event)"
     />
   `,
 })
 export class SeguimientosModalComponent implements OnChanges {
   @Input() isOpen  = false;
   @Input() alumno: any = null;
-  @Output() closed   = new EventEmitter<void>();
-  @Output() reopened = new EventEmitter<void>();
+  @Output() closed            = new EventEmitter<void>();
+  @Output() reopened          = new EventEmitter<void>();
+  @Output() avanceActualizado = new EventEmitter<{ id: any; avance: number }>();
 
   seguimientos = signal<any[]>([]);
   loading      = signal(false);
@@ -200,7 +203,11 @@ export class SeguimientosModalComponent implements OnChanges {
     if (!this.alumno) return;
     this.loading.set(true);
     try {
-      const data = await this.api.obtenerSeguimientos(this.alumno.id);
+      // Si el alumno ya tiene id_practica, lo usamos directamente (más eficiente)
+      const etapaId = this.alumno.id_practica ?? this.alumno.idPractica ?? null;
+      const data = etapaId
+        ? await this.api.obtenerSeguimientosPorEtapa(etapaId)
+        : await this.api.obtenerSeguimientos(this.alumno.id);
       this.seguimientos.set(data);
     } catch (e) { console.error(e); }
     finally { this.loading.set(false); }
@@ -261,5 +268,11 @@ export class SeguimientosModalComponent implements OnChanges {
     this.openMenu.set(null);
     if (!item.actas_pdf) return;
     window.open(`http://localhost:3001/uploads/actas/${item.actas_pdf}`, '_blank');
+  }
+
+  onAvanceActualizado(avance: number): void {
+    if (this.alumno) {
+      this.avanceActualizado.emit({ id: this.alumno.id, avance });
+    }
   }
 }

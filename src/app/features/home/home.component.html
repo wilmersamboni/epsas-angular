@@ -2,11 +2,32 @@
 
   <!-- Header -->
   <div class="dash-header">
-    <div>
-      <h1 class="dash-title">Panel de Control</h1>
-      <p class="dash-date">{{ fecha }}</p>
-    </div>
+  <div>
+    <h1 class="dash-title">Panel de Control</h1>
+    <p class="dash-date">{{ fecha }}</p>
   </div>
+
+  <!-- Botones de exportación -->
+  <div class="export-buttons">
+    <button class="btn-export btn-pdf mt-5" (click)="exportarPDF()" [disabled]="exportando || cargando">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0
+             0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+      </svg>
+      {{ exportando ? 'Exportando...' : 'Exportar PDF' }}
+    </button>
+
+    <button class="btn-export btn-excel mt-5" (click)="exportarExcel()" [disabled]="exportando || cargando">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586
+             a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      {{ exportando ? 'Exportando...' : 'Exportar Excel' }}
+    </button>
+  </div>
+</div>
 
   <!-- Contenido principal -->
   <div class="dash-body">
@@ -92,108 +113,101 @@
     </div>
 
     <!-- Columna derecha: gráfico circular -->
-    <div class="dash-right">
-      <div class="donut-card">
-        <div class="donut-header">
-          <div>
-            <h3 class="donut-title">Etapa Productiva</h3>
-            <p class="donut-sub">Total aprendices en etapa productiva</p>
-          </div>
-        </div>
-
-        <div class="donut-wrapper">
-          <svg class="donut-svg" viewBox="0 0 120 120">
-            <!-- Fondo -->
-            <circle cx="60" cy="60" r="54" fill="none" stroke="#f1f5f9" stroke-width="10"/>
-            <!-- Progreso -->
-            <circle
-              cx="60" cy="60" r="54"
-              fill="none"
-              stroke="#39A900"
-              stroke-width="10"
-              stroke-linecap="round"
-              [attr.stroke-dasharray]="circleDash"
-              stroke-dashoffset="0"
-              transform="rotate(-90 60 60)"
-              class="donut-progress"
-            />
-          </svg>
-          <div class="donut-center">
-            <span class="donut-number" *ngIf="!cargando; else skeletonSmall">
-              {{ etapaProductiva.total }}
-            </span>
-            <span class="donut-pct">{{ etapaProductiva.porcentaje }}%</span>
-          </div>
-        </div>
-
-        <div class="donut-legend">
-          <div class="legend-item">
-            <span class="legend-dot dot-green"></span>
-            <span class="legend-text">En etapa productiva</span>
-            <span class="legend-val">{{ etapaProductiva.total }}</span>
-          </div>
-          <div class="legend-item">
-            <span class="legend-dot dot-gray"></span>
-            <span class="legend-text">Otros aprendices</span>
-            <span class="legend-val">{{ stats.aprendices - etapaProductiva.total }}</span>
-          </div>
-        </div>
-
+    <!-- Dona 1: Etapa Productiva Activa -->
+<div class="dash-right">
+  <div class="donut-card">
+    <div class="donut-header">
+      <div>
+        <h3 class="donut-title">Etapa Productiva</h3>
+        <p class="donut-sub">Total aprendices en etapa productiva</p>
       </div>
     </div>
 
-    <!-- Columna derecha: gráfico circular -->
-    <div class="dash-right">
-      <div class="donut-card">
-        <div class="donut-header">
-          <div>
-            <h3 class="donut-title">Etapa Productiva Certificadas</h3>
-            <p class="donut-sub">Total aprendices certificados</p>
-          </div>
-        </div>
-
-        <div class="donut-wrapper">
-          <svg class="donut-svg" viewBox="0 0 120 120">
-            <!-- Fondo -->
-            <circle cx="60" cy="60" r="54" fill="none" stroke="#f1f5f9" stroke-width="10"/>
-            <!-- Progreso -->
-            <circle
-              cx="60" cy="60" r="54"
-              fill="none"
-              stroke="#39A900"
-              stroke-width="10"
-              stroke-linecap="round"
-              [attr.stroke-dasharray]="circleDash"
-              stroke-dashoffset="0"
-              transform="rotate(-90 60 60)"
-              class="donut-progress"
-            />
-          </svg>
-          <div class="donut-center">
-            <span class="donut-number" *ngIf="!cargando; else skeletonSmall">
-              {{ etapaProductiva.total }}
-            </span>
-            <span class="donut-pct">{{ etapaProductiva.porcentaje }}%</span>
-          </div>
-        </div>
-
-        <div class="donut-legend">
-          <div class="legend-item">
-            <span class="legend-dot dot-green"></span>
-            <span class="legend-text">Certificadas</span>
-            <span class="legend-val">{{ etapaProductiva.total }}</span>
-          </div>
-          <div class="legend-item">
-            <span class="legend-dot dot-gray"></span>
-            <span class="legend-text">Pendientes por certificar</span>
-            <span class="legend-val">{{ stats.aprendices - etapaProductiva.total }}</span>
-          </div>
-        </div>
-
+    <div class="donut-wrapper">
+      <svg class="donut-svg" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="54" fill="none" stroke="#f1f5f9" stroke-width="10"/>
+        <circle
+          cx="60" cy="60" r="54"
+          fill="none"
+          stroke="#39A900"
+          stroke-width="10"
+          stroke-linecap="round"
+          [attr.stroke-dasharray]="circleDashFor(etapaActiva.porcentaje)"
+          stroke-dashoffset="0"
+          transform="rotate(-90 60 60)"
+          class="donut-progress"
+        />
+      </svg>
+      <div class="donut-center">
+        <span class="donut-number" *ngIf="!cargando; else skeletonSmall">
+          {{ etapaActiva.total }}
+        </span>
+        <span class="donut-pct">{{ etapaActiva.porcentaje }}%</span>
       </div>
     </div>
 
+    <div class="donut-legend">
+      <div class="legend-item">
+        <span class="legend-dot dot-green"></span>
+        <span class="legend-text">En etapa productiva</span>
+        <span class="legend-val">{{ etapaActiva.total }}</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-dot dot-gray"></span>
+        <span class="legend-text">Otros aprendices</span>
+        <span class="legend-val">{{ stats.aprendices - etapaActiva.total }}</span>
+      </div>
+    </div>
   </div>
+</div>
+
+<!-- Dona 2: Etapas Certificadas -->
+<div class="dash-right">
+  <div class="donut-card">
+    <div class="donut-header">
+      <div>
+        <h3 class="donut-title">Etapa Productiva Certificadas</h3>
+        <p class="donut-sub">Total aprendices certificados</p>
+      </div>
+    </div>
+
+    <div class="donut-wrapper">
+      <svg class="donut-svg" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="54" fill="none" stroke="#f1f5f9" stroke-width="10"/>
+        <circle
+          cx="60" cy="60" r="54"
+          fill="none"
+          stroke="#2563eb"
+          stroke-width="10"
+          stroke-linecap="round"
+          [attr.stroke-dasharray]="circleDashFor(etapaCertificada.porcentaje)"
+          stroke-dashoffset="0"
+          transform="rotate(-90 60 60)"
+          class="donut-progress"
+        />
+      </svg>
+      <div class="donut-center">
+        <span class="donut-number" *ngIf="!cargando; else skeletonSmall">
+          {{ etapaCertificada.total }}
+        </span>
+        <span class="donut-pct">{{ etapaCertificada.porcentaje }}%</span>
+      </div>
+    </div>
+
+    <div class="donut-legend">
+      <div class="legend-item">
+        <span class="legend-dot dot-blue"></span>
+        <span class="legend-text">Certificadas</span>
+        <span class="legend-val">{{ etapaCertificada.total }}</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-dot dot-gray"></span>
+        <span class="legend-text">Pendientes por certificar</span>
+        <span class="legend-val">{{ stats.aprendices - etapaCertificada.total }}</span>
+      </div>
+    </div>
+  </div>
+</div>
 
 </div>
 

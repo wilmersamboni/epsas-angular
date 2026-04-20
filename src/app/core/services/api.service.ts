@@ -4,7 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { Area, Curso, Formato, Persona } from '../../shared/models';
 
 const BASE  = '/api';   // → http://localhost:3000 vía proxy
-const BASE2 = '/v2';  // → http://localhost:3001 vía proxy
+const BASE2 = '/api2';  // → http://localhost:3001 vía proxy
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -12,7 +12,7 @@ export class ApiService {
 
   // ── Áreas ────────────────────────────────────────────────────────────────
   async listarAreas(params?: any): Promise<Area[]> {
-    const resp: any = await firstValueFrom(this.http.get(`${BASE}/area/listar_jwsv`, { params }));
+    const resp: any = await firstValueFrom(this.http.get(`${BASE}/areas`, { params }));
     if (Array.isArray(resp)) return resp;
     if (resp?.data  && Array.isArray(resp.data))  return resp.data;
     if (resp?.areas && Array.isArray(resp.areas)) return resp.areas;
@@ -58,7 +58,7 @@ export class ApiService {
 
   // ── Personas / Aprendices ─────────────────────────────────────────────────
   async listarAprendices(): Promise<any[]> {
-    const resp: any = await firstValueFrom(this.http.get(`${BASE}/persona/aprendices`));
+    const resp: any = await firstValueFrom(this.http.get(`${BASE}/personas`));
     // El backend puede devolver: array directo, { data: [] }, { aprendices: [] }, etc.
     if (Array.isArray(resp)) return resp;
     if (resp?.data   && Array.isArray(resp.data))       return resp.data;
@@ -66,6 +66,14 @@ export class ApiService {
     if (resp?.personas   && Array.isArray(resp.personas))   return resp.personas;
     return [];
   }
+  /** Retorna solo personas con cargo 'instructor' o 'administrador' */
+  async listarInstructores(): Promise<any[]> {
+    const todas = await this.listarAprendices();
+    return todas.filter((p: any) =>
+      p.cargo === 'instructor' || p.cargo === 'administrador'
+    );
+  }
+
   async buscarPersona(id: number): Promise<Persona> {
     return firstValueFrom(this.http.get<Persona>(`${BASE}/persona/buscar_jwsv/${id}`));
   }
@@ -77,9 +85,9 @@ export class ApiService {
   }
 
   // ── Matrículas ────────────────────────────────────────────────────────────
-  async listarMatriculasPorAlumno(idAlumno: number): Promise<any[]> {
+  async listarMatriculasPorAlumno(idAlumno: string): Promise<any[]> {
     try {
-      const resp: any = await firstValueFrom(this.http.get(`${BASE}/matricula/por-alumno/${idAlumno}`));
+      const resp: any = await firstValueFrom(this.http.get(`${BASE}/matriculas/persona/${idAlumno}`));
       if (Array.isArray(resp)) return resp;
       if (resp?.data      && Array.isArray(resp.data))      return resp.data;
       if (resp?.matriculas && Array.isArray(resp.matriculas)) return resp.matriculas;
@@ -90,7 +98,7 @@ export class ApiService {
   // ✅ NUEVO: Obtener TODAS las matrículas de una vez (optimización)
   async listarTodasMatriculas(): Promise<any[]> {
     try {
-      const resp: any = await firstValueFrom(this.http.get(`${BASE}/matricula/todas`));
+      const resp: any = await firstValueFrom(this.http.get(`${BASE}/matriculas`));
       if (Array.isArray(resp)) return resp;
       if (resp?.data       && Array.isArray(resp.data))       return resp.data;
       if (resp?.matriculas && Array.isArray(resp.matriculas)) return resp.matriculas;
@@ -104,7 +112,7 @@ export class ApiService {
   // ── Prácticas ─────────────────────────────────────────────────────────────
   async listarPracticas(): Promise<any[]> {
     try {
-      const resp: any = await firstValueFrom(this.http.get(`${BASE2}/practica/listar`));
+      const resp: any = await firstValueFrom(this.http.get(`${BASE2}/etapa-practica`));
       if (Array.isArray(resp)) return resp;
       if (resp?.data      && Array.isArray(resp.data))      return resp.data;
       if (resp?.practicas && Array.isArray(resp.practicas)) return resp.practicas;
@@ -112,25 +120,42 @@ export class ApiService {
     } catch { return []; }
   }
   async crearPractica(datos: {
-    fk_matricula: number; fk_modalidad: number;
+    matriculaId: string; modalidadId: string;
     fecha_inicio: string; fecha_fin: string;
-    fk_empresa: number; estado: string; observacion: string;
+    empresaId: string; estado: string; observacion: string;
+    instructorId?: string;
   }): Promise<any> {
-    return firstValueFrom(this.http.post(`${BASE2}/practica/registrar`, datos));
+    return firstValueFrom(this.http.post(`${BASE2}/etapa-practica`, datos));
   }
   async actualizarObservacion(idPractica: number, observacion: string): Promise<any> {
     return firstValueFrom(
-      this.http.patch(`${BASE2}/practica/observacion/${idPractica}`, { observacion })
+      this.http.patch(`${BASE2}/etapa-practica/observacion/${idPractica}`, { observacion })
+    );
+  }
+  async actualizarAvancePractica(idPractica: string | number): Promise<any> {
+    // El backend calcula el avance internamente — no necesitamos enviar el valor
+    return firstValueFrom(
+      this.http.patch(`${BASE2}/etapa-practica/avance/${idPractica}`, {})
     );
   }
 
   // ── Seguimientos ──────────────────────────────────────────────────────────
-  async obtenerSeguimientos(idAlumno: number): Promise<any[]> {
-    const resp: any = await firstValueFrom(this.http.get(`${BASE2}/seguimiento/listar/${idAlumno}`));
+  async obtenerSeguimientos(idAlumno: string): Promise<any[]> {
+    const resp: any = await firstValueFrom(this.http.get(`${BASE2}/seguimientos/alumno/${idAlumno}`));
     if (Array.isArray(resp)) return resp;
     if (resp?.data         && Array.isArray(resp.data))         return resp.data;
     if (resp?.seguimientos && Array.isArray(resp.seguimientos)) return resp.seguimientos;
     return [];
+  }
+
+  async obtenerSeguimientosPorEtapa(etapaId: string): Promise<any[]> {
+    try {
+      const resp: any = await firstValueFrom(this.http.get(`${BASE2}/seguimientos/etapa/${etapaId}`));
+      if (Array.isArray(resp)) return resp;
+      if (resp?.data         && Array.isArray(resp.data))         return resp.data;
+      if (resp?.seguimientos && Array.isArray(resp.seguimientos)) return resp.seguimientos;
+      return [];
+    } catch { return []; }
   }
   async actualizarSeguimiento(id: number, datos: { observacion: string }): Promise<any> {
     return firstValueFrom(this.http.put(`${BASE2}/seguimiento/actualizar/${id}`, datos));
@@ -142,28 +167,36 @@ export class ApiService {
   }
 
   // ── Bitácoras ─────────────────────────────────────────────────────────────
-  async obtenerBitacoras(idSeguimiento: number): Promise<any[]> {
-    const resp: any = await firstValueFrom(this.http.get(`${BASE2}/bitacora/listar/${idSeguimiento}`));
-    if (Array.isArray(resp)) return resp;
-    if (resp?.data     && Array.isArray(resp.data))     return resp.data;
-    if (resp?.bitacoras && Array.isArray(resp.bitacoras)) return resp.bitacoras;
-    return [];
+  async obtenerBitacoras(idSeguimiento: string): Promise<any[]> {
+    try {
+      const resp: any = await firstValueFrom(this.http.get(`${BASE2}/bitacoras/seguimiento/${idSeguimiento}`));
+      if (Array.isArray(resp)) return resp;
+      if (resp?.data      && Array.isArray(resp.data))      return resp.data;
+      if (resp?.bitacoras && Array.isArray(resp.bitacoras)) return resp.bitacoras;
+      return [];
+    } catch { return []; }
   }
-  async actualizarEstadoBitacora(idBitacora: number, estado: string): Promise<any> {
+  async actualizarEstadoBitacora(idBitacora: string, estado: string): Promise<any> {
     return firstValueFrom(
-      this.http.put(`${BASE2}/bitacora/estado/${idBitacora}`, { estado })
+      this.http.patch(`${BASE2}/bitacoras/${idBitacora}/estado`, { estado })
     );
   }
   async crearBitacoraArchivo(formData: FormData): Promise<any> {
-    return firstValueFrom(this.http.post(`${BASE2}/bitacora/registrar_archivo`, formData));
+    return firstValueFrom(this.http.post(`${BASE2}/bitacoras`, formData));
+  }
+
+  async subirPdfBitacora(idBitacora: string, file: File): Promise<any> {
+    const fd = new FormData();
+    fd.append('file', file);
+    return firstValueFrom(this.http.post(`${BASE2}/bitacoras/${idBitacora}/pdf`, fd));
   }
 
   // ── Modalidades y Empresas ────────────────────────────────────────────────
   async listarModalidades(): Promise<any[]> {
-    return firstValueFrom(this.http.get<any[]>(`${BASE2}/modalidad/listar`));
+    return firstValueFrom(this.http.get<any[]>(`${BASE2}/modalidad`));
   }
   async listarEmpresas(): Promise<any[]> {
-    return firstValueFrom(this.http.get<any[]>(`${BASE2}/empresa/listar`));
+    return firstValueFrom(this.http.get<any[]>(`${BASE2}/empresas`));
   }
 
   // ── Usuarios y Credenciales ───────────────────────────────────────────────
