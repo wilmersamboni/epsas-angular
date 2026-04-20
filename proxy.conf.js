@@ -3,7 +3,7 @@ const PROXY_CONFIG = {
     target: "http://localhost:3000",
     secure: false,
     changeOrigin: true,
-    pathRewrite: { "^/api": "" },
+    // pathRewrite: { "^/api": "" },
     logLevel: "debug"
   },
   "/v2/": {  // <--- Agrega una barra "/" aquí
