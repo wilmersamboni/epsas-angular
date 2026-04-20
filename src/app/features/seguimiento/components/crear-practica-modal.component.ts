@@ -1,21 +1,28 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, signal, computed } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import {
+  Component, Input, Output, EventEmitter,
+  OnChanges, SimpleChanges, signal, computed
+} from '@angular/core';
+import { FormsModule, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 
-/**
- * Equivalente a CrearPracticaModal.tsx de React.
- * Crea la etapa práctica de un aprendiz: modalidad, empresa, fechas, estado, observación.
- */
+
+import { type TuiDay } from '@taiga-ui/cdk';
+import { TuiCalendar, } from '@taiga-ui/core';
+
 @Component({
   selector: 'app-crear-practica-modal',
   standalone: true,
-  imports: [FormsModule],
+  imports: [
+    FormsModule,
+    ReactiveFormsModule,
+    TuiCalendar
+  ],
   template: `
     @if (isOpen) {
       <div class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
         (click)="$event.target === $event.currentTarget && closed.emit()">
 
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[95vh] flex flex-col">
 
           <!-- Header -->
           <div class="px-6 py-4 border-b border-gray-100 flex-shrink-0">
@@ -47,7 +54,7 @@ import { ApiService } from '../../../core/services/api.service';
                 </div>
               }
 
-              <!-- Select aprendiz (si no viene preseleccionado) -->
+              <!-- Select aprendiz -->
               @if (!alumnoPreseleccionado) {
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1.5">Aprendiz</label>
@@ -88,21 +95,73 @@ import { ApiService } from '../../../core/services/api.service';
                 </select>
               </div>
 
-              <!-- Fechas -->
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1.5">Fecha inicio</label>
-                  <input type="date" [(ngModel)]="form.fechaInicio"
-                    class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none
-                           focus:ring-2 focus:ring-[#39A900]/30 focus:border-[#39A900]" />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1.5">Fecha fin</label>
-                  <input type="date" [(ngModel)]="form.fechaFin"
-                    class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none
-                           focus:ring-2 focus:ring-[#39A900]/30 focus:border-[#39A900]" />
-                </div>
-              </div>
+<!-- Fechas con TuiCalendar -->
+<div class="grid grid-cols-2 gap-3">
+
+  <!-- Fecha inicio -->
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1.5">Fecha inicio</label>
+    <div class="relative">
+      <button type="button"
+        (click)="toggleCalendario('inicio')"
+        class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-left
+               focus:outline-none focus:ring-2 focus:ring-[#39A900]/30 focus:border-[#39A900]
+               flex items-center justify-between">
+        <span [class.text-gray-400]="!fechaInicioCtrl.value">
+          {{ fechaInicioCtrl.value
+              ? (fechaInicioCtrl.value.day + '/' + (fechaInicioCtrl.value.month + 1) + '/' + fechaInicioCtrl.value.year)
+              : 'DD/MM/AAAA' }}
+        </span>
+        <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+      </button>
+
+      @if (calAbierto === 'inicio') {
+        <div class="absolute z-50 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl"
+             (clickOutside)="calAbierto = null">
+          <tui-calendar
+            [value]="fechaInicioCtrl.value"
+            (dayClick)="onDayClick($event, 'inicio')"
+          />
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Fecha fin -->
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1.5">Fecha fin</label>
+    <div class="relative">
+      <button type="button"
+        (click)="toggleCalendario('fin')"
+        class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-left
+               focus:outline-none focus:ring-2 focus:ring-[#39A900]/30 focus:border-[#39A900]
+               flex items-center justify-between">
+        <span [class.text-gray-400]="!fechaFinCtrl.value">
+          {{ fechaFinCtrl.value
+              ? (fechaFinCtrl.value.day + '/' + (fechaFinCtrl.value.month + 1) + '/' + fechaFinCtrl.value.year)
+              : 'DD/MM/AAAA' }}
+        </span>
+        <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+      </button>
+
+      @if (calAbierto === 'fin') {
+        <div class="absolute z-50 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl">
+          <tui-calendar
+            [value]="fechaFinCtrl.value"
+            (dayClick)="onDayClick($event, 'fin')"
+          />
+        </div>
+      }
+    </div>
+  </div>
+
+</div>
 
               <!-- Instructor (autocomplete) -->
               <div>
@@ -184,11 +243,11 @@ import { ApiService } from '../../../core/services/api.service';
               Cancelar
             </button>
             <button (click)="guardar()" [disabled]="loading() || loadingData()"
-  class="px-5 py-2 text-sm text-white font-medium rounded-lg transition-all
-         bg-sena-gradient hover:opacity-90 
-         disabled:opacity-60 disabled:grayscale disabled:cursor-not-allowed">
-  {{ loading() ? 'Creando...' : 'Crear etapa práctica' }}
-</button>
+              class="px-5 py-2 text-sm text-white font-medium rounded-lg transition-all
+                     bg-sena-gradient hover:opacity-90
+                     disabled:opacity-60 disabled:grayscale disabled:cursor-not-allowed">
+              {{ loading() ? 'Creando...' : 'Crear etapa práctica' }}
+            </button>
           </div>
         </div>
       </div>
@@ -209,8 +268,14 @@ export class CrearPracticaModalComponent implements OnChanges {
   loading      = signal(false);
   error        = signal('');
 
+  // ── TaigaUI v4 date controls ──────────────────────────────────
+  fechaInicioCtrl = new FormControl<TuiDay | null>(null);
+  fechaFinCtrl    = new FormControl<TuiDay | null>(null);
+
+
+
   // ── Autocomplete instructor ───────────────────────────────────
-  instructorTexto       = '';
+  instructorTexto        = '';
   mostrarListaInstructor = false;
 
   instructoresFiltrados = computed(() => {
@@ -223,8 +288,7 @@ export class CrearPracticaModalComponent implements OnChanges {
 
   form = {
     aprendizId: '', modalidadId: '', empresaId: '',
-    fechaInicio: '', fechaFin: '', estado: 'activo',
-    observacion: '', instructorId: '',
+    estado: 'activo', observacion: '', instructorId: '',
   };
 
   sinPractica = signal<any[]>([]);
@@ -247,9 +311,10 @@ export class CrearPracticaModalComponent implements OnChanges {
         ? String(this.alumnoPreseleccionado.id ?? this.alumnoPreseleccionado.idPersona ?? '')
         : '',
       modalidadId: '', empresaId: '',
-      fechaInicio: '', fechaFin: '', estado: 'activo',
-      observacion: '', instructorId: '',
+      estado: 'activo', observacion: '', instructorId: '',
     };
+    this.fechaInicioCtrl.reset(null);
+    this.fechaFinCtrl.reset(null);
     this.instructorTexto        = '';
     this.mostrarListaInstructor = false;
     this.error.set('');
@@ -270,7 +335,14 @@ export class CrearPracticaModalComponent implements OnChanges {
     finally { this.loadingData.set(false); }
   }
 
-  // ── Métodos autocomplete instructor ──────────────────────────
+  // ── TuiDay → 'YYYY-MM-DD' ────────────────────────────────────
+  private tuiDayToISO(day: TuiDay | null): string {
+    if (!day) return '';
+    const m = String(day.month + 1).padStart(2, '0'); // month es 0-based
+    const d = String(day.day).padStart(2, '0');
+    return `${day.year}-${m}-${d}`;
+  }
+
   onBuscarInstructor(texto: string): void {
     this.instructorTexto        = texto;
     this.mostrarListaInstructor = true;
@@ -282,13 +354,31 @@ export class CrearPracticaModalComponent implements OnChanges {
     this.instructorTexto        = inst.nombre ?? '';
     this.mostrarListaInstructor = false;
   }
+  // En la clase — agrega estas propiedades y elimina fechaInicio/fechaFin duplicados
+calAbierto: 'inicio' | 'fin' | null = null;
+
+toggleCalendario(cual: 'inicio' | 'fin'): void {
+  this.calAbierto = this.calAbierto === cual ? null : cual;
+}
+
+onDayClick(day: TuiDay, cual: 'inicio' | 'fin'): void {
+  if (cual === 'inicio') {
+    this.fechaInicioCtrl.setValue(day);
+  } else {
+    this.fechaFinCtrl.setValue(day);
+  }
+  this.calAbierto = null; // cierra el calendario al seleccionar
+}
 
   async guardar(): Promise<void> {
-    if (!this.form.aprendizId)  { this.error.set('Selecciona un aprendiz.'); return; }
+    const fechaInicio = this.tuiDayToISO(this.fechaInicioCtrl.value);
+    const fechaFin    = this.tuiDayToISO(this.fechaFinCtrl.value);
+
+    if (!this.form.aprendizId)   { this.error.set('Selecciona un aprendiz.'); return; }
     if (!this.form.modalidadId || this.form.modalidadId === 'undefined') { this.error.set('Selecciona una modalidad.'); return; }
     if (!this.form.empresaId   || this.form.empresaId   === 'undefined') { this.error.set('Selecciona una empresa.'); return; }
-    if (!this.form.fechaInicio) { this.error.set('Ingresa la fecha de inicio.'); return; }
-    if (!this.form.fechaFin)    { this.error.set('Ingresa la fecha de fin.'); return; }
+    if (!fechaInicio)            { this.error.set('Ingresa la fecha de inicio.'); return; }
+    if (!fechaFin)               { this.error.set('Ingresa la fecha de fin.'); return; }
 
     this.loading.set(true);
     this.error.set('');
@@ -298,14 +388,13 @@ export class CrearPracticaModalComponent implements OnChanges {
         this.error.set('El aprendiz no tiene matrícula registrada.');
         return;
       }
-      // Backend /api2 espera camelCase + UUIDs
       const matriculaId = matriculas[0].idMatricula ?? matriculas[0].id_matricula;
       const payload: any = {
         matriculaId,
         modalidadId:  String(this.form.modalidadId),
         empresaId:    String(this.form.empresaId),
-        fecha_inicio: this.form.fechaInicio,
-        fecha_fin:    this.form.fechaFin,
+        fecha_inicio: fechaInicio,
+        fecha_fin:    fechaFin,
         estado:       this.form.estado,
         observacion:  this.form.observacion,
       };

@@ -1,7 +1,8 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, signal } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, signal, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 import { BitacorasModalComponent } from './bitacoras-modal.component';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-seguimientos-modal',
@@ -54,47 +55,49 @@ import { BitacorasModalComponent } from './bitacoras-modal.component';
                         {{ item.estado }}
                       </span>
 
-                      <!-- Botón ⋮ con menú desplegable -->
-                      <div class="relative">
-                        <button
-                          (click)="toggleMenu(item.id_seguimiento ?? item.id)"
-                          class="w-7 h-7 flex items-center justify-center rounded-full
-                                 hover:bg-gray-100 text-gray-500 transition-colors text-lg font-bold">
-                          ⋮
-                        </button>
+                      <!-- Botón ⋮ con menú desplegable: solo admin e instructor -->
+                      @if (canGestionarSeguimiento()) {
+                        <div class="relative">
+                          <button
+                            (click)="toggleMenu(item.id_seguimiento ?? item.id)"
+                            class="w-7 h-7 flex items-center justify-center rounded-full
+                                   hover:bg-gray-100 text-gray-500 transition-colors text-lg font-bold">
+                            ⋮
+                          </button>
 
-                        @if (openMenu() === (item.id_seguimiento ?? item.id)) {
-                          <!-- Dropdown menu -->
-                          <div class="absolute right-0 top-8 z-[100] bg-white rounded-xl shadow-lg
-                                       border border-gray-100 py-1 min-w-[160px]">
+                          @if (openMenu() === (item.id_seguimiento ?? item.id)) {
+                            <!-- Dropdown menu -->
+                            <div class="absolute right-0 top-8 z-[100] bg-white rounded-xl shadow-lg
+                                         border border-gray-100 py-1 min-w-[160px]">
 
-                            <!-- Observación -->
-                            <button (click)="abrirEditar(item)"
-                              class="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700
-                                     hover:bg-gray-50 transition-colors text-left">
-                              ✏️ Observación
-                            </button>
+                              <!-- Observación -->
+                              <button (click)="abrirEditar(item)"
+                                class="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700
+                                       hover:bg-gray-50 transition-colors text-left">
+                                ✏️ Observación
+                              </button>
 
-                            <!-- Subir Acta -->
-                            <button (click)="subirActa(item)"
-                              class="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700
-                                     hover:bg-gray-50 transition-colors text-left">
-                              📤 Subir Acta
-                            </button>
+                              <!-- Subir Acta -->
+                              <button (click)="subirActa(item)"
+                                class="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700
+                                       hover:bg-gray-50 transition-colors text-left">
+                                📤 Subir Acta
+                              </button>
 
-                            <!-- Descargar Acta -->
-                            <button (click)="descargarActa(item)"
-                              [disabled]="!item.actas_pdf"
-                              class="w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors text-left"
-                              [class.text-gray-700]="item.actas_pdf"
-                              [class.hover:bg-gray-50]="item.actas_pdf"
-                              [class.text-gray-300]="!item.actas_pdf"
-                              [class.cursor-not-allowed]="!item.actas_pdf">
-                              📥 Descargar Acta
-                            </button>
-                          </div>
-                        }
-                      </div>
+                              <!-- Descargar Acta -->
+                              <button (click)="descargarActa(item)"
+                                [disabled]="!item.actas_pdf"
+                                class="w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors text-left"
+                                [class.text-gray-700]="item.actas_pdf"
+                                [class.hover:bg-gray-50]="item.actas_pdf"
+                                [class.text-gray-300]="!item.actas_pdf"
+                                [class.cursor-not-allowed]="!item.actas_pdf">
+                                📥 Descargar Acta
+                              </button>
+                            </div>
+                          }
+                        </div>
+                      }
                     </div>
                   </div>
 
@@ -171,6 +174,11 @@ import { BitacorasModalComponent } from './bitacoras-modal.component';
   `,
 })
 export class SeguimientosModalComponent implements OnChanges {
+  private auth = inject(AuthService);
+
+  /** Gestionar seguimiento (observaciones, actas): admin e instructor */
+  canGestionarSeguimiento() { return this.auth.hasRole(['administrador', 'instructor']); }
+
   @Input() isOpen  = false;
   @Input() alumno: any = null;
   @Output() closed            = new EventEmitter<void>();

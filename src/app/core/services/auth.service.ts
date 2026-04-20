@@ -8,8 +8,17 @@ import { Usuario, LoginRequest, LoginResponse } from '../../shared/models';
 export class AuthService {
   // ── Estado reactivo (señales, equivale al useState de React) ──────────────
   private _user = signal<Usuario | null>(this._loadUser());
-  readonly user = this._user.asReadonly();
+  readonly user            = this._user.asReadonly();
   readonly isAuthenticated = computed(() => this._user() !== null);
+
+  /** Cargo del usuario autenticado: 'administrador' | 'instructor' | 'aprendiz' | '' */
+  readonly cargo    = computed(() => this._user()?.cargo ?? '');
+  readonly isAdmin  = computed(() => this.cargo() === 'administrador');
+
+  /** Devuelve true si el cargo del usuario está en la lista de roles permitidos */
+  hasRole(roles: string[]): boolean {
+    return roles.includes(this.cargo());
+  }
 
   constructor(private http: HttpClient, private router: Router) {}
 

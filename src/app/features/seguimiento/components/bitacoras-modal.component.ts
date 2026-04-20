@@ -1,10 +1,11 @@
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges,
-         signal, OnInit, ViewChild, ElementRef, HostListener, computed } from '@angular/core';
+         signal, OnInit, ViewChild, ElementRef, HostListener, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
 import { DomSanitizer } from '@angular/platform-browser';
 import { PdfViewerModule } from 'ng2-pdf-viewer';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 /**
  * Equivalente a ModalBitacoras.tsx + BitacorasCard.tsx de React.
@@ -160,20 +161,22 @@ import { ApiService } from '../../../core/services/api.service';
                           }
                         </button>
 
-                        <!-- Evaluar -->
-                        <div class="relative">
-                          <button type="button"
-                            (click)="$event.stopPropagation(); toggleDropdown(item, $event)"
-                            class="flex items-center gap-1 text-xs font-semibold px-3 py-2 rounded-lg
-                                   text-white transition-all duration-200"
-                            style="background: linear-gradient(135deg, #39A900 0%, #2d8500 100%)">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-                            </svg>
-                            Evaluar
-                          </button>
-                        </div>
+                        <!-- Evaluar: solo admin e instructor -->
+                        @if (canEvaluar()) {
+                          <div class="relative">
+                            <button type="button"
+                              (click)="$event.stopPropagation(); toggleDropdown(item, $event)"
+                              class="flex items-center gap-1 text-xs font-semibold px-3 py-2 rounded-lg
+                                     text-white transition-all duration-200"
+                              style="background: linear-gradient(135deg, #39A900 0%, #2d8500 100%)">
+                              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                              </svg>
+                              Evaluar
+                            </button>
+                          </div>
+                        }
 
                       </div>
                     </div>
@@ -300,6 +303,11 @@ import { ApiService } from '../../../core/services/api.service';
   `,
 })
 export class BitacorasModalComponent implements OnChanges, OnInit {
+  private auth = inject(AuthService);
+
+  /** Evaluar bitácoras: solo admin e instructor */
+  canEvaluar() { return this.auth.hasRole(['administrador', 'instructor']); }
+
   @Input() isOpen       = false;
   @Input() alumno:      any = null;
   @Input() seguimiento: any = null;

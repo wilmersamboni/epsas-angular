@@ -187,6 +187,15 @@ export class AdminService {
         }));
       }
 
+      // Transformación especial para credenciales
+      if (mod === 'credenciales') {
+        rows = rows.map((c: any) => ({
+          ...c,
+          usuario: c.usuario?.persona?.nombre ?? c.usuario?.idUsuario ?? '—',
+          rol:     c.rol?.nombre              ?? c.rol?.descripcion    ?? '—',
+        }));
+      }
+
       // Aplana objetos anidados (relaciones eager) para mostrar texto en tabla
       rows = rows.map((fila: any) => this.aplanarFila(fila));
 

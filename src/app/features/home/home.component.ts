@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { StatsService, Stats, DonaStats } from '../../core/services/stats.service';
 import { ApiService } from '../../core/services/api.service';
 import { ExportService } from '../../core/services/export.service';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-home',
@@ -33,7 +34,8 @@ export class HomeComponent implements OnInit {
   constructor(
     private statsService:  StatsService,
     private apiService:    ApiService,
-    private exportService: ExportService
+    private exportService: ExportService,
+    private auth:          AuthService,
   ) {}
 
   ngOnInit(): void {
@@ -47,12 +49,16 @@ export class HomeComponent implements OnInit {
     error: () => { this.cargando = false; }
   });
 
+  // GET /api2/empresas solo permite admin y docente (instructor).
+  // El aprendiz (estudiante) recibiría 403 → se le pasa array vacío.
+  const puedeVerEmpresas = this.auth.hasRole(['administrador', 'instructor']);
+
   // Cruce completo: prácticas + empresas + matrículas + aprendices
   Promise.all([
-  this.apiService.listarPracticas(),
-  this.apiService.listarEmpresas(),
-  this.apiService.listarTodasMatriculas(), // devuelve Matricula[] con persona y curso populados
-]).then(([practicas, empresas, matriculas]: [any[], any[], any[]]) => {
+    this.apiService.listarPracticas(),
+    puedeVerEmpresas ? this.apiService.listarEmpresas() : Promise.resolve([]),
+    this.apiService.listarTodasMatriculas(),
+  ]).then(([practicas, empresas, matriculas]: [any[], any[], any[]]) => {
 
   // Debug — elimina cuando funcione
   console.log('Matrícula real:', matriculas[0]);
