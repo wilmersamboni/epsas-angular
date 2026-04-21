@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { FloatingButtons } from './layout/floating-buttons/floating-buttons';
 import { TuiRoot } from '@taiga-ui/core';
+import { ThemeService } from './core/services/theme.service';
 
 @Component({
   selector: 'app-root',
@@ -14,4 +15,10 @@ import { TuiRoot } from '@taiga-ui/core';
     </tui-root>
   `
 })
-export class AppComponent {}
+export class AppComponent implements OnInit {
+  private theme = inject(ThemeService);
+
+  ngOnInit(): void {
+    this.theme.apply();  // aplica color, fuente y modo oscuro desde localStorage al inicio
+  }
+}

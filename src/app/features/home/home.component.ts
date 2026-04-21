@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StatsService, Stats, DonaStats } from '../../core/services/stats.service';
 import { ApiService } from '../../core/services/api.service';
@@ -18,6 +18,9 @@ export class HomeComponent implements OnInit {
   exportando      = false;
   practicas: any[] = [];
 
+  /** Práctica personal del aprendiz */
+  miPractica: any = null;
+
   fecha = new Date().toLocaleDateString('es-CO', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
   });
@@ -26,9 +29,24 @@ export class HomeComponent implements OnInit {
   etapaActiva: DonaStats      = { total: 0, porcentaje: 0 };
   etapaCertificada: DonaStats = { total: 0, porcentaje: 0 };
 
+  readonly cargo        = computed(() => this.auth.cargo());
+  readonly esAprendiz   = computed(() => this.cargo() === 'aprendiz');
+  readonly esInstructor = computed(() => this.cargo() === 'instructor');
+  readonly esAdmin      = computed(() => this.auth.isAdmin());
+
   circleDashFor(porcentaje: number): string {
     const c = 2 * Math.PI * 54;
     return `${(porcentaje / 100) * c} ${c}`;
+  }
+
+  /** Color del badge según estado */
+  estadoClase(estado: string): string {
+    const e = (estado ?? '').toLowerCase();
+    if (['activo', 'activa', 'en_curso', 'en curso'].includes(e)) return 'badge-green';
+    if (['certificado', 'certificada'].includes(e))               return 'badge-blue';
+    if (['desercion', 'desertado', 'desertada'].includes(e))      return 'badge-red';
+    if (['suspendido', 'suspendida'].includes(e))                  return 'badge-orange';
+    return 'badge-gray';
   }
 
   constructor(
@@ -39,66 +57,61 @@ export class HomeComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-  this.statsService.getDashboardData().subscribe({
-    next: ({ stats, etapaActiva, etapaCertificada }) => {
-      this.stats            = stats;
-      this.etapaActiva      = etapaActiva;
-      this.etapaCertificada = etapaCertificada;
-      this.cargando         = false;
-    },
-    error: () => { this.cargando = false; }
-  });
+    this.statsService.getDashboardData().subscribe({
+      next: ({ stats, etapaActiva, etapaCertificada }) => {
+        this.stats            = stats;
+        this.etapaActiva      = etapaActiva;
+        this.etapaCertificada = etapaCertificada;
+        this.cargando         = false;
+      },
+      error: () => { this.cargando = false; }
+    });
 
-  // GET /api2/empresas solo permite admin y docente (instructor).
-  // El aprendiz (estudiante) recibiría 403 → se le pasa array vacío.
-  const puedeVerEmpresas = this.auth.hasRole(['administrador', 'instructor']);
+    const puedeVerEmpresas = this.auth.hasRole(['administrador', 'instructor']);
 
-  // Cruce completo: prácticas + empresas + matrículas + aprendices
-  Promise.all([
-    this.apiService.listarPracticas(),
-    puedeVerEmpresas ? this.apiService.listarEmpresas() : Promise.resolve([]),
-    this.apiService.listarTodasMatriculas(),
-  ]).then(([practicas, empresas, matriculas]: [any[], any[], any[]]) => {
+    Promise.all([
+      this.apiService.listarPracticas(),
+      puedeVerEmpresas ? this.apiService.listarEmpresas() : Promise.resolve([]),
+      this.apiService.listarTodasMatriculas(),
+    ]).then(([practicas, empresas, matriculas]: [any[], any[], any[]]) => {
 
-  // Debug — elimina cuando funcione
-  console.log('Matrícula real:', matriculas[0]);
+      const empresaMap = new Map<string, string>(
+        empresas.map((e: any) => [
+          e.id,
+          e.nombre ?? e.razon_social ?? e.nombreEmpresa ?? e.name ?? e.id
+        ])
+      );
 
-  // id → nombre empresa
-  const empresaMap = new Map<string, string>(
-    empresas.map((e: any) => [
-      e.id,
-      e.nombre ?? e.razon_social ?? e.nombreEmpresa ?? e.name ?? e.id
-    ])
-  );
+      const matriculaMap = new Map<string, any>(
+        matriculas.map((m: any) => [m.idMatricula ?? m.id, m])
+      );
 
-  // matriculaId → matrícula completa (ya trae persona y curso)
-  const matriculaMap = new Map<string, any>(
-    matriculas.map((m: any) => [m.idMatricula ?? m.id, m])
-  );
+      this.practicas = practicas.map((p: any) => {
+        const matricula = matriculaMap.get(p.matriculaId);
+        const persona   = matricula?.persona;
+        const curso     = matricula?.curso;
 
-  this.practicas = practicas.map((p: any) => {
-    const matricula = matriculaMap.get(p.matriculaId);
-    const persona   = matricula?.persona;
-    const curso     = matricula?.curso;
+        return {
+          ...p,
+          empresaNombre:  empresaMap.get(p.empresa?.id) ?? p.empresa?.nombre ?? '—',
+          nombre:         persona
+            ? `${persona.nombres ?? persona.nombre ?? ''} ${persona.apellidos ?? persona.apellido ?? ''}`.trim()
+            : '—',
+          identificacion: persona?.cedula        ?? persona?.documento      ?? '—',
+          ficha:          curso?.codigo          ?? curso?.numeroFicha      ?? curso?.ficha ?? '—',
+          programa:       curso?.programa?.nombre ?? curso?.nombrePrograma  ?? '—',
+        };
+      });
 
-    return {
-      ...p,
-      empresaNombre:  empresaMap.get(p.empresa?.id) ?? '—',
-      nombre:         persona
-        ? `${persona.nombres ?? persona.nombre ?? ''} ${persona.apellidos ?? persona.apellido ?? ''}`.trim()
-        : '—',
-      identificacion: persona?.cedula        ?? persona?.documento      ?? '—',
-      ficha:          curso?.codigo          ?? curso?.numeroFicha      ?? curso?.ficha ?? '—',
-      programa:       curso?.programa?.nombre ?? curso?.nombrePrograma  ?? '—',
-    };
-  });
+      // Para aprendiz: guarda su única práctica para la vista personal
+      if (this.esAprendiz() && this.practicas.length > 0) {
+        this.miPractica = this.practicas[0];
+      }
 
-  console.log('Práctica enriquecida:', this.practicas[0]);
-
-}).catch((err) => {
-  console.error('Error cargando datos para export:', err);
-});
-}
+    }).catch((err) => {
+      console.error('Error cargando datos para home:', err);
+    });
+  }
 
   exportarPDF(): void {
     this.exportando = true;
@@ -111,14 +124,13 @@ export class HomeComponent implements OnInit {
   }
 
   exportarExcel(): void {
-  this.exportando = true;
-  this.exportService.exportarExcel(
-    this.stats, this.etapaActiva, this.etapaCertificada, this.practicas
-  ).then(() => {
-    this.exportando = false;
-  }).catch(() => {
-    this.exportando = false;
-  });
-}
-  
+    this.exportando = true;
+    this.exportService.exportarExcel(
+      this.stats, this.etapaActiva, this.etapaCertificada, this.practicas
+    ).then(() => {
+      this.exportando = false;
+    }).catch(() => {
+      this.exportando = false;
+    });
+  }
 }

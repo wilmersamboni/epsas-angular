@@ -1,11 +1,8 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
 import { Formato } from '../../shared/models';
 
-/**
- * Equivalente a PricingPage.tsx de React.
- * Sube, lista y elimina archivos PDF.
- */
 @Component({
   selector: 'app-formatos',
   standalone: true,
@@ -15,33 +12,35 @@ import { Formato } from '../../shared/models';
 
       <h1 class="text-3xl font-bold text-gray-800">Formatos</h1>
 
-      <!-- Subir -->
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 w-96">
-        <label class="block text-sm font-medium text-gray-700 mb-3">Seleccionar PDF</label>
-        <input
-          type="file"
-          accept="application/pdf"
-          (change)="onFileChange($event)"
-          class="block w-full text-sm text-gray-500
-                 file:me-4 file:py-2 file:px-4
-                 file:rounded-lg file:border-0
-                 file:text-sm file:font-semibold
-                 file:bg-[#39A900] file:text-white
-                 hover:file:bg-[#2d8400] cursor-pointer"
-        />
-        <button
-          (click)="handleUpload()"
-          [disabled]="!archivo || uploading()"
-          class="mt-4 w-full py-2.5 bg-[#39A900] text-white font-semibold rounded-lg
-                 hover:bg-[#2d8400] transition-colors disabled:opacity-50"
-        >
-          {{ uploading() ? 'Subiendo...' : 'Subir Archivo' }}
-        </button>
-      </div>
+      <!-- ── Subir (solo administrador) ───────────────────────────────── -->
+      @if (esAdmin()) {
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 w-96">
+          <label class="block text-sm font-medium text-gray-700 mb-3">Seleccionar PDF</label>
+          <input
+            type="file"
+            accept="application/pdf"
+            (change)="onFileChange($event)"
+            class="block w-full text-sm text-gray-500
+                   file:me-4 file:py-2 file:px-4
+                   file:rounded-lg file:border-0
+                   file:text-sm file:font-semibold
+                   file:bg-[#39A900] file:text-white
+                   hover:file:bg-[#2d8400] cursor-pointer"
+          />
+          <button
+            (click)="handleUpload()"
+            [disabled]="!archivo || uploading()"
+            class="mt-4 w-full py-2.5 bg-[#39A900] text-white font-semibold rounded-lg
+                   hover:bg-[#2d8400] transition-colors disabled:opacity-50"
+          >
+            {{ uploading() ? 'Subiendo...' : 'Subir Archivo' }}
+          </button>
+        </div>
+      }
 
-      <!-- Listado -->
+      <!-- ── Listado ────────────────────────────────────────────────── -->
       <div class="w-full max-w-5xl bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">Archivos Subidos</h2>
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Archivos disponibles</h2>
         <hr class="mb-4 border-gray-100" />
 
         @if (loading()) {
@@ -69,6 +68,7 @@ import { Formato } from '../../shared/models';
                 </div>
               </div>
 
+              <!-- Acciones: Ver y Descargar para todos; Eliminar solo admin -->
               <div class="flex justify-between gap-2">
                 <a [href]="'http://localhost:3000/uploads/' + f.formato_pdf"
                    target="_blank"
@@ -82,24 +82,33 @@ import { Formato } from '../../shared/models';
                           bg-green-50 text-green-600 hover:bg-green-100 transition-colors">
                   Descargar
                 </a>
-                <button (click)="handleEliminar(f.id_formatos)"
-                  class="flex-1 py-1.5 text-xs font-medium rounded-lg
-                         bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
-                  Eliminar
-                </button>
+                @if (esAdmin()) {
+                  <button (click)="handleEliminar(f.id_formatos)"
+                    class="flex-1 py-1.5 text-xs font-medium rounded-lg
+                           bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
+                    Eliminar
+                  </button>
+                }
               </div>
+
             </div>
           }
         </div>
       </div>
+
     </section>
   `,
 })
 export class FormatosComponent implements OnInit {
+  private auth = inject(AuthService);
+
   formatos  = signal<Formato[]>([]);
   loading   = signal(false);
   uploading = signal(false);
   archivo: File | null = null;
+
+  /** true solo cuando el cargo es administrador */
+  esAdmin() { return this.auth.isAdmin(); }
 
   constructor(private api: ApiService) {}
 
@@ -118,7 +127,7 @@ export class FormatosComponent implements OnInit {
   }
 
   async handleUpload(): Promise<void> {
-    if (!this.archivo) return;
+    if (!this.archivo || !this.esAdmin()) return;
     this.uploading.set(true);
     try {
       await this.api.subirFormato(this.archivo.name, this.archivo);
@@ -129,6 +138,7 @@ export class FormatosComponent implements OnInit {
   }
 
   async handleEliminar(id: number): Promise<void> {
+    if (!this.esAdmin()) return;
     if (!confirm('¿Eliminar este formato?')) return;
     await this.api.eliminarFormato(id);
     await this.cargarFormatos();

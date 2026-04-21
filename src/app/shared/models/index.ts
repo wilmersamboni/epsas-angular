@@ -1,8 +1,11 @@
 // ── Autenticación ─────────────────────────────────────────────────────────────
 export interface Usuario {
+  id?: string;
+  personaId?: string;
   nombre?: string;
   cargo?: string;
   correo?: string;
+  login?: string;
 }
 
 export interface LoginRequest {

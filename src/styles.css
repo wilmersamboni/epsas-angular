@@ -1,6 +1,10 @@
 @import "tailwindcss";
 @import 'primeicons/primeicons.css';
 
+body, * {
+  font-family: 'Sora', sans-serif;
+}
+
 /* ─── Taiga UI – tokens globales requeridos ─────────────────────── */
 :root {
   /* Colores SENA */
