@@ -6,6 +6,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { PdfViewerModule } from 'ng2-pdf-viewer';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { PracticaService, SeguimientoService } from '../../../core/services';
 
 /**
  * Equivalente a ModalBitacoras.tsx + BitacorasCard.tsx de React.
@@ -332,7 +333,11 @@ export class BitacorasModalComponent implements OnChanges, OnInit {
   uploadError          = signal('');
   private pendingUploadItem: any = null;
 
-  constructor(private api: ApiService, private sanitizer: DomSanitizer) {}
+  constructor(
+    private seguimientoSvc: SeguimientoService,
+    private sanitizer: DomSanitizer, 
+    private bitacoraSvc: PracticaService
+  ) {}
 
   // Cierra el dropdown al hacer clic fuera
 @HostListener('document:click')
@@ -398,19 +403,17 @@ onDocumentClick(): void {
       'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   }
 
-  async cargarBitacoras(): Promise<void> {
+   async cargarBitacoras(): Promise<void> {
     const id = this.seguimiento?.id ?? this.seguimiento?.id_seguimiento;
     if (!id) return;
-    
     this.loading.set(true);
     try {
-      const data = await this.api.obtenerBitacoras(id);
+      const data = await this.seguimientoSvc.obtenerBitacoras(id);
       this.bitacoras.set(data || []);
-    } catch (e) { 
-      console.error('Error cargando bitácoras:', e);
+    } catch (e) {
       this.bitacoras.set([]);
-    } finally { 
-      this.loading.set(false); 
+    } finally {
+      this.loading.set(false);
     }
   }
 
@@ -440,18 +443,12 @@ toggleDropdown(item: any, event: MouseEvent): void {
     this.dropdownPos.set(null);
     const bitacoraId = item.id ?? item.id_bitacora;
     try {
-      await this.api.actualizarEstadoBitacora(bitacoraId, estado);
-
-      // Actualiza el item localmente
+      await this.seguimientoSvc.actualizarEstadoBitacora(bitacoraId, estado);
       this.bitacoras.update(lista =>
         lista.map(b => (b.id ?? b.id_bitacora) === bitacoraId ? { ...b, estado } : b)
       );
-
-      // Recalcula avance: aceptadas / total * 100
       this.recalcularAvance();
-
     } catch (e) {
-      console.error('Error actualizando estado:', e);
       await this.cargarBitacoras();
     }
   }
@@ -461,7 +458,7 @@ toggleDropdown(item: any, event: MouseEvent): void {
 
     // El backend suma las bitácoras aceptadas de TODOS los seguimientos
     // de la etapa práctica (no solo las del seguimiento actual).
-    this.api.actualizarAvancePractica(this.practicaId)
+    this.bitacoraSvc.actualizarAvancePractica(this.practicaId)
       .then((res: any) => {
         const avance = res?.avance ?? 0;
         console.log(`[Avance] backend calculó → ${avance}%`);
@@ -493,22 +490,16 @@ toggleDropdown(item: any, event: MouseEvent): void {
   async onPdfFileChange(event: Event): Promise<void> {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file || !this.pendingUploadItem) return;
-
-    const item  = this.pendingUploadItem;
-    const id    = item.id ?? item.id_bitacora;
+    const item = this.pendingUploadItem;
+    const id   = item.id ?? item.id_bitacora;
     this.uploadingId.set(id);
-    this.uploadError.set('');
-
     try {
-      const updated = await this.api.subirPdfBitacora(id, file);
-      // Actualiza la card localmente sin recargar todo
-      const nombre = updated?.bitacora_pdf ?? file.name;
+      const updated = await this.seguimientoSvc.subirPdfBitacora(id, file);
+      const nombre  = updated?.bitacora_pdf ?? file.name;
       this.bitacoras.update(lista =>
         lista.map(b => (b.id ?? b.id_bitacora) === id ? { ...b, bitacora_pdf: nombre } : b)
       );
     } catch (e) {
-      console.error('Error subiendo PDF:', e);
-      this.uploadError.set('Error al subir el archivo. Intenta de nuevo.');
       await this.cargarBitacoras();
     } finally {
       this.uploadingId.set(null);

@@ -123,10 +123,116 @@ export class ApiService {
     matriculaId: string; modalidadId: string;
     fecha_inicio: string; fecha_fin: string;
     empresaId: string; estado: string; observacion: string;
-    instructorId?: string;
+    asignacion?: {
+      instructor: string;
+      fecha_inicio: string;
+      fecha_fin: string;
+      estado: string;
+      horas: number;
+    };
   }): Promise<any> {
     return firstValueFrom(this.http.post(`${BASE2}/etapa-practica`, datos));
   }
+  async obtenerPractica(id: string): Promise<any> {
+    return firstValueFrom(this.http.get(`${BASE2}/etapa-practica/${id}`));
+  }
+  async actualizarPractica(id: string, datos: {
+    empresaId?: string; modalidadId?: string;
+    fecha_inicio?: string; fecha_fin?: string;
+    estado?: string; observacion?: string;
+  }): Promise<any> {
+    return firstValueFrom(this.http.patch(`${BASE2}/etapa-practica/${id}`, datos));
+  }
+  async activarPractica(id: string): Promise<any> {
+    return firstValueFrom(this.http.patch(`${BASE2}/etapa-practica/${id}/activar`, {}));
+  }
+  async inactivarPractica(id: string): Promise<any> {
+    return firstValueFrom(this.http.patch(`${BASE2}/etapa-practica/${id}/inactivar`, {}));
+  }
+  // ── Asignaciones de instructor ────────────────────────────────────────────
+  async listarAsignacionesPorEtapa(etapaId: string): Promise<any[]> {
+    try {
+      const resp: any = await firstValueFrom(
+        this.http.get(`${BASE2}/asignaciones/etapa/${etapaId}`)
+      );
+      if (Array.isArray(resp)) return resp;
+      if (resp?.data && Array.isArray(resp.data)) return resp.data;
+      return [];
+    } catch { return []; }
+  }
+  async crearAsignacion(datos: {
+    instructor: string; fecha_inicio: string; fecha_fin: string;
+    estado: string; horas: number; etapaId: string;
+  }): Promise<any> {
+    return firstValueFrom(this.http.post(`${BASE2}/asignaciones`, datos));
+  }
+  async actualizarAsignacion(id: string, datos: {
+    instructor?: string; fecha_inicio?: string; fecha_fin?: string;
+    estado?: string; horas?: number;
+  }): Promise<any> {
+    return firstValueFrom(this.http.patch(`${BASE2}/asignaciones/${id}`, datos));
+  }
+  async eliminarAsignacion(id: string): Promise<any> {
+    return firstValueFrom(this.http.delete(`${BASE2}/asignaciones/${id}`));
+  }
+
+  /** Crea una observación en el seguimiento más reciente de la etapa (tabla observaciones) */
+  async crearObservacion(etapaId: string, datos: {
+    descripcion: string;
+    persona: string;
+    fecha: string;
+  }): Promise<any> {
+    return firstValueFrom(
+      this.http.post(`${BASE2}/observaciones/etapa/${etapaId}`, datos)
+    );
+  }
+
+  /** Lista todas las observaciones registradas en los seguimientos de una etapa */
+  async listarObservacionesPorEtapa(etapaId: string): Promise<any[]> {
+    try {
+      const resp: any = await firstValueFrom(
+        this.http.get(`${BASE2}/observaciones/etapa/${etapaId}`)
+      );
+      if (Array.isArray(resp)) return resp;
+      if (resp?.data && Array.isArray(resp.data)) return resp.data;
+      return [];
+    } catch { return []; }
+  }
+
+  async listarObservacionesPorSeguimiento(seguimientoId: string): Promise<any[]> {
+  try {
+    const resp: any = await firstValueFrom(
+      this.http.get(`${BASE2}/observaciones/seguimiento/${seguimientoId}`)
+    );
+    if (Array.isArray(resp)) return resp;
+    if (resp?.data && Array.isArray(resp.data)) return resp.data;
+    return [];
+  } catch { return []; }
+}
+
+/** Crea una observación vinculada a un seguimiento específico */
+async crearObservacionEnSeguimiento(
+  seguimientoId: string,
+  datos: { descripcion: string; persona: string; fecha: string, evidencia_foto: string; }
+): Promise<any> {
+  return firstValueFrom(
+    this.http.post(`${BASE2}/observaciones`, {
+      ...datos,
+      seguimientoId,          // ← campo que espera CreateObservacioneDto
+    })
+  );
+}
+
+async subirEvidenciaObservacion(file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append('file', file);
+  const resp: any = await firstValueFrom(
+    this.http.post(`${BASE2}/observaciones/upload/evidencia`, fd)
+  );
+  return resp.url as string;
+}
+
+  /** @deprecated Usar crearObservacion() — este método solo actualiza el campo de texto de la etapa */
   async actualizarObservacion(idPractica: number, observacion: string): Promise<any> {
     return firstValueFrom(
       this.http.patch(`${BASE2}/etapa-practica/observacion/${idPractica}`, { observacion })

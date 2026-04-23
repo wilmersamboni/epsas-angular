@@ -1,7 +1,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // table-body.component.ts  — <tbody> con todas las celdas
 // ─────────────────────────────────────────────────────────────────────────────
-import { Component, input, output, inject } from '@angular/core';
+import { Component, input, output, inject, signal, HostListener } from '@angular/core';
+import { NgClass } from '@angular/common';
 import {
   Column, Aprendiz,
   initials, avatarColor, avanceValor, avanceColor,
@@ -12,6 +13,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 @Component({
   selector: 'app-table-body',
   standalone: true,
+  imports: [NgClass],
   host: {
     style: 'display: contents'
   },
@@ -62,16 +64,9 @@ import { AuthService } from '../../../../core/services/auth.service';
                   } @else {
                     <span class="inline-flex items-center gap-1.5 text-xs font-medium
                                   px-2 py-1 rounded-full capitalize"
-                      [class.bg-green-100]="isActivo(item.estado)"
-                      [class.text-green-700]="isActivo(item.estado)"
-                      [class.bg-red-100]="item.estado === 'inactivo'"
-                      [class.text-red-600]="item.estado === 'inactivo'"
-                      [class.bg-yellow-100]="item.estado === 'suspendido'"
-                      [class.text-yellow-700]="item.estado === 'suspendido'">
+                      [ngClass]="estadoBadgeCls(item.estado)">
                       <span class="w-1.5 h-1.5 rounded-full"
-                        [class.bg-green-500]="isActivo(item.estado)"
-                        [class.bg-red-500]="item.estado === 'inactivo'"
-                        [class.bg-yellow-500]="item.estado === 'suspendido'">
+                        [ngClass]="estadoDotCls(item.estado)">
                       </span>
                       {{ item.estado }}
                     </span>
@@ -149,21 +144,84 @@ import { AuthService } from '../../../../core/services/auth.service';
                       }
                     }
 
-                    <!-- Crear práctica: solo admin -->
+                    <!-- Editar práctica: solo admin -->
+                    @if (canCrearPractica() && item.id_practica) {
+                      <button (click)="editarPractica.emit(item)"
+                        title="Editar etapa práctica"
+                        class="p-1.5 rounded-lg text-gray-400 hover:text-indigo-500
+                               hover:bg-indigo-50 transition-all duration-150">
+                        <!-- Pencil square icon -->
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                          <rect x="3" y="3" width="18" height="18" rx="2"/>
+                          <path d="M9 12l2 2 4-4"/>
+                        </svg>
+                      </button>
+                    }
+
+                    <!-- Cambiar estado: solo admin, solo si tiene etapa -->
+                    @if (canCrearPractica() && item.id_practica) {
+                      <div class="relative" (click)="$event.stopPropagation()">
+                        <button
+                          (click)="toggleEstadoMenu(String(item.id_practica))"
+                          title="Cambiar estado"
+                          class="p-1.5 rounded-lg text-gray-400 hover:text-orange-500
+                                 hover:bg-orange-50 transition-all duration-150">
+                          <!-- Tag / label icon -->
+                          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M7 7h.01M7 3h5.379a2 2 0 011.414.586l7.621 7.621a2 2 0 010 2.828l-5.379 5.379a2 2 0 01-2.828 0L5.586 11.793A2 2 0 015 10.414V5a2 2 0 012-2z"/>
+                          </svg>
+                        </button>
+
+                        @if (openEstadoMenu() === String(item.id_practica)) {
+                          <div class="absolute right-0 top-8 z-[60] bg-white border border-gray-100
+                                      rounded-xl shadow-lg py-1 min-w-[160px]">
+                            @for (est of ESTADOS; track est.key) {
+                              <button
+                                (click)="cambiarEstado.emit({ item: item, estado: est.key });
+                                         openEstadoMenu.set(null)"
+                                [disabled]="item.estado === est.key"
+                                class="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-left
+                                       hover:bg-gray-50 transition-colors
+                                       disabled:opacity-40 disabled:cursor-default">
+                                <span class="w-2 h-2 rounded-full flex-shrink-0"
+                                  [ngClass]="est.dot"></span>
+                                <span [ngClass]="est.text">{{ est.label }}</span>
+                                @if (item.estado === est.key) {
+                                  <svg class="ml-auto w-3 h-3 text-gray-400" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <polyline stroke-width="2.5" points="20 6 9 17 4 12"/>
+                                  </svg>
+                                }
+                              </button>
+                            }
+                          </div>
+                        }
+                      </div>
+                    }
+
+                    <!-- Gestionar instructores: solo admin, solo si tiene etapa -->
+                    @if (canCrearPractica() && item.id_practica) {
+                      <button (click)="gestionarAsignaciones.emit(item)"
+                        title="Gestionar instructores asignados"
+                        class="p-1.5 rounded-lg text-gray-400 hover:text-purple-600
+                               hover:bg-purple-50 transition-all duration-150">
+                        <!-- Users icon -->
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                          <circle cx="9" cy="7" r="4"/>
+                          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                      </button>
+                    }
+
+                    <!-- Crear práctica: solo admin, solo si no tiene una -->
                     @if (canCrearPractica()) {
                       @if (!item.id_practica) {
                         <button (click)="crearPractica.emit(item)" title="Crear etapa práctica"
                           class="p-1.5 rounded-lg text-gray-400 hover:text-[#39A900]
                                  hover:bg-[#39A900]/10 transition-all duration-150">
-                          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <circle cx="12" cy="12" r="10"/>
-                            <line x1="12" y1="8" x2="12" y2="16"/>
-                            <line x1="8" y1="12" x2="16" y2="12"/>
-                          </svg>
-                        </button>
-                      } @else {
-                        <button disabled title="Ya tiene etapa práctica"
-                          class="p-1.5 rounded-lg text-gray-200 cursor-not-allowed">
                           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <circle cx="12" cy="12" r="10"/>
                             <line x1="12" y1="8" x2="12" y2="16"/>
@@ -197,9 +255,32 @@ export class TableBodyComponent {
   columns = input.required<Column[]>();
 
   // ── Outputs ────────────────────────────────────────────────────────────────
-  verSeguimientos = output<Aprendiz>();
-  verObservacion  = output<Aprendiz>();
-  crearPractica   = output<Aprendiz>();
+  verSeguimientos       = output<Aprendiz>();
+  verObservacion        = output<Aprendiz>();
+  crearPractica         = output<Aprendiz>();
+  editarPractica        = output<Aprendiz>();
+  cambiarEstado         = output<{ item: Aprendiz; estado: string }>();
+  gestionarAsignaciones = output<Aprendiz>();
+
+  // ── Estado dropdown ─────────────────────────────────────────────────────────
+  readonly ESTADOS = [
+    { key: 'activo',         label: 'Activo',         dot: 'bg-green-500',  text: 'text-green-700'  },
+    { key: 'inactivo',       label: 'Inactivo',       dot: 'bg-red-500',    text: 'text-red-600'    },
+    { key: 'suspendido',     label: 'Suspendido',     dot: 'bg-yellow-500', text: 'text-yellow-700' },
+    { key: 'por certificar', label: 'Por certificar', dot: 'bg-indigo-500', text: 'text-indigo-600' },
+    { key: 'certificado',    label: 'Certificado',    dot: 'bg-blue-500',   text: 'text-blue-600'   },
+  ];
+
+  openEstadoMenu = signal<string | null>(null);
+
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    this.openEstadoMenu.set(null);
+  }
+
+  toggleEstadoMenu(id: string): void {
+    this.openEstadoMenu.update(v => v === id ? null : id);
+  }
 
   // ── Permisos por rol ────────────────────────────────────────────────────────
   /** Observar: admin e instructor */
@@ -207,18 +288,41 @@ export class TableBodyComponent {
   /** Crear práctica: solo admin */
   canCrearPractica() { return this.auth.hasRole(['administrador']); }
 
+  // ── Badges de estado ────────────────────────────────────────────────────────
+  estadoBadgeCls(estado: string): object {
+    const e = (estado ?? '').toLowerCase();
+    return {
+      'bg-green-100  text-green-700':  e === 'activo',
+      'bg-red-100    text-red-600':    e === 'inactivo',
+      'bg-yellow-100 text-yellow-700': e === 'suspendido',
+      'bg-indigo-100 text-indigo-600': e === 'por certificar',
+      'bg-blue-100   text-blue-600':   e === 'certificado',
+      'bg-gray-100   text-gray-500':   !['activo','inactivo','suspendido','por certificar','certificado'].includes(e),
+    };
+  }
+
+  estadoDotCls(estado: string): object {
+    const e = (estado ?? '').toLowerCase();
+    return {
+      'bg-green-500':  e === 'activo',
+      'bg-red-500':    e === 'inactivo',
+      'bg-yellow-500': e === 'suspendido',
+      'bg-indigo-500': e === 'por certificar',
+      'bg-blue-500':   e === 'certificado',
+      'bg-gray-400':   !['activo','inactivo','suspendido','por certificar','certificado'].includes(e),
+    };
+  }
+
   // ── Delegates a helpers puros ───────────────────────────────────────────────
   getInitials    = initials;
   avatarCls      = avatarColor;
   getAvanceValor = avanceValor;
   getAvanceColor = avanceColor;
 
-  isActivo(estado: string): boolean {
-    return estado === 'activo' || estado === 'activa';
-  }
-
   getValue(item: Aprendiz, key: ColumnUid) {
     if (key === 'actions') return '—';
     return item[key] ?? '—';
   }
+
+  String = String;
 }

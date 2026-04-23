@@ -8,6 +8,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { SeguimientosModalComponent }  from '../seguimientos-modal.component';
 import { ObservacionModalComponent }   from '../observacion-modal.component';
 import { CrearPracticaModalComponent } from '../crear-practica-modal.component';
+import { GestionarAsignacionesModalComponent } from '../../modals/gestionar-asignaciones-modal.component';
 import { TableToolbarComponent }       from './table-toolbar.component';
 import { TableHeaderComponent }        from './table-header.component';
 import { TableBodyComponent }          from './table-body.component';
@@ -24,6 +25,7 @@ import {
     SeguimientosModalComponent,
     ObservacionModalComponent,
     CrearPracticaModalComponent,
+    GestionarAsignacionesModalComponent,
     TableToolbarComponent,
     TableHeaderComponent,
     TableBodyComponent,
@@ -77,6 +79,9 @@ import {
               (verSeguimientos)="abrirSeguimientos($event)"
               (verObservacion)="abrirObservacion($event)"
               (crearPractica)="abrirCrearPractica($event)"
+              (editarPractica)="abrirEditarPractica($event)"
+              (cambiarEstado)="onCambiarEstado($event)"
+              (gestionarAsignaciones)="abrirGestionarAsignaciones($event)"
             />
 
           </table>
@@ -113,6 +118,18 @@ import {
       (closed)="modalCrearPractica = false; alumnoParaPractica = null"
       (success)="cargar()"
     />
+    <app-crear-practica-modal
+      [isOpen]="modalEditarPractica"
+      [practicaId]="practicaIdParaEditar"
+      [alumnoPreseleccionado]="alumnoParaEditar"
+      (closed)="modalEditarPractica = false; alumnoParaEditar = null"
+      (success)="cargar()"
+    />
+    <app-gestionar-asignaciones-modal
+      [isOpen]="modalAsignaciones"
+      [alumno]="alumnoParaAsignaciones"
+      (closed)="modalAsignaciones = false; alumnoParaAsignaciones = null"
+    />
   `,
 })
 export class TableInfoComponent implements OnInit {
@@ -133,12 +150,16 @@ export class TableInfoComponent implements OnInit {
   visibleCols = new Set(INITIAL_VISIBLE_COLS);
 
   // ── Modales ────────────────────────────────────────────────────────────────
-  modalSeguimientos  = false;
-  modalObservacion   = false;
-  modalCrearPractica = false;
-  alumnoSeleccionado: Aprendiz | null = null;
-  alumnoObservacion:  Aprendiz | null = null;
-  alumnoParaPractica: Aprendiz | null = null;
+  modalSeguimientos    = false;
+  modalObservacion     = false;
+  modalCrearPractica   = false;
+  modalEditarPractica  = false;
+  modalAsignaciones    = false;
+  alumnoSeleccionado:       Aprendiz | null = null;
+  alumnoObservacion:        Aprendiz | null = null;
+  alumnoParaPractica:       Aprendiz | null = null;
+  alumnoParaEditar:         Aprendiz | null = null;
+  alumnoParaAsignaciones:   Aprendiz | null = null;
 
   // ── Computed ───────────────────────────────────────────────────────────────
   filtered = computed(() => {
@@ -285,9 +306,30 @@ export class TableInfoComponent implements OnInit {
   }
 
   // ── Modales ────────────────────────────────────────────────────────────────
-  abrirSeguimientos(item: Aprendiz):  void { this.alumnoSeleccionado = item; this.modalSeguimientos  = true; }
-  abrirObservacion(item: Aprendiz):   void { this.alumnoObservacion  = item; this.modalObservacion   = true; }
-  abrirCrearPractica(item: Aprendiz): void { this.alumnoParaPractica = item; this.modalCrearPractica = true; }
+  abrirSeguimientos(item: Aprendiz):       void { this.alumnoSeleccionado     = item; this.modalSeguimientos   = true; }
+  abrirObservacion(item: Aprendiz):        void { this.alumnoObservacion      = item; this.modalObservacion    = true; }
+  abrirCrearPractica(item: Aprendiz):      void { this.alumnoParaPractica     = item; this.modalCrearPractica  = true; }
+  /** Getter para pasar el practicaId como string al modal unificado */
+  get practicaIdParaEditar(): string | null {
+    const id = this.alumnoParaEditar?.id_practica;
+    return id != null ? String(id) : null;
+  }
+
+  abrirEditarPractica(item: Aprendiz):     void { this.alumnoParaEditar       = item; this.modalEditarPractica = true; }
+  abrirGestionarAsignaciones(item: Aprendiz): void { this.alumnoParaAsignaciones = item; this.modalAsignaciones   = true; }
+
+  async onCambiarEstado(event: { item: Aprendiz; estado: string }): Promise<void> {
+    const { item, estado } = event;
+    if (!item.id_practica) return;
+    try {
+      await this.api.actualizarPractica(String(item.id_practica), { estado });
+      this.data.update(lista =>
+        lista.map(a => a.id === item.id ? { ...a, estado } : a)
+      );
+    } catch (e: any) {
+      console.error('[TableInfo] Error cambiando estado:', e?.message ?? e);
+    }
+  }
 
   onAvanceActualizado(event: { id: any; avance: number }): void {
     this.data.update(lista =>
