@@ -56,7 +56,7 @@ export class AuthService {
     localStorage.removeItem('centroId');
     localStorage.removeItem('cargo');
     this._user.set(null);
-    this.router.navigate(['/login'], { replaceUrl: true });
+    this.router.navigate(['/'], { replaceUrl: true });
     
   }
 

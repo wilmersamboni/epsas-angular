@@ -4,6 +4,7 @@ import { NgClass } from '@angular/common';
 import { BitacorasModalComponent } from './bitacoras-modal.component';
 import { AuthService } from '../../../core/services/auth.service';
 import { SeguimientoService } from '../../../core/services';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-seguimientos-modal',
@@ -188,6 +189,7 @@ import { SeguimientoService } from '../../../core/services';
 export class SeguimientosModalComponent implements OnChanges {
   private auth           = inject(AuthService);
   private seguimientoSvc = inject(SeguimientoService);
+  private toast          = inject(ToastService);
 
   /** Gestionar seguimiento (observaciones, actas): admin e instructor */
   canGestionarSeguimiento() { return this.auth.hasRole(['administrador', 'instructor']); }
@@ -272,20 +274,24 @@ export class SeguimientosModalComponent implements OnChanges {
     if (!seg) return;
     try {
       await this.seguimientoSvc.actualizarSeguimiento(seg.id, { observacion: this.editObservacion });
+      this.toast.ok('Seguimiento actualizado', 'La observación fue guardada correctamente.');
       await this.cargarSeguimientos();
       this.editOpen.set(false);
-    } catch (e) { console.error(e); }
+    } catch (e: any) { this.toast.httpError(e, 'Error al guardar el seguimiento.'); }
   }
 
   async onCambiarEstado(item: any, estado: string): Promise<void> {
     this.openMenu.set(null);
     try {
       await this.seguimientoSvc.cambiarEstado(item.id, estado);
-      // Actualizar localmente sin recargar
+      // Actualización optimista local
       this.seguimientos.update(list =>
         list.map(s => s.id === item.id ? { ...s, estado } : s)
       );
-    } catch (e) { console.error(e); }
+      this.toast.ok('Estado actualizado', `El seguimiento cambió a "${estado}".`);
+      // Recarga para confirmar lo que quedó en BD
+      await this.cargarSeguimientos();
+    } catch (e: any) { this.toast.httpError(e, 'Error al cambiar el estado.'); }
   }
 
   subirActa(item: any): void {
@@ -301,15 +307,21 @@ export class SeguimientosModalComponent implements OnChanges {
   async onActaFileChange(event: any): Promise<void> {
     const file: File | undefined = event.target?.files?.[0];
     if (!file || !this.pendingActaItem) return;
-    try {
-      const resp = await this.seguimientoSvc.subirActa(this.pendingActaItem.id, file);
-      const filename: string = resp?.actas_pdf ?? resp?.filename ?? file.name;
-      // Actualizar la card sin recargar todo
-      this.seguimientos.update(list =>
-        list.map(s => s.id === this.pendingActaItem.id ? { ...s, actas_pdf: filename } : s)
-      );
-    } catch (e) { console.error('[subirActa]', e); }
+    const targetId = this.pendingActaItem.id;
     this.pendingActaItem = null;
+    try {
+      const resp: any = await this.seguimientoSvc.subirActa(targetId, file);
+      // El backend devuelve el objeto Seguimiento con actas_pdf actualizado
+      const filename: string =
+        resp?.actas_pdf ?? resp?.filename ?? file.name;
+      // Actualización optimista local
+      this.seguimientos.update(list =>
+        list.map(s => s.id === targetId ? { ...s, actas_pdf: filename } : s)
+      );
+      this.toast.ok('Acta subida', 'El acta PDF fue cargada correctamente.');
+      // Recarga para confirmar lo que quedó en BD
+      await this.cargarSeguimientos();
+    } catch (e: any) { this.toast.httpError(e, 'Error al subir el acta.'); }
   }
 
   descargarActa(item: any): void {

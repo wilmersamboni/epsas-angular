@@ -1,4 +1,5 @@
 import { ApplicationConfig, provideZoneChangeDetection, LOCALE_ID } from '@angular/core';
+import { MessageService } from 'primeng/api';
 import { signal } from '@angular/core';  // ← agrega signal
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
@@ -35,5 +36,6 @@ export const appConfig: ApplicationConfig = {
     ...provideTaiga({ scrollbars: 'native' }),
     tuiAssetsPathProvider('assets/taiga-ui/icons'),
     provideLottieOptions({ player: () => player }),
+    MessageService,   // ← proveedor global para ToastService
   ],
 };

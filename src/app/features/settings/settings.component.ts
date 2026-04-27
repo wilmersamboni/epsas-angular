@@ -4,8 +4,10 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { ThemeService, TEMAS } from '../../core/services/theme.service';
+import { ApiService } from '../../core/services/api.service';
+import { ToastService } from '../../core/services/toast.service';
 
-type Tab = 'perfil' | 'password' | 'apariencia' | 'sistema';
+type Tab = 'perfil' | 'password' | 'apariencia' | 'practicas' | 'sistema';
 
 @Component({
   selector: 'app-settings',
@@ -55,6 +57,19 @@ type Tab = 'perfil' | 'password' | 'apariencia' | 'sistema';
             </svg>
             Apariencia
           </button>
+
+          @if (esAdmin()) {
+            <button (click)="tab.set('practicas'); cargarConfigPracticas()"
+              [class.active]="tab() === 'practicas'">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0
+                         00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2
+                         0 012 2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9 12h6M9 16h4" stroke-linecap="round"/>
+              </svg>
+              Prácticas
+            </button>
+          }
 
           @if (esAdmin()) {
             <button (click)="tab.set('sistema')" [class.active]="tab() === 'sistema'">
@@ -113,12 +128,6 @@ type Tab = 'perfil' | 'password' | 'apariencia' | 'sistema';
                     <input type="text" [value]="user()?.cargo ?? ''" disabled class="disabled" />
                   </div>
                 </div>
-
-                @if (perfilMsg()) {
-                  <div class="msg" [class.msg-ok]="perfilOk()" [class.msg-err]="!perfilOk()">
-                    {{ perfilMsg() }}
-                  </div>
-                }
 
                 <div class="panel-footer">
                   <button class="btn-primary" (click)="guardarPerfil()" [disabled]="saving()">
@@ -179,12 +188,6 @@ type Tab = 'perfil' | 'password' | 'apariencia' | 'sistema';
                   <span class="strength-label" [class]="'s' + pwdStrength()">
                     {{ ['', 'Débil', 'Regular', 'Buena', 'Fuerte'][pwdStrength()] }}
                   </span>
-                </div>
-              }
-
-              @if (pwdMsg()) {
-                <div class="msg" [class.msg-ok]="pwdOk()" [class.msg-err]="!pwdOk()">
-                  {{ pwdMsg() }}
                 </div>
               }
 
@@ -250,6 +253,71 @@ type Tab = 'perfil' | 'password' | 'apariencia' | 'sistema';
                 </div>
               </div>
 
+            </div>
+          }
+
+          <!-- ════════ PRÁCTICAS (solo admin) ════════ -->
+          @if (tab() === 'practicas' && esAdmin()) {
+            <div class="panel-section">
+              <h2 class="panel-title">Configuración de Prácticas</h2>
+              <p class="panel-sub">Parámetros para la creación de etapas prácticas</p>
+
+              @if (cargandoConfig()) {
+                <div class="spinner-wrap"><div class="spinner"></div></div>
+              } @else {
+                <div class="pref-row" style="align-items:flex-start; flex-direction:column; gap:12px">
+                  <div>
+                    <p class="pref-label">Avance mínimo requerido</p>
+                    <p class="pref-desc">
+                      Porcentaje mínimo de avance académico que debe tener un aprendiz
+                      para que el administrador pueda crearle una etapa práctica.
+                    </p>
+                  </div>
+
+                  <div class="avance-control">
+                    <div class="avance-slider-wrap">
+                      <input type="range" min="0" max="100" step="5"
+                        [(ngModel)]="configMinAvance"
+                        class="avance-slider" />
+                      <div class="avance-labels">
+                        <span>0%</span><span>50%</span><span>100%</span>
+                      </div>
+                    </div>
+                    <div class="avance-value-wrap">
+                      <input type="number" min="0" max="100"
+                        [(ngModel)]="configMinAvance"
+                        class="avance-number" />
+                      <span class="avance-pct">%</span>
+                    </div>
+                  </div>
+
+                  <div class="avance-preview">
+                    <div class="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div class="h-full rounded-full transition-all"
+                        [style.width.%]="configMinAvance"
+                        [style.background]="configMinAvance >= 70 ? '#39A900' :
+                                            configMinAvance >= 40 ? '#f5a524' : '#f31260'">
+                      </div>
+                    </div>
+                    <span class="text-sm font-semibold"
+                      [style.color]="configMinAvance >= 70 ? '#39A900' :
+                                     configMinAvance >= 40 ? '#f5a524' : '#f31260'">
+                      {{ configMinAvance }}%
+                    </span>
+                  </div>
+
+                  <p class="text-xs text-gray-400" style="margin:0">
+                    Valor actual guardado: <strong>{{ configMinAvanceSaved }}%</strong>.
+                    Un aprendiz con avance menor verá el botón "crear práctica" bloqueado.
+                  </p>
+                </div>
+
+                <div class="panel-footer">
+                  <button class="btn-primary" (click)="guardarConfigPracticas()" [disabled]="saving()">
+                    {{ saving() ? 'Guardando…' : 'Guardar configuración' }}
+                  </button>
+                </div>
+              }
             </div>
           }
 
@@ -464,6 +532,31 @@ type Tab = 'perfil' | 'password' | 'apariencia' | 'sistema';
     }
     .font-size-btns button.active { border-color: #39A900; background: #f0fdf4; color: #39A900; }
 
+    /* ── Avance control ── */
+    .avance-control { display: flex; align-items: center; gap: 16px; width: 100%; max-width: 480px; }
+    .avance-slider-wrap { flex: 1; }
+    .avance-slider {
+      width: 100%; -webkit-appearance: none; height: 6px;
+      border-radius: 99px; background: #e5e7eb; outline: none; cursor: pointer;
+    }
+    .avance-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+      background: #39A900; cursor: pointer; border: 2px solid white;
+      box-shadow: 0 1px 4px rgba(0,0,0,.2);
+    }
+    .avance-labels { display: flex; justify-content: space-between;
+                     font-size: 10px; color: #94a3b8; margin-top: 4px; }
+    .avance-value-wrap { display: flex; align-items: center; gap: 4px; }
+    .avance-number {
+      width: 60px; padding: 8px 10px; border: 1.5px solid #e5e7eb;
+      border-radius: 10px; font-size: 14px; font-weight: 700; text-align: center;
+      color: #0f172a; outline: none;
+    }
+    .avance-number:focus { border-color: #39A900; box-shadow: 0 0 0 3px rgba(57,169,0,.1); }
+    .avance-pct { font-size: 14px; font-weight: 600; color: #64748b; }
+    .avance-preview { display: flex; align-items: center; gap: 10px;
+                       width: 100%; max-width: 480px; }
+
     /* ── Sistema ── */
     .sys-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .sys-card {
@@ -490,17 +583,15 @@ type Tab = 'perfil' | 'password' | 'apariencia' | 'sistema';
   `],
 })
 export class SettingsComponent implements OnInit {
-  private auth  = inject(AuthService);
-  private http  = inject(HttpClient);
-  private theme = inject(ThemeService);
+  private auth   = inject(AuthService);
+  private http   = inject(HttpClient);
+  private theme  = inject(ThemeService);
+  private apiSvc = inject(ApiService);
+  private toast  = inject(ToastService);
 
-  tab           = signal<Tab>('perfil');
-  saving        = signal(false);
+  tab            = signal<Tab>('perfil');
+  saving         = signal(false);
   cargandoPerfil = signal(false);
-
-  // Mensajes de feedback
-  perfilMsg = signal('');  perfilOk = signal(true);
-  pwdMsg    = signal('');  pwdOk    = signal(true);
 
   readonly user     = this.auth.user;
   readonly esAdmin  = computed(() => this.auth.isAdmin());
@@ -533,6 +624,11 @@ export class SettingsComponent implements OnInit {
   fontSize   = signal(localStorage.getItem('fontSize') ?? 'normal');
   readonly temas = TEMAS;
 
+  // Configuración de prácticas
+  cargandoConfig       = signal(false);
+  configMinAvance      = 70;
+  configMinAvanceSaved = 70;
+
   ngOnInit(): void {
     this.cargarPerfil();
     this.theme.apply();   // restaura color, fuente y modo oscuro guardados
@@ -563,7 +659,7 @@ export class SettingsComponent implements OnInit {
   async guardarPerfil(): Promise<void> {
     const personaId = this.user()?.personaId;
     if (!personaId) return;
-    this.saving.set(true); this.perfilMsg.set('');
+    this.saving.set(true); //this.perfilMsg.set('');
     try {
       // Cargamos el registro completo para no pisar campos no editables
       const actual: any = await firstValueFrom(
@@ -582,25 +678,22 @@ export class SettingsComponent implements OnInit {
         })
       );
       this.auth.actualizarUser({ nombre: this.perfil.nombre });
-      this.perfilOk.set(true);
-      this.perfilMsg.set('✓ Perfil actualizado correctamente');
-    } catch {
-      this.perfilOk.set(false);
-      this.perfilMsg.set('Error al guardar el perfil. Intenta de nuevo.');
+      this.toast.ok('Perfil actualizado', 'Los cambios fueron guardados correctamente.');
+    } catch (e: any) {
+      this.toast.httpError(e, 'Error al guardar el perfil.');
     } finally { this.saving.set(false); }
   }
 
   // ── Contraseña ───────────────────────────────────────────────────────
   async cambiarPassword(): Promise<void> {
-    this.pwdMsg.set('');
     if (!this.pwd.actual || !this.pwd.nueva || !this.pwd.confirma) {
-      this.pwdOk.set(false); this.pwdMsg.set('Completa todos los campos.'); return;
+      this.toast.warn('Campos requeridos', 'Completa todos los campos.'); return;
     }
     if (this.pwd.nueva !== this.pwd.confirma) {
-      this.pwdOk.set(false); this.pwdMsg.set('Las contraseñas nuevas no coinciden.'); return;
+      this.toast.warn('Contraseñas distintas', 'Las contraseñas nuevas no coinciden.'); return;
     }
     if (this.pwd.nueva.length < 8) {
-      this.pwdOk.set(false); this.pwdMsg.set('La nueva contraseña debe tener al menos 8 caracteres.'); return;
+      this.toast.warn('Contraseña corta', 'La nueva contraseña debe tener al menos 8 caracteres.'); return;
     }
     this.saving.set(true);
     try {
@@ -610,12 +703,10 @@ export class SettingsComponent implements OnInit {
           passwordNuevo:  this.pwd.nueva,
         })
       );
-      this.pwdOk.set(true);
-      this.pwdMsg.set('✓ Contraseña actualizada correctamente');
+      this.toast.ok('Contraseña actualizada', 'Tu contraseña fue cambiada correctamente.');
       this.pwd = { actual: '', nueva: '', confirma: '' };
     } catch (e: any) {
-      this.pwdOk.set(false);
-      this.pwdMsg.set(e?.error?.message ?? 'La contraseña actual es incorrecta.');
+      this.toast.error('Error', e?.error?.message ?? 'La contraseña actual es incorrecta.');
     } finally { this.saving.set(false); }
   }
 
@@ -637,6 +728,31 @@ export class SettingsComponent implements OnInit {
     this.fontSize.set(size);
     localStorage.setItem('fontSize', size);
     this.theme.apply();
+  }
+
+  // ── Configuración de Prácticas ───────────────────────────────────────
+  async cargarConfigPracticas(): Promise<void> {
+    this.cargandoConfig.set(true);
+    try {
+      const cfg = await this.apiSvc.obtenerConfiguracion();
+      this.configMinAvance      = cfg.minAvance;
+      this.configMinAvanceSaved = cfg.minAvance;
+    } catch (e: any) {
+      this.toast.httpError(e, 'No se pudo cargar la configuración.');
+    } finally { this.cargandoConfig.set(false); }
+  }
+
+  async guardarConfigPracticas(): Promise<void> {
+    this.saving.set(true);
+    const v = Math.max(0, Math.min(100, this.configMinAvance));
+    try {
+      await this.apiSvc.actualizarConfiguracion(v);
+      this.configMinAvanceSaved = v;
+      this.configMinAvance      = v;
+      this.toast.ok('Configuración guardada', `Avance mínimo establecido en ${v}%.`);
+    } catch (e: any) {
+      this.toast.httpError(e, 'Error al guardar la configuración.');
+    } finally { this.saving.set(false); }
   }
 
   // ── Sistema ──────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // table-info.component.ts  — Orquestador (datos + estado + coordinación)
 // ─────────────────────────────────────────────────────────────────────────────
-import { Component, OnInit, signal, computed, HostListener } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { ApiService } from '../../../../core/services/api.service';
 import { AuthService } from '../../../../core/services/auth.service';
 
@@ -76,12 +76,14 @@ import {
             <app-table-body
               [rows]="paged()"
               [columns]="headerColumns()"
+              [minAvance]="minAvance()"
               (verSeguimientos)="abrirSeguimientos($event)"
               (verObservacion)="abrirObservacion($event)"
               (crearPractica)="abrirCrearPractica($event)"
               (editarPractica)="abrirEditarPractica($event)"
               (cambiarEstado)="onCambiarEstado($event)"
               (gestionarAsignaciones)="abrirGestionarAsignaciones($event)"
+              (editarAvanceMatricula)="onEditarAvanceMatricula($event)"
             />
 
           </table>
@@ -135,9 +137,10 @@ import {
 export class TableInfoComponent implements OnInit {
 
   // ── Estado ─────────────────────────────────────────────────────────────────
-  data    = signal<Aprendiz[]>([]);
-  loading = signal(true);
-  areas   = signal<string[]>([]);
+  data      = signal<Aprendiz[]>([]);
+  loading   = signal(true);
+  areas     = signal<string[]>([]);
+  minAvance = signal(70);  // cargado desde /api2/configuracion
 
   filterValue      = signal('');
   selectedAreas    = signal<string[]>([]);
@@ -202,7 +205,18 @@ export class TableInfoComponent implements OnInit {
 
   // ── Ciclo de vida ──────────────────────────────────────────────────────────
   constructor(private api: ApiService, private auth: AuthService) {}
-  ngOnInit(): void { this.cargar(); }
+  ngOnInit(): void {
+    this.cargar();
+    this.cargarConfig();
+  }
+
+  // ── Configuración ─────────────────────────────────────────────────────────
+  async cargarConfig(): Promise<void> {
+    try {
+      const config = await this.api.obtenerConfiguracion();
+      this.minAvance.set(config.minAvance);
+    } catch { /* usa el default 70 */ }
+  }
 
   // ── Carga de datos ─────────────────────────────────────────────────────────
   async cargar(): Promise<void> {
@@ -237,20 +251,23 @@ export class TableInfoComponent implements OnInit {
           .find((p: any) => p != null) ?? null;
         const curso = matriculas[0]?.curso ?? null;
 
+        const matricula = matriculas[0] ?? null;
         return {
-          id:          personaId,
-          name:        persona.nombre,
-          age:         persona.cedula,
-          email:       persona.correo,
-          programa:    curso?.programa?.nombre ?? '',
-          area:        curso?.area?.nombre ?? '',
-          number:      curso?.codigo ?? '',
-          estado:      practica?.estado ?? persona.estado,
-          startDate:   formatDate(practica?.fecha_inicio ?? practica?.fechaInicio ?? ''),
-          endDate:     formatDate(practica?.fecha_fin    ?? practica?.fechaFin    ?? ''),
-          avance:      practica?.avance ?? 0,
-          observacion: practica?.observacion ?? '',
-          id_practica: practica?.id ?? null,
+          id:               personaId,
+          name:             persona.nombre,
+          age:              persona.cedula,
+          email:            persona.correo,
+          programa:         curso?.programa?.nombre ?? '',
+          area:             curso?.area?.nombre ?? '',
+          number:           curso?.codigo ?? '',
+          estado:           practica?.estado ?? persona.estado,
+          startDate:        formatDate(practica?.fecha_inicio ?? practica?.fechaInicio ?? ''),
+          endDate:          formatDate(practica?.fecha_fin    ?? practica?.fechaFin    ?? ''),
+          avance:           practica?.avance ?? 0,
+          avance_matricula: Number(matricula?.avance ?? 0),
+          id_matricula:     matricula?.idMatricula ?? matricula?.id_matricula ?? null,
+          observacion:      practica?.observacion ?? '',
+          id_practica:      practica?.id ?? null,
         };
       });
 
@@ -321,12 +338,20 @@ export class TableInfoComponent implements OnInit {
   async onCambiarEstado(event: { item: Aprendiz; estado: string }): Promise<void> {
     const { item, estado } = event;
     if (!item.id_practica) return;
+
+    // Actualización optimista: refleja el cambio en la UI de inmediato
+    const estadoAnterior = item.estado;
+    this.data.update(lista =>
+      lista.map(a => a.id === item.id ? { ...a, estado } : a)
+    );
+
     try {
-      await this.api.actualizarPractica(String(item.id_practica), { estado });
-      this.data.update(lista =>
-        lista.map(a => a.id === item.id ? { ...a, estado } : a)
-      );
+      await this.api.cambiarEstadoPractica(String(item.id_practica), estado);
     } catch (e: any) {
+      // Revertir si la API falla
+      this.data.update(lista =>
+        lista.map(a => a.id === item.id ? { ...a, estado: estadoAnterior } : a)
+      );
       console.error('[TableInfo] Error cambiando estado:', e?.message ?? e);
     }
   }
@@ -335,5 +360,18 @@ export class TableInfoComponent implements OnInit {
     this.data.update(lista =>
       lista.map(item => item.id === event.id ? { ...item, avance: event.avance } : item)
     );
+  }
+
+  async onEditarAvanceMatricula(event: { item: Aprendiz; avance: number }): Promise<void> {
+    const { item, avance } = event;
+    if (!item.id_matricula) return;
+    try {
+      await this.api.actualizarAvanceMatricula(String(item.id_matricula), avance);
+      this.data.update(lista =>
+        lista.map(a => a.id === item.id ? { ...a, avance_matricula: avance } : a)
+      );
+    } catch (e: any) {
+      console.error('[TableInfo] Error actualizando avance:', e?.message ?? e);
+    }
   }
 }

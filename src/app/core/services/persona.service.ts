@@ -33,7 +33,7 @@ export class PersonaService {
   }
 
   async actualizarPersona(id: number, data: Partial<Persona>): Promise<any> {
-    return firstValueFrom(this.http.put(`${BASE}/persona/actualizar_jwsv/${id}`, data));
+    return firstValueFrom(this.http.put(`${BASE}/persona/${id}`, data));
   }
 
   async crearPersona(data: Partial<Persona>): Promise<any> {

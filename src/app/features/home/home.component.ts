@@ -4,6 +4,7 @@ import { StatsService, Stats, DonaStats } from '../../core/services/stats.servic
 import { ApiService } from '../../core/services/api.service';
 import { ExportService } from '../../core/services/export.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-home',
@@ -54,6 +55,7 @@ export class HomeComponent implements OnInit {
     private apiService:    ApiService,
     private exportService: ExportService,
     private auth:          AuthService,
+    private toast:         ToastService,
   ) {}
 
   ngOnInit(): void {
@@ -110,16 +112,23 @@ export class HomeComponent implements OnInit {
 
     }).catch((err) => {
       console.error('Error cargando datos para home:', err);
+      this.toast.error('Error', 'No se pudieron cargar los datos del panel.');
     });
   }
 
   exportarPDF(): void {
     this.exportando = true;
     setTimeout(() => {
-      this.exportService.exportarPDF(
-        this.stats, this.etapaActiva, this.etapaCertificada, this.practicas
-      );
-      this.exportando = false;
+      try {
+        this.exportService.exportarPDF(
+          this.stats, this.etapaActiva, this.etapaCertificada, this.practicas
+        );
+        this.toast.ok('PDF generado', 'El reporte fue exportado correctamente.');
+      } catch {
+        this.toast.error('Error', 'No se pudo generar el PDF.');
+      } finally {
+        this.exportando = false;
+      }
     }, 100);
   }
 
@@ -129,8 +138,10 @@ export class HomeComponent implements OnInit {
       this.stats, this.etapaActiva, this.etapaCertificada, this.practicas
     ).then(() => {
       this.exportando = false;
+      this.toast.ok('Excel generado', 'El reporte fue exportado correctamente.');
     }).catch(() => {
       this.exportando = false;
+      this.toast.error('Error', 'No se pudo generar el archivo Excel.');
     });
   }
 }

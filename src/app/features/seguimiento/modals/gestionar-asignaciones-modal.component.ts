@@ -5,6 +5,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 import { TuiButton, TuiInputDirective } from '@taiga-ui/core';
 import { TuiInputDate } from '@taiga-ui/kit';
@@ -389,7 +390,7 @@ export class GestionarAsignacionesModalComponent implements OnChanges {
   /* ── Snapshot para cancelar edición ── */
   private snapshots = new Map<string, Partial<AsignacionVM>>();
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private toast: ToastService) {}
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['isOpen']?.currentValue && this.alumno?.id_practica) {
@@ -425,8 +426,9 @@ export class GestionarAsignacionesModalComponent implements OnChanges {
           editando:         false,
         } as AsignacionVM;
       }));
-    } catch {
+    } catch (e: any) {
       this.error.set('Error cargando asignaciones.');
+      this.toast.httpError(e, 'No se pudieron cargar las asignaciones.');
     } finally {
       this.cargando.set(false);
     }
@@ -505,15 +507,9 @@ export class GestionarAsignacionesModalComponent implements OnChanges {
           x.id === a.id ? { ...x, editando: false } : x
         ));
       }
+      this.toast.ok('Asignación actualizada', 'Los cambios fueron guardados correctamente.');
     } catch (e: any) {
-      const serverMsg = e?.error?.message;
-      if (Array.isArray(serverMsg)) {
-        this.error.set(serverMsg.join(' · '));
-      } else if (typeof serverMsg === 'string') {
-        this.error.set(serverMsg);
-      } else {
-        this.error.set('Error al guardar. Intenta de nuevo.');
-      }
+      this.toast.httpError(e, 'Error al guardar la asignación.');
       console.error('[GestionarAsignaciones] Error al editar:', e?.error);
     } finally {
       this.guardando.set(false);
@@ -526,8 +522,9 @@ export class GestionarAsignacionesModalComponent implements OnChanges {
       this.asignaciones.update(list =>
         list.map(x => x.id === a.id ? { ...x, estado: nuevoEstado } : x)
       );
-    } catch {
-      this.error.set('Error al cambiar estado.');
+      this.toast.ok('Estado actualizado', `La asignación ahora está ${nuevoEstado}.`);
+    } catch (e: any) {
+      this.toast.httpError(e, 'Error al cambiar el estado.');
     }
   }
 
@@ -536,8 +533,9 @@ export class GestionarAsignacionesModalComponent implements OnChanges {
     try {
       await this.api.eliminarAsignacion(a.id);
       this.asignaciones.update(list => list.filter(x => x.id !== a.id));
-    } catch {
-      this.error.set('Error al eliminar.');
+      this.toast.ok('Asignación eliminada', `La asignación de ${a.instructorNombre} fue eliminada.`);
+    } catch (e: any) {
+      this.toast.httpError(e, 'Error al eliminar la asignación.');
     }
   }
 
@@ -565,18 +563,11 @@ export class GestionarAsignacionesModalComponent implements OnChanges {
         horas:        Math.floor(Number(this.nuevaAsignacion.horas)),
         etapaId:      String(this.alumno.id_practica),
       });
+      this.toast.ok('Asignación creada', 'El instructor fue asignado correctamente.');
       this.cancelarNueva();
       await this.cargar();
     } catch (e: any) {
-      // Mostrar el mensaje real del servidor para facilitar el diagnóstico
-      const serverMsg = e?.error?.message;
-      if (Array.isArray(serverMsg)) {
-        this.errorNuevo.set(serverMsg.join(' · '));
-      } else if (typeof serverMsg === 'string') {
-        this.errorNuevo.set(serverMsg);
-      } else {
-        this.errorNuevo.set(`Error ${e?.status ?? ''}: no se pudo crear la asignación.`);
-      }
+      this.toast.httpError(e, 'No se pudo crear la asignación.');
       console.error('[GestionarAsignaciones] Error al crear:', e?.error);
     } finally {
       this.guardando.set(false);

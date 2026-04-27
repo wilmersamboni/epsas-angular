@@ -86,7 +86,8 @@ import { AuthService } from '../../../../core/services/auth.service';
                   }
                 }
 
-                <!-- ── Avance ── -->
+                
+                <!-- ── Avance Práctica ── -->
                 @case ('avance') {
                   @if (item.id_practica) {
                     <div class="flex items-center gap-2 min-w-[80px]">
@@ -217,8 +218,9 @@ import { AuthService } from '../../../../core/services/auth.service';
                     }
 
                     <!-- Crear práctica: solo admin, solo si no tiene una -->
-                    @if (canCrearPractica()) {
-                      @if (!item.id_practica) {
+                    @if (canCrearPractica() && !item.id_practica) {
+                      @if (item.avance_matricula >= minAvance()) {
+                        <!-- Avance suficiente → botón activo -->
                         <button (click)="crearPractica.emit(item)" title="Crear etapa práctica"
                           class="p-1.5 rounded-lg text-gray-400 hover:text-[#39A900]
                                  hover:bg-[#39A900]/10 transition-all duration-150">
@@ -226,6 +228,18 @@ import { AuthService } from '../../../../core/services/auth.service';
                             <circle cx="12" cy="12" r="10"/>
                             <line x1="12" y1="8" x2="12" y2="16"/>
                             <line x1="8" y1="12" x2="16" y2="12"/>
+                          </svg>
+                        </button>
+                      } @else {
+                        <!-- Avance insuficiente → bloqueado con tooltip -->
+                        <button disabled
+                          [title]="'Avance insuficiente: ' + item.avance_matricula + '% (mínimo ' + minAvance() + '%)'"
+                          class="p-1.5 rounded-lg text-orange-300 cursor-not-allowed
+                                 bg-orange-50 transition-all duration-150">
+                          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71
+                                 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
                           </svg>
                         </button>
                       }
@@ -251,16 +265,34 @@ export class TableBodyComponent {
   private auth = inject(AuthService);
 
   // ── Inputs ─────────────────────────────────────────────────────────────────
-  rows    = input.required<Aprendiz[]>();
-  columns = input.required<Column[]>();
+  rows      = input.required<Aprendiz[]>();
+  columns   = input.required<Column[]>();
+  minAvance = input<number>(70);
 
   // ── Outputs ────────────────────────────────────────────────────────────────
-  verSeguimientos       = output<Aprendiz>();
-  verObservacion        = output<Aprendiz>();
-  crearPractica         = output<Aprendiz>();
-  editarPractica        = output<Aprendiz>();
-  cambiarEstado         = output<{ item: Aprendiz; estado: string }>();
-  gestionarAsignaciones = output<Aprendiz>();
+  verSeguimientos         = output<Aprendiz>();
+  verObservacion          = output<Aprendiz>();
+  crearPractica           = output<Aprendiz>();
+  editarPractica          = output<Aprendiz>();
+  cambiarEstado           = output<{ item: Aprendiz; estado: string }>();
+  gestionarAsignaciones   = output<Aprendiz>();
+  editarAvanceMatricula   = output<{ item: Aprendiz; avance: number }>();
+
+  // ── Edición inline de avance_matricula ─────────────────────────────────────
+  editAvanceItemId = signal<any>(null);
+  editAvanceValue  = 0;
+
+  abrirEditarAvance(item: Aprendiz, e: MouseEvent): void {
+    e.stopPropagation();
+    this.editAvanceItemId.set(item.id);
+    this.editAvanceValue = item.avance_matricula;
+  }
+
+  confirmarAvance(item: Aprendiz): void {
+    const v = Math.max(0, Math.min(100, this.editAvanceValue));
+    this.editarAvanceMatricula.emit({ item, avance: v });
+    this.editAvanceItemId.set(null);
+  }
 
   // ── Estado dropdown ─────────────────────────────────────────────────────────
   readonly ESTADOS = [
@@ -318,6 +350,15 @@ export class TableBodyComponent {
   avatarCls      = avatarColor;
   getAvanceValor = avanceValor;
   getAvanceColor = avanceColor;
+
+  /** Color del avance académico: verde si >= minAvance, naranja si cerca, rojo si lejos */
+  avanceMatriculaColor(avance: any): string {
+    const v   = avanceValor(avance);
+    const min = this.minAvance();
+    if (v >= min)            return '#39A900';  // cumple → verde
+    if (v >= min * 0.75)     return '#f5a524';  // cerca  → naranja
+    return '#f31260';                            // lejos  → rojo
+  }
 
   getValue(item: Aprendiz, key: ColumnUid) {
     if (key === 'actions') return '—';

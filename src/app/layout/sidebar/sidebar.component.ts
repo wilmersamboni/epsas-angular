@@ -94,9 +94,7 @@ interface NavGroup { id: string; label: string; links: NavLink[] }
           }
         </button>
 
-        @if (open) {
-          <p class="nav-version">EPSAS v1.0</p>
-        }
+        
       </div>
 
     </aside>
@@ -112,7 +110,7 @@ interface NavGroup { id: string; label: string; links: NavLink[] }
       border-radius: 8px;
       font-size: 13px;
       font-weight: 500;
-      color: #64748b;
+      color: #2B2F38;
       text-decoration: none;
       cursor: pointer;
       transition: background .15s, color .15s;
@@ -136,7 +134,7 @@ interface NavGroup { id: string; label: string; links: NavLink[] }
       font-weight: 700;
       letter-spacing: .09em;
       text-transform: uppercase;
-      color: #cbd5e1;
+      color: #656E85;
       padding: 0 13px;
       margin: 14px 0 3px;
     }
@@ -215,7 +213,7 @@ export class SidebarComponent {
         label: 'Principal',
         links: [
           {
-            label: 'Inicio', href: '/',
+            label: 'Inicio', href: '/home',
             safeIcon: this.safe(`<svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>`),
           },
           {

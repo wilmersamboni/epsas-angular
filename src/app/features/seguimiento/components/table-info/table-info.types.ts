@@ -18,41 +18,45 @@ export type ColumnUid =
   | 'actions'; // 👈 única que NO existe en Aprendiz
 
 export interface Aprendiz {
-  id:          any;
-  name:        string;
-  age:         string;   // cédula
-  email:       string;
-  programa:    string;
-  area:        string;
-  number:      string;   // código ficha
-  estado:      string;
-  startDate:   string;
-  endDate:     string;
-  avance:      number;
-  observacion: string;
-  id_practica: any;
+  id:               any;
+  name:             string;
+  age:              string;   // cédula
+  email:            string;
+  programa:         string;
+  area:             string;
+  number:           string;   // código ficha
+  estado:           string;
+  startDate:        string;
+  endDate:          string;
+  avance:           number;   // avance de la etapa práctica (bitácoras)
+  avance_matricula: number;   // avance académico del programa (% ejecución)
+  id_matricula:     string | null;
+  observacion:      string;
+  id_practica:      any;
 }
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
 export const COLUMNS: Column[] = [
-  { name: 'Nombre',         uid: 'name',        sortable: true  },
-  { name: 'Identificación', uid: 'age',         sortable: true  },
-  { name: 'Email',          uid: 'email',       sortable: false },
-  { name: 'Área',           uid: 'area',        sortable: false },
-  { name: 'Programa',       uid: 'programa',    sortable: true  },
-  { name: 'Ficha',          uid: 'number',      sortable: false },
-  { name: 'Fecha Inicio',   uid: 'startDate',   sortable: false },
-  { name: 'Fecha Fin',      uid: 'endDate',     sortable: true  },
-  { name: 'Observación',    uid: 'observacion', sortable: false },
-  { name: 'Avance',         uid: 'avance',      sortable: true  },
-  { name: 'Estado',         uid: 'estado',      sortable: false },
-  { name: 'Acciones',       uid: 'actions',     sortable: false },
+  { name: 'Nombre',           uid: 'name',             sortable: true  },
+  { name: 'Identificación',   uid: 'age',              sortable: true  },
+  { name: 'Email',            uid: 'email',            sortable: false },
+  { name: 'Área',             uid: 'area',             sortable: false },
+  { name: 'Programa',         uid: 'programa',         sortable: true  },
+  { name: 'Ficha',            uid: 'number',           sortable: false },
+  { name: 'Fecha Inicio',     uid: 'startDate',        sortable: false },
+  { name: 'Fecha Fin',        uid: 'endDate',          sortable: true  },
+  { name: 'Observación',      uid: 'observacion',      sortable: false },
+  //{ name: 'Prog. Académico',  uid: 'avance_matricula', sortable: true  },
+  { name: '% Práctica',  uid: 'avance',           sortable: true  },
+  { name: 'Estado',           uid: 'estado',           sortable: false },
+  { name: 'Acciones',         uid: 'actions',          sortable: false },
 ];
 
 export const INITIAL_VISIBLE_COLS = new Set([
   'name', 'age', 'area', 'programa', 'number',
-  'startDate', 'endDate', 'observacion', 'avance', 'estado', 'actions',
+  'startDate', 'endDate', 'observacion',
+  'avance_matricula', 'avance', 'estado', 'actions',
 ]);
 
 export const STATUS_OPTIONS: StatusOption[] = [

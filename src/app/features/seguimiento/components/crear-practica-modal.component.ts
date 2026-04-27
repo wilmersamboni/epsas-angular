@@ -4,8 +4,9 @@ import {
 } from '@angular/core';
 import { FormsModule, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { PracticaService, MatriculaService, PersonaService } from '../../../core/services';
+import { ToastService } from '../../../core/services/toast.service';
 
-import { type TuiDay } from '@taiga-ui/cdk';
+import { TuiDay } from '@taiga-ui/cdk';
 import { TuiCalendar } from '@taiga-ui/core';
 
 /**
@@ -349,6 +350,7 @@ export class CrearPracticaModalComponent implements OnChanges {
     private practicaSvc:  PracticaService,
     private matriculaSvc: MatriculaService,
     private personaSvc:   PersonaService,
+    private toast:        ToastService,
   ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -475,8 +477,8 @@ export class CrearPracticaModalComponent implements OnChanges {
     if (!iso) return null;
     const parts = iso.substring(0, 10).split('-');
     if (parts.length !== 3) return null;
-    // TuiDay: month es 0-based
-    return { year: +parts[0], month: +parts[1] - 1, day: +parts[2] } as TuiDay;
+    // TuiDay: month es 0-based; usar el constructor para que instanceof funcione
+    return new TuiDay(+parts[0], +parts[1] - 1, +parts[2]);
   }
 
   /* ── Guardar ──────────────────────────────────────────────────── */
@@ -497,16 +499,21 @@ export class CrearPracticaModalComponent implements OnChanges {
       } else {
         await this.guardarCreacion(fechaInicio, fechaFin);
       }
+      this.toast.ok(
+        this.modoEditar ? 'Etapa actualizada' : 'Etapa creada',
+        this.modoEditar ? 'Los cambios fueron guardados correctamente.' : 'La etapa práctica fue creada correctamente.',
+      );
       this.success.emit();
       this.closed.emit();
     } catch (e: any) {
       const msg = e?.error?.message;
-      this.error.set(
+      const detail =
         Array.isArray(msg)      ? msg.join(' · ') :
         typeof msg === 'string' ? msg :
-        this.modoEditar         ? 'Error al guardar los cambios. Intenta de nuevo.' :
-                                  'Error al crear la etapa práctica. Intenta de nuevo.'
-      );
+        this.modoEditar         ? 'Error al guardar los cambios.' :
+                                  'Error al crear la etapa práctica.';
+      this.error.set(detail);
+      this.toast.error('Error', detail);
     } finally {
       this.loading.set(false);
     }
@@ -543,14 +550,20 @@ export class CrearPracticaModalComponent implements OnChanges {
 
     const matriculaId = matriculas[0].idMatricula ?? matriculas[0].id_matricula;
 
+    // Incluir avance académico para que el backend pueda validar contra el mínimo configurado
+    const avanceMatricula = this.alumnoPreseleccionado
+      ? Number(this.alumnoPreseleccionado.avance_matricula ?? 0)
+      : Number((matriculas[0]?.avance ?? 0));
+
     const payload: any = {
       matriculaId,
-      modalidadId:  this.form.modalidadId,
-      empresaId:    this.form.empresaId,
-      fecha_inicio: fechaInicio,
-      fecha_fin:    fechaFin,
-      estado:       this.form.estado,
-      observacion:  this.form.observacion,
+      modalidadId:      this.form.modalidadId,
+      empresaId:        this.form.empresaId,
+      fecha_inicio:     fechaInicio,
+      fecha_fin:        fechaFin,
+      estado:           this.form.estado,
+      observacion:      this.form.observacion,
+      avanceMatricula,
     };
 
     // Construir el objeto asignacion si se seleccionó un instructor

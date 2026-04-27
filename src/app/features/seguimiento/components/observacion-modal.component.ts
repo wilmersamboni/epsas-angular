@@ -5,13 +5,18 @@ import {
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { SeguimientoService } from '../../../core/services'
+import { SeguimientoService } from '../../../core/services';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-observacion-modal',
   standalone: true,
   imports: [FormsModule],
   template: `
+    <!-- Input FUERA de @if para que ViewChild lo encuentre siempre -->
+    <input #fileInput type="file" accept="image/jpeg,image/png,image/webp"
+      style="display:none" (change)="onFotoSeleccionada($event)" />
+
     @if (isOpen && alumno) {
       <div class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
         (click)="$event.target === $event.currentTarget && closed.emit()">
@@ -92,8 +97,10 @@ import { SeguimientoService } from '../../../core/services'
                           {{ obs.descripcion }}
                         </p>
                         @if (obs.evidencia_foto) {
-                          <a [href]="obs.evidencia_foto" target="_blank"
-                            class="inline-flex items-center gap-1 text-xs text-green-600 hover:underline">
+                          <button type="button"
+                            (click)="$event.stopPropagation(); abrirEvidencia(obs.evidencia_foto)"
+                            class="inline-flex items-center gap-1 text-xs text-green-600
+                                   hover:underline cursor-pointer">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586
@@ -101,7 +108,7 @@ import { SeguimientoService } from '../../../core/services'
                                    a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                             </svg>
                             Ver evidencia
-                          </a>
+                          </button>
                         }
                       </div>
                     }
@@ -137,25 +144,13 @@ import { SeguimientoService } from '../../../core/services'
                     <span class="text-gray-400">(opcional · JPG, PNG, WEBP · máx 5 MB)</span>
                   </p>
 
-                  <!--
-                    El input SIEMPRE está en el DOM para que ViewChild lo encuentre.
-                    Solo su visibilidad cambia según si hay preview o no.
-                  -->
-                  <input
-                    #fileInput
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    class="hidden"
-                    (change)="onFotoSeleccionada($event)"/>
-
-             
-@if (!fotoPreview()) {
-  <div
-    class="flex flex-col items-center justify-center w-full h-28
-           border-2 border-dashed border-gray-200 rounded-xl
-           cursor-pointer hover:border-green-400 hover:bg-green-50
-           transition-colors group"
-    (click)="fileInput.click()">
+                  @if (!fotoPreview()) {
+                  <div
+                    class="flex flex-col items-center justify-center w-full h-28
+                           border-2 border-dashed border-gray-200 rounded-xl
+                           cursor-pointer hover:border-green-400 hover:bg-green-50
+                           transition-colors group"
+                    (click)="abrirSelectorFoto()">
     <svg class="w-7 h-7 text-gray-300 group-hover:text-green-400 mb-1"
       fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -238,6 +233,7 @@ import { SeguimientoService } from '../../../core/services'
 export class ObservacionModalComponent implements OnChanges {
   private seguimientoSvc = inject(SeguimientoService);
   private auth           = inject(AuthService);
+  private toast          = inject(ToastService);
   @Input() isOpen  = false;
   @Input() alumno: any = null;
   @Output() closed  = new EventEmitter<void>();
@@ -337,11 +333,18 @@ export class ObservacionModalComponent implements OnChanges {
     reader.readAsDataURL(file);
   }
 
+  /** Dispara el selector de archivos usando ViewChild (input siempre en DOM) */
+  abrirSelectorFoto(): void {
+    const input = this.fileInput?.nativeElement;
+    if (!input) return;
+    input.value = ''; // reset para poder re-seleccionar el mismo archivo
+    input.click();
+  }
+
   quitarFoto(): void {
     this.fotoArchivo.set(null);
     this.fotoPreview.set(null);
     this.errorFoto.set('');
-    // Limpiar el input para permitir seleccionar el mismo archivo de nuevo
     if (this.fileInput?.nativeElement) {
       this.fileInput.nativeElement.value = '';
     }
@@ -388,19 +391,34 @@ export class ObservacionModalComponent implements OnChanges {
         }
       );
 
+      this.toast.ok('Observación guardada', 'La observación fue registrada correctamente.');
       this.success.emit();
       this.closed.emit();
 
     } catch (e: any) {
       const msg = e?.error?.message;
-      this.error.set(
+      const detail =
         Array.isArray(msg)      ? msg.join(' · ') :
         typeof msg === 'string' ? msg :
-        'Error al guardar la observación. Intenta de nuevo.'
-      );
+        'Error al guardar la observación.';
+      this.error.set(detail);
+      this.toast.error('Error', detail);
     } finally {
       this.loading.set(false);
     }
+  }
+
+  /**
+   * Abre la evidencia fotográfica en una nueva pestaña.
+   * Usa window.open() directamente para evitar que el sanitizador de Angular
+   * o el bloqueador de popups del navegador impidan abrir el archivo.
+   */
+  abrirEvidencia(url: string): void {
+    if (!url) return;
+    // Si ya es una URL absoluta (http/https) la usa tal cual;
+    // si es relativa (/uploads/...) la complementa con el origen actual.
+    const href = url.startsWith('http') ? url : `${window.location.origin}${url}`;
+    window.open(href, '_blank', 'noopener,noreferrer');
   }
 
   formatFecha(fecha: string | Date): string {

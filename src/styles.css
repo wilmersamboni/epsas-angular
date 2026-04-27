@@ -1,6 +1,16 @@
 @import "tailwindcss";
 @import 'primeicons/primeicons.css';
 
+/* ─── Login animations ───────────────────────────────────────────── */
+@keyframes twinkle {
+  0%   { opacity: 0.15; }
+  100% { opacity: 0.85; }
+}
+@keyframes floatP {
+  0%   { transform: translateY(0) scale(1); }
+  100% { transform: translateY(-22px) scale(1.08); }
+}
+
 body, * {
   font-family: 'Sora', sans-serif;
 }

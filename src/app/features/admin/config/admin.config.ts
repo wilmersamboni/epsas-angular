@@ -55,9 +55,9 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
   // ── Módulos con pestañas ──────────────────────────────────────
   personas: {
     label: 'Personas', idKey: 'idPersona',
-    listar: `${BASE}/personas`, crear: `${BASE}/persona/registrar_jwsv`,
-    actualizar: id => `${BASE}/persona/actualizar_jwsv/${id}`,
-    eliminar:   id => `${BASE}/persona/eliminar_jwsv/${id}`,
+    listar: `${BASE}/personas`, crear: `${BASE}/personas`,
+    actualizar: id => `${BASE}/personas/${id}`,
+    eliminar:   id => `${BASE}/personas/${id}`,
     campos: ['nombre', 'cedula', 'telefono', 'municipioId', 'direccion', 'correo', 'genero', 'cargo', 'estado'],
     selectores: {
       municipioId: { modulo: 'municipios', label: 'nombre', value: 'idMunicipio' },
@@ -198,6 +198,8 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
     campos: ['nombre'],
   },
 };
+
+
 
 /** Solo los módulos que aparecen como pestañas (excluye catálogos internos) */
 export const MODULOS = (Object.keys(CONFIG) as Modulo[]).filter(

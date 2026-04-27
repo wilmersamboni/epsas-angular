@@ -44,16 +44,24 @@ export class ApiService {
 
   // ── Formatos ──────────────────────────────────────────────────────────────
   async listarFormatos(): Promise<Formato[]> {
-    return firstValueFrom(this.http.get<Formato[]>(`${BASE}/formatos/listar_jwsv`));
+    return firstValueFrom(this.http.get<Formato[]>(`${BASE2}/formatos`));
   }
-  async subirFormato(nombre: string, file: File): Promise<any> {
+  async listarFormatosPorEtapa(etapaId: string, tipo?: string): Promise<Formato[]> {
+    const url = tipo
+      ? `${BASE2}/formatos/etapa/${etapaId}?tipo=${tipo}`
+      : `${BASE2}/formatos/etapa/${etapaId}`;
+    return firstValueFrom(this.http.get<Formato[]>(url));
+  }
+  async subirFormato(nombre: string, tipo: string, file: File, etapaId?: string): Promise<any> {
     const fd = new FormData();
     fd.append('nombre', nombre);
-    fd.append('archivo', file);
-    return firstValueFrom(this.http.post(`${BASE}/formatos/subir_jwsv`, fd));
+    fd.append('tipo', tipo);
+    if (etapaId) fd.append('etapaId', etapaId);
+    fd.append('file', file);
+    return firstValueFrom(this.http.post(`${BASE2}/formatos`, fd));
   }
-  async eliminarFormato(id: number): Promise<any> {
-    return firstValueFrom(this.http.delete(`${BASE}/formatos/eliminar_jwsv/${id}`));
+  async eliminarFormato(id: string): Promise<any> {
+    return firstValueFrom(this.http.delete(`${BASE2}/formatos/${id}`));
   }
 
   // ── Personas / Aprendices ─────────────────────────────────────────────────
@@ -78,7 +86,7 @@ export class ApiService {
     return firstValueFrom(this.http.get<Persona>(`${BASE}/persona/buscar_jwsv/${id}`));
   }
   async actualizarPersona(id: number, data: Partial<Persona>): Promise<any> {
-    return firstValueFrom(this.http.put(`${BASE}/persona/actualizar_jwsv/${id}`, data));
+    return firstValueFrom(this.http.put(`${BASE}/persona/${id}`, data));
   }
   async crearPersona(data: Partial<Persona>): Promise<any> {
     return firstValueFrom(this.http.post(`${BASE}/persona/registrar_jwsv`, data));
@@ -142,6 +150,11 @@ export class ApiService {
     estado?: string; observacion?: string;
   }): Promise<any> {
     return firstValueFrom(this.http.patch(`${BASE2}/etapa-practica/${id}`, datos));
+  }
+  async cambiarEstadoPractica(id: string, estado: string): Promise<{ id: string; estado: string }> {
+    return firstValueFrom(
+      this.http.patch<{ id: string; estado: string }>(`${BASE2}/etapa-practica/${id}/estado`, { estado })
+    );
   }
   async activarPractica(id: string): Promise<any> {
     return firstValueFrom(this.http.patch(`${BASE2}/etapa-practica/${id}/activar`, {}));
@@ -313,6 +326,54 @@ async subirEvidenciaObservacion(file: File): Promise<string> {
     login: string; password: string; fk_usuario: number; fk_rol: number;
   }): Promise<any> {
     return firstValueFrom(this.http.post(`${BASE}/credencial/registrar_jwsv`, data));
+  }
+
+  // ── Avance de matrícula ───────────────────────────────────────────────────
+  /** Actualiza SOLO el porcentaje de avance académico de una matrícula */
+  async actualizarAvanceMatricula(matriculaId: string, avance: number): Promise<any> {
+    return firstValueFrom(
+      this.http.patch(`${BASE}/matriculas/${matriculaId}/avance`, { avance })
+    );
+  }
+
+  // ── Configuración global ──────────────────────────────────────────────────
+  /** Obtiene la configuración global del backend de prácticas */
+  async obtenerConfiguracion(): Promise<{ minAvance: number }> {
+    try {
+      return await firstValueFrom(
+        this.http.get<{ minAvance: number }>(`${BASE2}/configuracion`)
+      );
+    } catch { return { minAvance: 70 }; }
+  }
+
+  /** Actualiza el avance mínimo requerido para crear una etapa práctica */
+  async actualizarConfiguracion(minAvance: number): Promise<any> {
+    return firstValueFrom(
+      this.http.patch(`${BASE2}/configuracion`, { minAvance })
+    );
+  }
+
+  // ── Notificaciones ────────────────────────────────────────────────────────
+  async listarNotificaciones(): Promise<any[]> {
+    try {
+      const resp: any = await firstValueFrom(this.http.get(`${BASE}/notificaciones`));
+      return Array.isArray(resp) ? resp : [];
+    } catch { return []; }
+  }
+
+  async contarNotificacionesNoLeidas(): Promise<number> {
+    try {
+      const resp: any = await firstValueFrom(this.http.get(`${BASE}/notificaciones/count`));
+      return resp?.count ?? 0;
+    } catch { return 0; }
+  }
+
+  async marcarNotificacionLeida(id: string): Promise<void> {
+    await firstValueFrom(this.http.patch(`${BASE}/notificaciones/${id}/leer`, {}));
+  }
+
+  async marcarTodasNotificacionesLeidas(): Promise<void> {
+    await firstValueFrom(this.http.patch(`${BASE}/notificaciones/leer-todas`, {}));
   }
 
   // ── Recuperación de contraseña ────────────────────────────────────────────

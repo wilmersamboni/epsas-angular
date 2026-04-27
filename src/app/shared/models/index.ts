@@ -40,9 +40,16 @@ export interface Curso {
 
 // ── Formatos ──────────────────────────────────────────────────────────────────
 export interface Formato {
-  id_formatos: number;
-  nombre: string;
-  formato_pdf: string;
+  id:              string;
+  nombre:          string;
+  tipo:            string;
+  ruta_archivo:    string;
+  nombre_original: string;
+  mime_type:       string;
+  tamanio:         number | null;
+  estado:          string;
+  created_at:      string;
+  etapa?:          { id: string } | null;
 }
 
 // ── Persona ───────────────────────────────────────────────────────────────────

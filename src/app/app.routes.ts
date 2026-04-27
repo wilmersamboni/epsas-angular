@@ -4,7 +4,7 @@ import { roleGuard } from './core/guards/role.guard';
 
 export const routes: Routes = [
   {
-    path: 'login',
+    path: '',
     loadComponent: () =>
       import('./features/auth/login/login.component').then(m => m.LoginComponent),
   },
@@ -15,13 +15,18 @@ export const routes: Routes = [
         m => m.ForgotPasswordComponent
       ),
   },
+  // ✅ RUTA 404 PÚBLICA (Fuera del Guard para que todos puedan verla)
+  {
+    path: '404',
+    loadComponent: () => import('./features/not-found/not-found.component').then(m => m.NotFoundComponent)
+  },
   {
     path: '',
     loadComponent: () =>
       import('./layout/main-layout/main-layout.component').then(m => m.MainLayoutComponent),
     canActivate: [authGuard],
     children: [
-      { path: '', loadComponent: () => import('./features/home/home.component').then(m => m.HomeComponent) },
+      { path: 'home', loadComponent: () => import('./features/home/home.component').then(m => m.HomeComponent) },
       { path: 'seguimiento', loadComponent: () => import('./features/seguimiento/seguimiento.component').then(m => m.SeguimientoComponent) },
       { path: 'docs', canActivate: [roleGuard], data: { roles: ['administrador'] }, loadComponent: () => import('./features/historial/historial.component').then(m => m.HistorialComponent) },
       { path: 'format', loadComponent: () => import('./features/formatos/formatos.component').then(m => m.FormatosComponent) },
@@ -30,10 +35,9 @@ export const routes: Routes = [
       { path: 'settings', loadComponent: () => import('./features/settings/settings.component').then(m => m.SettingsComponent) },
       { path: 'area-detail/:idArea', loadComponent: () => import('./features/seguimiento/page-course/page-course.component').then(m => m.PageCourseComponent) },
       { path: 'pagetable/:idCurso', loadComponent: () => import('./features/seguimiento/page-table/aprendices.page.ts').then(m => m.AprendicesPage) },
-
-      // ✅ Migración dentro del layout (tiene sidebar)
       { path: 'migracion', canActivate: [roleGuard], data: { roles: ['administrador'] }, loadComponent: () => import('./features/migracion/migration.component').then(m => m.MigrationComponent) },
     ],
   },
-  { path: '**', redirectTo: 'login' },
+  // ✅ COMODÍN: Si no es nada de lo anterior, va al 404
+  { path: '**', redirectTo: '404' },
 ];
