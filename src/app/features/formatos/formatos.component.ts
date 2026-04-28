@@ -1,47 +1,86 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
+import { ToastService } from '../../core/services/toast.service';
 import { Formato } from '../../shared/models';
 
-/**
- * Equivalente a PricingPage.tsx de React.
- * Sube, lista y elimina archivos PDF.
- */
+const TIPOS: { value: string; label: string }[] = [
+  { value: 'contrato',           label: 'Contrato' },
+  { value: 'acta_inicio',        label: 'Acta de inicio' },
+  { value: 'acta_seguimiento_1', label: 'Acta seguimiento 1' },
+  { value: 'acta_seguimiento_2', label: 'Acta seguimiento 2' },
+  { value: 'carta_presentacion', label: 'Carta de presentación' },
+  { value: 'paz_y_salvo',        label: 'Paz y salvo' },
+  { value: 'certificado',        label: 'Certificado' },
+  { value: 'otro',               label: 'Otro' },
+];
+
+const FILE_BASE = 'http://localhost:3001/uploads/formatos/';
+
 @Component({
   selector: 'app-formatos',
   standalone: true,
-  imports: [],
+  imports: [FormsModule],
   template: `
     <section class="flex flex-col items-center gap-8 py-10">
 
       <h1 class="text-3xl font-bold text-gray-800">Formatos</h1>
 
-      <!-- Subir -->
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 w-96">
-        <label class="block text-sm font-medium text-gray-700 mb-3">Seleccionar PDF</label>
-        <input
-          type="file"
-          accept="application/pdf"
-          (change)="onFileChange($event)"
-          class="block w-full text-sm text-gray-500
-                 file:me-4 file:py-2 file:px-4
-                 file:rounded-lg file:border-0
-                 file:text-sm file:font-semibold
-                 file:bg-[#39A900] file:text-white
-                 hover:file:bg-[#2d8400] cursor-pointer"
-        />
-        <button
-          (click)="handleUpload()"
-          [disabled]="!archivo || uploading()"
-          class="mt-4 w-full py-2.5 bg-[#39A900] text-white font-semibold rounded-lg
-                 hover:bg-[#2d8400] transition-colors disabled:opacity-50"
-        >
-          {{ uploading() ? 'Subiendo...' : 'Subir Archivo' }}
-        </button>
-      </div>
+      <!-- ── Subir (solo administrador) ───────────────────────────────── -->
+      @if (esAdmin()) {
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 w-full max-w-md">
+          <h2 class="text-base font-semibold text-gray-800 mb-4">Subir nuevo formato</h2>
 
-      <!-- Listado -->
+          <!-- Nombre -->
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nombre descriptivo</label>
+          <input
+            type="text"
+            [(ngModel)]="nombreFormato"
+            placeholder="Ej: Contrato empresa XYZ"
+            class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm mb-3
+                   focus:outline-none focus:ring-2 focus:ring-[#39A900]/30 focus:border-[#39A900]"
+          />
+
+          <!-- Tipo -->
+          <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de formato</label>
+          <select
+            [(ngModel)]="tipoSeleccionado"
+            class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm mb-3
+                   focus:outline-none focus:ring-2 focus:ring-[#39A900]/30 focus:border-[#39A900]">
+            <option value="">Selecciona un tipo</option>
+            @for (t of tipos; track t.value) {
+              <option [value]="t.value">{{ t.label }}</option>
+            }
+          </select>
+
+          <!-- Archivo -->
+          <label class="block text-sm font-medium text-gray-700 mb-1">Archivo</label>
+          <input
+            type="file"
+            accept="application/pdf,.doc,.docx,image/*"
+            (change)="onFileChange($event)"
+            class="block w-full text-sm text-gray-500 mb-4
+                   file:me-4 file:py-2 file:px-4
+                   file:rounded-lg file:border-0
+                   file:text-sm file:font-semibold
+                   file:bg-[#39A900] file:text-white
+                   hover:file:bg-[#2d8400] cursor-pointer"
+          />
+
+          <button
+            (click)="handleUpload()"
+            [disabled]="!archivo || uploading()"
+            class="w-full py-2.5 bg-[#39A900] text-white font-semibold rounded-lg
+                   hover:bg-[#2d8400] transition-colors disabled:opacity-50">
+            {{ uploading() ? 'Subiendo...' : 'Subir archivo' }}
+          </button>
+        </div>
+      }
+
+      <!-- ── Listado ────────────────────────────────────────────────── -->
       <div class="w-full max-w-5xl bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">Archivos Subidos</h2>
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Archivos disponibles</h2>
         <hr class="mb-4 border-gray-100" />
 
         @if (loading()) {
@@ -55,7 +94,7 @@ import { Formato } from '../../shared/models';
         }
 
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
-          @for (f of formatos(); track f.id_formatos) {
+          @for (f of formatos(); track f.id) {
             <div class="bg-white rounded-xl border border-gray-100 hover:shadow-md transition-shadow p-4">
 
               <div class="flex items-start gap-3 mb-4">
@@ -65,50 +104,65 @@ import { Formato } from '../../shared/models';
                 <div class="flex-1 overflow-hidden">
                   <p class="font-medium text-sm text-gray-800 line-clamp-2">{{ f.nombre }}</p>
                   <span class="inline-block mt-1 text-[10px] font-semibold px-2 py-0.5
-                                bg-red-50 text-red-500 rounded-full">PDF</span>
+                                bg-[#39A900]/10 text-[#39A900] rounded-full capitalize">
+                    {{ tipoLabel(f.tipo) }}
+                  </span>
                 </div>
               </div>
 
+              <!-- Acciones -->
               <div class="flex justify-between gap-2">
-                <a [href]="'http://localhost:3000/uploads/' + f.formato_pdf"
+                <a [href]="fileUrl(f.ruta_archivo)"
                    target="_blank"
                    class="flex-1 text-center py-1.5 text-xs font-medium rounded-lg
                           bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">
                   Ver
                 </a>
-                <a [href]="'http://localhost:3000/uploads/' + f.formato_pdf"
-                   [download]="f.nombre"
+                <a [href]="fileUrl(f.ruta_archivo)"
+                   [download]="f.nombre_original"
                    class="flex-1 text-center py-1.5 text-xs font-medium rounded-lg
                           bg-green-50 text-green-600 hover:bg-green-100 transition-colors">
                   Descargar
                 </a>
-                <button (click)="handleEliminar(f.id_formatos)"
-                  class="flex-1 py-1.5 text-xs font-medium rounded-lg
-                         bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
-                  Eliminar
-                </button>
+                @if (esAdmin()) {
+                  <button (click)="handleEliminar(f.id)"
+                    class="flex-1 py-1.5 text-xs font-medium rounded-lg
+                           bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
+                    Eliminar
+                  </button>
+                }
               </div>
+
             </div>
           }
         </div>
       </div>
+
     </section>
   `,
 })
 export class FormatosComponent implements OnInit {
-  formatos  = signal<Formato[]>([]);
-  loading   = signal(false);
-  uploading = signal(false);
-  archivo: File | null = null;
+  private auth = inject(AuthService);
 
-  constructor(private api: ApiService) {}
+  readonly tipos = TIPOS;
+
+  formatos         = signal<Formato[]>([]);
+  loading          = signal(false);
+  uploading        = signal(false);
+  archivo:           File | null = null;
+  nombreFormato    = '';
+  tipoSeleccionado = '';
+
+  esAdmin() { return this.auth.isAdmin(); }
+
+  constructor(private api: ApiService, private toast: ToastService) {}
 
   ngOnInit(): void { this.cargarFormatos(); }
 
   async cargarFormatos(): Promise<void> {
     this.loading.set(true);
     try { this.formatos.set(await this.api.listarFormatos()); }
-    catch { console.error('Error cargando formatos'); }
+    catch (e: any) { this.toast.httpError(e, 'No se pudieron cargar los formatos.'); }
     finally { this.loading.set(false); }
   }
 
@@ -118,19 +172,39 @@ export class FormatosComponent implements OnInit {
   }
 
   async handleUpload(): Promise<void> {
-    if (!this.archivo) return;
+    if (!this.archivo) { this.toast.warn('Campo requerido', 'Selecciona un archivo.'); return; }
+    if (!this.nombreFormato.trim()) { this.toast.warn('Campo requerido', 'Escribe un nombre descriptivo.'); return; }
+    if (!this.tipoSeleccionado) { this.toast.warn('Campo requerido', 'Selecciona el tipo de formato.'); return; }
+    if (!this.esAdmin()) return;
+
     this.uploading.set(true);
     try {
-      await this.api.subirFormato(this.archivo.name, this.archivo);
-      this.archivo = null;
+      await this.api.subirFormato(this.nombreFormato.trim(), this.tipoSeleccionado, this.archivo);
+      this.archivo          = null;
+      this.nombreFormato    = '';
+      this.tipoSeleccionado = '';
+      this.toast.ok('Archivo subido', 'El formato fue registrado correctamente.');
       await this.cargarFormatos();
-    } catch { alert('Error al subir el archivo.'); }
-    finally { this.uploading.set(false); }
+    } catch (e: any) {
+      this.toast.httpError(e, 'Error al subir el archivo.');
+    } finally { this.uploading.set(false); }
   }
 
-  async handleEliminar(id: number): Promise<void> {
+  async handleEliminar(id: string): Promise<void> {
+    if (!this.esAdmin()) return;
     if (!confirm('¿Eliminar este formato?')) return;
-    await this.api.eliminarFormato(id);
-    await this.cargarFormatos();
+    try {
+      await this.api.eliminarFormato(id);
+      this.toast.ok('Eliminado', 'Formato eliminado correctamente.');
+      await this.cargarFormatos();
+    } catch (e: any) { this.toast.httpError(e, 'Error al eliminar el formato.'); }
+  }
+
+  fileUrl(rutaArchivo: string): string {
+    return FILE_BASE + rutaArchivo;
+  }
+
+  tipoLabel(tipo: string): string {
+    return TIPOS.find(t => t.value === tipo)?.label ?? tipo;
   }
 }

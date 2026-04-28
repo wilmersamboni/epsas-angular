@@ -11,8 +11,17 @@ export class AuthService {
 
   // ── Estado reactivo ─────────────────────────────────────────
   private _user = signal<Usuario | null>(this._loadUser());
-  readonly user = this._user.asReadonly();
+  readonly user            = this._user.asReadonly();
   readonly isAuthenticated = computed(() => this._user() !== null);
+
+  /** Cargo del usuario autenticado: 'administrador' | 'instructor' | 'aprendiz' | '' */
+  readonly cargo    = computed(() => this._user()?.cargo ?? '');
+  readonly isAdmin  = computed(() => this.cargo() === 'administrador');
+
+  /** Devuelve true si el cargo del usuario está en la lista de roles permitidos */
+  hasRole(roles: string[]): boolean {
+    return roles.includes(this.cargo());
+  }
 
   constructor(private http: HttpClient, private router: Router) {}
 
@@ -48,7 +57,12 @@ export class AuthService {
     localStorage.removeItem('cargo');
 
     this._user.set(null);
+<<<<<<< HEAD
     this.router.navigate(['/login'], { replaceUrl: true });
+=======
+    this.router.navigate(['/'], { replaceUrl: true });
+    
+>>>>>>> origin/wilmer
   }
 
   // ── actualizarUser() ──────────────────────────────────────

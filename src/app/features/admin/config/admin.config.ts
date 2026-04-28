@@ -55,9 +55,9 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
   // ── Módulos con pestañas ──────────────────────────────────────
   personas: {
     label: 'Personas', idKey: 'idPersona',
-    listar: `${BASE}/personas`, crear: `${BASE}/persona/registrar_jwsv`,
-    actualizar: id => `${BASE}/persona/actualizar_jwsv/${id}`,
-    eliminar:   id => `${BASE}/persona/eliminar_jwsv/${id}`,
+    listar: `${BASE}/personas`, crear: `${BASE}/personas`,
+    actualizar: id => `${BASE}/personas/${id}`,
+    eliminar:   id => `${BASE}/personas/${id}`,
     campos: ['nombre', 'cedula', 'telefono', 'municipioId', 'direccion', 'correo', 'genero', 'cargo', 'estado'],
     selectores: {
       municipioId: { modulo: 'municipios', label: 'nombre', value: 'idMunicipio' },
@@ -143,23 +143,40 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
 
   usuarios: {
     label: 'Usuarios', idKey: 'idUsuario',
-    listar: `${BASE}/usuarios`, crear: `${BASE}/usuario/registrar_jwsv`,
+    listar: `${BASE}/usuarios`, crear: `${BASE}/usuarios`,
     actualizar: id => `${BASE}/usuario/actualizar_jwsv/${id}`,
     eliminar:   id => `${BASE}/usuario/eliminar_jwsv/${id}`,
+    columnas: ['persona', 'aplicativo'],
+    campos: ['personaId', 'aplicativoId'],
+    selectores: {
+      personaId:    { modulo: 'personas',    label: 'nombre', value: 'idPersona'    },
+      aplicativoId: { modulo: 'aplicativos', label: 'nombre', value: 'idAplicativo' },
+    },
   },
 
   credenciales: {
     label: 'Credenciales', idKey: 'idCredencial',
-    listar: `${BASE}/credenciales`, crear: `${BASE}/credencial/registrar_jwsv`,
+    listar: `${BASE}/credenciales`, crear: `${BASE}/credenciales`,
     actualizar: id => `${BASE}/credencial/actualizar_jwsv/${id}`,
     eliminar:   id => `${BASE}/credencial/eliminar_jwsv/${id}`,
+    columnas: ['login', 'rol', 'usuario'],
+    campos: ['login', 'password', 'rolId', 'usuarioId'],
+    selectores: {
+      rolId:     { modulo: 'roles',    label: 'nombre',  value: 'idRol'     },
+      usuarioId: { modulo: 'usuarios', label: 'persona', value: 'idUsuario' },
+    },
   },
 
   roles: {
     label: 'Roles', idKey: 'idRol',
-    listar: `${BASE}/roles`, crear: `${BASE}/rol/registrar_jwsv`,
+    listar: `${BASE}/roles`, crear: `${BASE}/roles`,
     actualizar: id => `${BASE}/rol/actualizar_jwsv/${id}`,
     eliminar:   id => `${BASE}/rol/eliminar_jwsv/${id}`,
+    columnas: ['nombre', 'aplicativo'],
+    campos: ['nombre', 'aplicativoId'],
+    selectores: {
+      aplicativoId: { modulo: 'aplicativos', label: 'nombre', value: 'idAplicativo' },
+    },
   },
 
   municipios: {
@@ -181,6 +198,8 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
     campos: ['nombre'],
   },
 };
+
+
 
 /** Solo los módulos que aparecen como pestañas (excluye catálogos internos) */
 export const MODULOS = (Object.keys(CONFIG) as Modulo[]).filter(

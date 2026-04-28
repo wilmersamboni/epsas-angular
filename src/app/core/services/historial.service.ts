@@ -6,6 +6,7 @@ import {
   from,
   map,
   of,
+  shareReplay,
   switchMap,
   throwError,
   catchError,
@@ -17,6 +18,7 @@ import {
   EtapaPracticaItem,
   SeguimientoItem,
   BitacoraItem,
+  AsignacionItem,
 } from '../../shared/models/estudiante.model';
 
 // Backend-epsas (personas, matrículas, cursos, programas)
@@ -27,6 +29,25 @@ const BASE2 = '/api2';
 @Injectable({ providedIn: 'root' })
 export class HistorialService {
   private http = inject(HttpClient);
+
+  /** Cache de personas activas — se comparte entre todas las suscripciones */
+  private activos$: Observable<any[]> | null = null;
+
+  /**
+   * Devuelve todos las personas activas del sistema.
+   * La primera llamada hace el HTTP; las siguientes devuelven el mismo resultado
+   * en memoria (shareReplay) sin repetir la petición.
+   */
+  listarActivos(): Observable<any[]> {
+    if (!this.activos$) {
+      this.activos$ = this.http.get<any>(`${BASE}/personas`).pipe(
+        map((resp) => this.extractArray(resp, 'personas')),
+        catchError(() => of([])),
+        shareReplay(1),
+      );
+    }
+    return this.activos$;
+  }
 
   /**
    * Consulta compuesta del historial del aprendiz.
@@ -85,9 +106,17 @@ export class HistorialService {
               return of(null);
             }
             const etapaObj = Array.isArray(etapa) ? etapa[0] : etapa;
-            return this.resolverSeguimientos(etapaObj.id).pipe(
-              map((seguimientos) =>
-                this.mapEtapa(etapaObj, m, seguimientos),
+            return forkJoin({
+              seguimientos: this.resolverSeguimientos(etapaObj.id),
+              asignaciones: this.http
+                .get<any>(`${BASE2}/asignaciones/etapa/${etapaObj.id}`)
+                .pipe(
+                  map((r) => this.extractArray(r, 'asignaciones')),
+                  catchError(() => of([])),
+                ),
+            }).pipe(
+              map(({ seguimientos, asignaciones }) =>
+                this.mapEtapa(etapaObj, m, seguimientos, asignaciones),
               ),
             );
           }),
@@ -101,31 +130,60 @@ export class HistorialService {
 
   // ─── Seguimientos + sus bitácoras ──────────────────────────────────────────
   private resolverSeguimientos(etapaId: string): Observable<SeguimientoItem[]> {
-    if (!etapaId) return of([]);
-    return this.http
+  if (!etapaId) return of([]);
+
+  return forkJoin({
+    seguimientos: this.http
       .get<any>(`${BASE2}/seguimientos/etapa/${etapaId}`)
       .pipe(
         map((resp) => this.extractArray(resp, 'seguimientos')),
-        catchError(() => of([] as any[])),
-        switchMap((segs: any[]) => {
-          if (!segs.length) return of([] as SeguimientoItem[]);
+        catchError(() => of([]))
+      ),
 
-          const conBitacoras = segs.map((s) =>
-            this.http
-              .get<any>(`${BASE2}/bitacoras/seguimiento/${s.id}`)
-              .pipe(
-                map((r) => this.extractArray(r, 'bitacoras')),
-                catchError(() => of([] as any[])),
-                map((bitacoras: any[]) => this.mapSeguimiento(s, bitacoras)),
-              ),
-          );
-          return forkJoin(conBitacoras);
-        }),
-      );
-  }
+    observaciones: this.http
+      .get<any>(`${BASE2}/observaciones/etapa/${etapaId}`)
+      .pipe(
+        map((resp) => this.extractArray(resp, 'observaciones')),
+        catchError(() => of([]))
+      )
+  }).pipe(
+    switchMap(({ seguimientos, observaciones }) => {
+      if (!seguimientos.length) return of([]);
+
+      const conDatos = seguimientos.map((s: any) =>
+  forkJoin({
+    bitacoras: this.http
+      .get<any>(`${BASE2}/bitacoras/seguimiento/${s.id}`)
+      .pipe(
+        map((r) => this.extractArray(r, 'bitacoras')),
+        catchError(() => of([]))
+      ),
+
+    observaciones: this.http
+      .get<any>(`${BASE2}/observaciones/seguimiento/${s.id}`)
+      .pipe(
+        map((r) => this.extractArray(r, 'observaciones')),
+        catchError(() => of([]))
+      ),
+  }).pipe(
+    map(({ bitacoras, observaciones }) =>
+      this.mapSeguimiento(s, bitacoras, observaciones)
+    )
+  )
+);
+
+return forkJoin(conDatos);
+    })
+  );
+}
 
   // ─── Mapeos ────────────────────────────────────────────────────────────────
-  private mapEtapa(e: any, mat: any, seguimientos: SeguimientoItem[]): EtapaPracticaItem {
+  private mapEtapa(
+    e: any,
+    mat: any,
+    seguimientos: SeguimientoItem[],
+    asignaciones: any[] = [],
+  ): EtapaPracticaItem {
     const curso = mat?.curso ?? {};
     const programa = curso?.programa ?? {};
     return {
@@ -140,27 +198,44 @@ export class HistorialService {
       empresa: e.empresa?.nombre ?? e.empresa?.razonSocial ?? '',
       modalidad: e.modalidad?.nombre ?? '',
       seguimientos,
+      asignaciones: (asignaciones ?? []).map((a: any) => ({
+        id: a.id,
+        instructor: a.instructor ?? '',
+        fechaInicio: a.fecha_inicio ?? '',
+        fechaFin: a.fecha_fin ?? '',
+        estado: a.estado ?? '',
+        horas: a.horas ?? 0,
+      })),
     };
   }
 
-  private mapSeguimiento(s: any, bitacoras: any[]): SeguimientoItem {
-    return {
-      id: s.id,
-      estado: s.estado ?? '',
-      observacion: s.observacion ?? '',
-      fechaInicio: s.fecha_inicio ?? '',
-      fechaFin: s.fecha_fin ?? '',
-      actasPdf: s.actas_pdf,
-      bitacoras: (bitacoras ?? []).map(
-        (b): BitacoraItem => ({
-          id: b.id,
-          fecha: b.fecha ?? '',
-          estado: b.estado ?? '',
-          pdf: b.bitacora_pdf,
-        }),
-      ),
-    };
-  }
+ private mapSeguimiento(
+  s: any,
+  bitacoras: any[],
+  observaciones: any[]
+): SeguimientoItem {
+  return {
+    id: s.id,
+    estado: s.estado ?? '',
+    observacion: s.observacion ?? '',
+    fechaInicio: s.fecha_inicio ?? '',
+    fechaFin: s.fecha_fin ?? '',
+    actasPdf: s.actas_pdf,
+
+    bitacoras: (bitacoras ?? []).map(b => ({
+      id: b.id,
+      fecha: b.fecha ?? '',
+      estado: b.estado ?? '',
+      pdf: b.bitacora_pdf,
+    })),
+
+    observaciones: (observaciones ?? []).map(o => ({
+      id: o.id,
+      fecha: o.fecha ?? '',
+      descripcion: o.descripcion ?? '',
+    })),
+  };
+}
 
   // ─── Ensambla el resultado final ───────────────────────────────────────────
   private ensamblar(

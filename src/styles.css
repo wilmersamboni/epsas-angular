@@ -1,6 +1,73 @@
 @import "tailwindcss";
 @import 'primeicons/primeicons.css';
 
+/* ─── Login animations ───────────────────────────────────────────── */
+@keyframes twinkle {
+  0%   { opacity: 0.15; }
+  100% { opacity: 0.85; }
+}
+@keyframes floatP {
+  0%   { transform: translateY(0) scale(1); }
+  100% { transform: translateY(-22px) scale(1.08); }
+}
+
+body, * {
+  font-family: 'Sora', sans-serif;
+}
+
+/* ─── Taiga UI – tokens globales requeridos ─────────────────────── */
+:root {
+  /* Colores SENA */
+  --tui-primary:                    #39A900;
+  --tui-primary-hover:              #5cd600;
+  --tui-primary-active:             #2d8200;
+  --tui-background-accent-1:        #39A900;
+  --tui-background-accent-1-hover:  #5cd600;
+  --tui-border-focus:               #39A900;
+
+  /* Tokens que TuiCalendar necesita */
+  --tui-text-primary:               #1b1f26;
+  --tui-text-secondary:             #6b7280;
+  --tui-text-negative:              #ef4444;
+  --tui-text-primary-on-accent-1:   #ffffff;
+
+  --tui-background-base:            #ffffff;
+  --tui-background-neutral-1:       #e5e7eb;
+  --tui-background-neutral-1-hover: #d1d5db;
+
+  --tui-disabled-opacity:           0.4;
+
+  --tui-radius-m:                   0.5rem;
+  --tui-radius-l:                   0.75rem;
+
+  /* Tipografía */
+  --tui-typography-body-s:          400 0.75rem/1rem sans-serif;
+  --tui-typography-body-m:          400 0.875rem/1.25rem sans-serif;
+  /* ─── Tokens para TuiSpinButton (flechas del calendario) ────────── */
+  --tui-background-neutral-2:         #f3f4f6;
+  --tui-background-neutral-2-hover:   #e5e7eb;
+  --tui-text-action:                  #39A900;
+  --tui-text-action-hover:            #2d8200;
+  --tui-border-normal:                #d1d5db;
+  --tui-border-hover:                 #9ca3af;
+
+  --tui-radius-s:                     0.25rem;
+  --tui-radius-xs:                    0.125rem;
+
+  --tui-typography-body-l:            400 1rem/1.5rem sans-serif;
+  --tui-typography-label-m:           500 0.875rem/1.25rem sans-serif;
+
+  /* Íconos SVG internos de TuiSpinButton */
+  --tui-height-m:                     2.25rem;
+  --tui-padding-m:                    0.75rem;
+  --tui-stroke-width: 1.5px;
+
+  
+  
+}
+
+
+
 @layer components {
   .bg-sena-gradient {
     background: linear-gradient(to right, #39A900, #5cd600) !important;

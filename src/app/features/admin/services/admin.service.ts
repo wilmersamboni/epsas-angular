@@ -25,6 +25,9 @@ export class AdminService {
   modalError    = signal<string | null>(null);
   modalForm:    Record<string, any> = {};
 
+  /** Datos crudos sin aplanar, para usar en edición */
+  private rawData = signal<Record<string, any[]>>({});
+
   /** Opciones de selects para el modal activo: { campo → [{label, value}] } */
   opcionesModal: Record<string, OpcionSelect[]> = {};
 
@@ -123,7 +126,6 @@ export class AdminService {
 
   // ── HTTP ──────────────────────────────────────────────
   async cargarTodos(): Promise<void> {
-    // Primero catálogos base que otros módulos necesitan como selectores
     await this.cargar('departamentos');
     await this.cargar('municipios');
     await this.cargar('centros');
@@ -133,7 +135,6 @@ export class AdminService {
     await this.cargar('personas');
     await this.cargar('cursos');
 
-    // Resto de módulos
     for (const mod of MODULOS) {
       const yaResueltos = ['departamentos','municipios','centros','sedes','areas','programas','personas','cursos'];
       if (!yaResueltos.includes(mod)) {
@@ -142,10 +143,6 @@ export class AdminService {
     }
   }
 
-  /**
-   * Aplana los campos de una fila que sean objetos anidados.
-   * Extrae el valor más representativo para mostrar en la tabla.
-   */
   private aplanarFila(fila: any): any {
     const resultado: any = {};
     for (const [clave, valor] of Object.entries(fila)) {
@@ -176,9 +173,6 @@ export class AdminService {
       const result: any = await firstValueFrom(this.http.get(CONFIG[mod].listar));
       let rows = Array.isArray(result) ? result : result?.data ?? [];
 
-      // Transformación especial para matrículas
-      // Usa las relaciones eager cargadas directamente (m.persona, m.curso)
-      // ANTES de que aplanarFila las sobrescriba con strings
       if (mod === 'matriculas') {
         rows = rows.map((m: any) => ({
           ...m,
@@ -187,9 +181,19 @@ export class AdminService {
         }));
       }
 
-      // Aplana objetos anidados (relaciones eager) para mostrar texto en tabla
-      rows = rows.map((fila: any) => this.aplanarFila(fila));
+      if (mod === 'credenciales') {
+        rows = rows.map((c: any) => ({
+          ...c,
+          usuario: c.usuario?.persona?.nombre ?? c.usuario?.idUsuario ?? '—',
+          rol:     c.rol?.nombre              ?? c.rol?.descripcion    ?? '—',
+        }));
+      }
 
+      // ✅ Guarda copia cruda ANTES de aplanar (para usar en edición)
+      this.rawData.update(d => ({ ...d, [mod]: rows }));
+
+      // Aplana para mostrar en tabla
+      rows = rows.map((fila: any) => this.aplanarFila(fila));
       this.data.update(d => ({ ...d, [mod]: rows }));
 
     } catch (e: any) {
@@ -200,10 +204,6 @@ export class AdminService {
   }
 
   // ── SELECTORES ────────────────────────────────────────
-  /**
-   * Construye las opciones de los <select> del módulo activo
-   * a partir de los datos ya cargados en memoria.
-   */
   private buildOpciones(mod: Modulo): Record<string, OpcionSelect[]> {
     const cfg = CONFIG[mod];
     if (!cfg.selectores) return {};
@@ -230,9 +230,17 @@ export class AdminService {
   }
 
   editarFila(row: any): void {
-    this.editando.set(row);
-    this.modalForm = { ...row };
-    this.opcionesModal = this.buildOpciones(this.activeTab());
+    const mod = this.activeTab();
+    const cfg = CONFIG[mod];
+
+    // ✅ Busca el registro crudo (con UUIDs reales) en lugar del aplanado
+    const rawRow = this.rawData()[mod]?.find(
+      r => r[cfg.idKey] === row[cfg.idKey]
+    ) ?? row;
+
+    this.editando.set(rawRow);
+    this.modalForm = { ...rawRow };
+    this.opcionesModal = this.buildOpciones(mod);
     this.modalError.set(null);
     this.modalOpen.set(true);
   }
@@ -243,11 +251,6 @@ export class AdminService {
     this.modalError.set(null);
   }
 
-  /**
-   * Sanitiza el formulario antes de enviarlo al backend:
-   * - Omite campos vacíos
-   * - Convierte strings numéricos puros a number (ej: "5" → 5)
-   */
   private sanitizarForm(form: Record<string, any>): Record<string, any> {
     const resultado: Record<string, any> = {};
     for (const [clave, valor] of Object.entries(form)) {
@@ -273,8 +276,11 @@ export class AdminService {
       const formData = this.sanitizarForm(this.modalForm);
 
       if (registroExistente) {
+        // ✅ Elimina el ID del body antes de enviarlo al backend
+        const { [cfg.idKey]: _, ...body } = formData;
+
         await firstValueFrom(
-          this.http.put(cfg.actualizar!(registroExistente[cfg.idKey]), formData)
+          this.http.put(cfg.actualizar!(registroExistente[cfg.idKey]), body)
         );
       } else {
         await firstValueFrom(this.http.post(cfg.crear!, formData));

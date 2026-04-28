@@ -4,17 +4,27 @@ import {
 import { CommonModule } from '@angular/common';
 import { HttpClient }   from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { ApiService }   from '../../core/services/api.service';
+import { ToastService } from '../../core/services/toast.service';
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 interface ResumenMigracion {
-  programas_insertados:  number;
-  cursos_insertados:     number;
-  cursos_actualizados:   number;
-  personas_insertadas:   number;
-  personas_actualizadas: number;
-  matriculas_insertadas: number;
-  omitidas:              number;
-  errores:               number;
+  programas_insertados:    number;
+  cursos_insertados:       number;
+  cursos_actualizados:     number;
+  personas_insertadas:     number;
+  personas_actualizadas:   number;
+  matriculas_insertadas:   number;
+  matriculas_actualizadas: number;
+  omitidas:                number;
+  errores:                 number;
+}
+
+interface AprendizHabilitado {
+  nombre:   string;
+  cedula:   string;
+  programa: string;
+  avance:   number;
 }
 
 interface EstadoMigracion {
@@ -212,6 +222,48 @@ interface EstadoMigracion {
               en el servidor para ver el detalle.
             </div>
           }
+
+          <!-- ── Aprendices habilitados post-migración ── -->
+          @if (aprendicesHabilitados().length > 0) {
+            <div class="mt-5 rounded-xl border border-green-200 bg-green-50 overflow-hidden">
+              <div class="flex items-center gap-2 px-4 py-3 border-b border-green-200 bg-green-100/60">
+                <span class="text-lg">🎓</span>
+                <span class="font-semibold text-green-800 text-sm">
+                  {{ aprendicesHabilitados().length }} aprendiz{{ aprendicesHabilitados().length !== 1 ? 'ces' : '' }}
+                  habilitado{{ aprendicesHabilitados().length !== 1 ? 's' : '' }} para etapa práctica
+                </span>
+                <span class="ml-auto text-xs text-green-600 font-medium bg-green-200 px-2 py-0.5 rounded-full">
+                  Avance ≥ {{ minAvance() }}%
+                </span>
+              </div>
+              <div class="divide-y divide-green-100 max-h-56 overflow-y-auto">
+                @for (a of aprendicesHabilitados(); track a.cedula) {
+                  <div class="flex items-center gap-3 px-4 py-2.5">
+                    <div class="w-7 h-7 rounded-full bg-green-600 text-white flex items-center
+                                justify-center text-xs font-bold flex-shrink-0">
+                      {{ a.nombre.charAt(0) }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-semibold text-gray-800 truncate">{{ a.nombre }}</p>
+                      <p class="text-xs text-gray-500 truncate">{{ a.programa || 'Sin programa' }}</p>
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                      <span class="text-sm font-bold text-green-700">{{ a.avance }}%</span>
+                      <p class="text-[10px] text-gray-400">avance</p>
+                    </div>
+                  </div>
+                }
+              </div>
+              <div class="px-4 py-2 bg-green-100/40 text-xs text-green-700 text-center">
+                Estos aprendices pueden ser vinculados a una etapa práctica desde la sección de Seguimiento.
+              </div>
+            </div>
+          } @else if (estado().status === 'completed') {
+            <div class="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 text-center">
+              <span class="text-base">🔔</span>
+              Ningún aprendiz alcanzó el {{ minAvance() }}% de avance mínimo aún.
+            </div>
+          }
         </div>
       }
     }
@@ -229,12 +281,16 @@ interface EstadoMigracion {
 })
 export class MigrationComponent implements OnInit, OnDestroy {
 
-  private readonly http = inject(HttpClient);
+  private readonly http  = inject(HttpClient);
+  private readonly api   = inject(ApiService);
+  private readonly toast = inject(ToastService);
 
   // ── Signals ──────────────────────────────────────────────────────────────────
   archivo  = signal<File | null>(null);
   dragging = signal(false);
   subiendo = signal(false);
+  minAvance = signal(70);
+  aprendicesHabilitados = signal<AprendizHabilitado[]>([]);
   private _notificacionVisible = signal(false);
   private _estado = signal<EstadoMigracion>({ status: 'idle', logs: [] });
 
@@ -281,6 +337,12 @@ export class MigrationComponent implements OnInit, OnDestroy {
 
   // ── Ciclo de vida ─────────────────────────────────────────────────────────────
   async ngOnInit(): Promise<void> {
+    // Cargar configuración de avance mínimo
+    try {
+      const cfg = await this.api.obtenerConfiguracion();
+      this.minAvance.set(cfg.minAvance ?? 70);
+    } catch { /* usa el default 70 */ }
+
     try {
       const data = await firstValueFrom(
         this.http.get<EstadoMigracion>('/api/migracion/estado')
@@ -293,8 +355,21 @@ export class MigrationComponent implements OnInit, OnDestroy {
       } else if (data.status === 'completed' || data.status === 'error') {
         // Ya terminó mientras estábamos fuera: mostrar notificación
         this._notificacionVisible.set(true);
+        if (data.status === 'completed') this.cargarAprendicesHabilitados();
       }
     } catch { /* sin conexión al arrancar — mostramos estado idle */ }
+  }
+
+  private async cargarAprendicesHabilitados(): Promise<void> {
+    try {
+      const notifs = await this.api.listarNotificaciones();
+      const noti = notifs.find((n: any) => n.tipo === 'aprendices_habilitados');
+      if (noti?.data?.aprendices) {
+        this.aprendicesHabilitados.set(noti.data.aprendices as AprendizHabilitado[]);
+      } else {
+        this.aprendicesHabilitados.set([]);
+      }
+    } catch { this.aprendicesHabilitados.set([]); }
   }
 
   // ── Polling ───────────────────────────────────────────────────────────────────
@@ -312,6 +387,10 @@ export class MigrationComponent implements OnInit, OnDestroy {
         if (data.status === 'completed' || data.status === 'error') {
           this.stopPolling();
           this._notificacionVisible.set(true);
+          if (data.status === 'completed') {
+            // Pequeño delay para que el backend termine de guardar la notificación
+            setTimeout(() => this.cargarAprendicesHabilitados(), 1500);
+          }
         }
       } catch { /* error de red — seguimos intentando */ }
     }, 2000);
@@ -348,6 +427,7 @@ export class MigrationComponent implements OnInit, OnDestroy {
 
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('minAvance', String(this.minAvance()));
 
     try {
       const res = await firstValueFrom(
@@ -372,6 +452,7 @@ export class MigrationComponent implements OnInit, OnDestroy {
     this.archivo.set(null);
     this._estado.set({ status: 'idle', logs: [] });
     this._notificacionVisible.set(false);
+    this.aprendicesHabilitados.set([]);
   }
 
   cerrarNotificacion(): void { this._notificacionVisible.set(false); }

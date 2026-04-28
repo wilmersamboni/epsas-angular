@@ -1,213 +1,360 @@
 <div class="dashboard">
 
-  <!-- Header -->
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
   <div class="dash-header">
-  <div>
-    <h1 class="dash-title">Panel de Control</h1>
-    <p class="dash-date">{{ fecha }}</p>
+    <div>
+      <h1 class="dash-title">
+        @if (esAprendiz()) { Mi Panel }
+        @else if (esInstructor()) { Panel del Instructor }
+        @else { Panel de Control }
+      </h1>
+      <p class="dash-date">{{ fecha }}</p>
+    </div>
+
+    <!-- Exportar solo para admin e instructor -->
+    @if (!esAprendiz()) {
+      <div class="export-buttons">
+        <button class="btn-export btn-pdf mt-5" (click)="exportarPDF()" [disabled]="exportando || cargando">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0
+                 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+          </svg>
+          {{ exportando ? 'Exportando...' : 'Exportar PDF' }}
+        </button>
+        <button class="btn-export btn-excel mt-5" (click)="exportarExcel()" [disabled]="exportando || cargando">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586
+                 a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          {{ exportando ? 'Exportando...' : 'Exportar Excel' }}
+        </button>
+      </div>
+    }
   </div>
 
-  <!-- Botones de exportación -->
-  <div class="export-buttons">
-    <button class="btn-export btn-pdf mt-5" (click)="exportarPDF()" [disabled]="exportando || cargando">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0
-             0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-      </svg>
-      {{ exportando ? 'Exportando...' : 'Exportar PDF' }}
-    </button>
+  <!-- ══════════════════════════════════════════════════════════════════════
+       VISTA APRENDIZ — muestra su práctica personal
+  ══════════════════════════════════════════════════════════════════════════ -->
+  @if (esAprendiz()) {
+    <div class="dash-body">
 
-    <button class="btn-export btn-excel mt-5" (click)="exportarExcel()" [disabled]="exportando || cargando">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586
-             a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-      </svg>
-      {{ exportando ? 'Exportando...' : 'Exportar Excel' }}
-    </button>
-  </div>
-</div>
+      @if (cargando) {
+        <div class="skeleton-block"></div>
+      } @else if (!miPractica) {
+        <!-- Sin práctica asignada -->
+        <div class="empty-state">
+          <div class="empty-icon">📋</div>
+          <h3>No tienes una etapa práctica asignada aún</h3>
+          <p>Tu instructor o administrador la creará cuando estés listo.</p>
+        </div>
+      } @else {
+        <!-- Tarjeta principal: estado y progreso -->
+        <div class="dash-left" style="flex:1">
 
-  <!-- Contenido principal -->
-  <div class="dash-body">
-
-    <!-- Columna izquierda: tarjetas -->
-    <div class="dash-left">
-
-      <!-- Fila 1 -->
-      <div class="cards-row">
-
-        <div class="stat-card accent-card">
-          <div class="card-top">
-            <span class="card-tag tag-green">+12%</span>
-            <div class="card-icon icon-green">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857
-                     M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857
-                     m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-              </svg>
+          <!-- Bienvenida + estado -->
+          <div class="personal-hero">
+            <div class="personal-hero-left">
+              <p class="personal-label">Tu etapa práctica</p>
+              <h2 class="personal-empresa">{{ miPractica.empresaNombre }}</h2>
+              <span class="badge" [ngClass]="estadoClase(miPractica.estado)">
+                {{ miPractica.estado }}
+              </span>
+            </div>
+            <div class="personal-hero-right">
+              <span class="avance-number">{{ miPractica.avance ?? 0 }}%</span>
+              <span class="avance-label">de avance</span>
             </div>
           </div>
-          <div class="card-value" *ngIf="!cargando; else skeletonTpl">{{ stats.aprendices }}</div>
-          <div class="card-label">Total Aprendices</div>
-          <div class="card-sub">activos</div>
+
+          <!-- Barra de progreso -->
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-track">
+              <div class="progress-bar-fill" [style.width.%]="miPractica.avance ?? 0"></div>
+            </div>
+            <span class="progress-bar-pct">{{ miPractica.avance ?? 0 }}%</span>
+          </div>
+
+          <!-- Detalles en tarjetas pequeñas -->
+          <div class="cards-row" style="margin-top:1rem">
+
+            <div class="stat-card">
+              <div class="card-top">
+                <div class="card-icon icon-green">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0
+                         00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="card-value" style="font-size:1rem">{{ miPractica.fecha_inicio ?? '—' }}</div>
+              <div class="card-label">Fecha de inicio</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="card-top">
+                <div class="card-icon icon-blue">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0
+                         00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="card-value" style="font-size:1rem">{{ miPractica.fecha_fin ?? '—' }}</div>
+              <div class="card-label">Fecha de finalización</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="card-top">
+                <div class="card-icon icon-orange">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168
+                         5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477
+                         4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0
+                         3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5
+                         18c-1.746 0-3.332.477-4.5 1.253"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="card-value" style="font-size:.9rem;line-height:1.3">{{ miPractica.programa || '—' }}</div>
+              <div class="card-label">Programa</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="card-top">
+                <div class="card-icon icon-purple">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="card-value" style="font-size:1rem">{{ miPractica.ficha || '—' }}</div>
+              <div class="card-label">Ficha</div>
+            </div>
+
+          </div>
         </div>
 
-        <div class="stat-card">
-          <div class="card-top">
-            <span class="card-tag tag-blue">+8%</span>
-            <div class="card-icon icon-blue">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2
-                     M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        <!-- Dona de progreso personal -->
+        <div class="dash-right">
+          <div class="donut-card">
+            <div class="donut-header">
+              <div>
+                <h3 class="donut-title">Mi Progreso</h3>
+                <p class="donut-sub">Avance de tu etapa práctica</p>
+              </div>
+            </div>
+            <div class="donut-wrapper">
+              <svg class="donut-svg" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="54" fill="none" stroke="#f1f5f9" stroke-width="10"/>
+                <circle cx="60" cy="60" r="54" fill="none" stroke="#39A900" stroke-width="10"
+                  stroke-linecap="round"
+                  [attr.stroke-dasharray]="circleDashFor(miPractica.avance ?? 0)"
+                  stroke-dashoffset="0" transform="rotate(-90 60 60)" class="donut-progress"/>
               </svg>
+              <div class="donut-center">
+                <span class="donut-number">{{ miPractica.avance ?? 0 }}</span>
+                <span class="donut-pct">%</span>
+              </div>
+            </div>
+            <div class="donut-legend">
+              <div class="legend-item">
+                <span class="legend-dot dot-green"></span>
+                <span class="legend-text">Completado</span>
+                <span class="legend-val">{{ miPractica.avance ?? 0 }}%</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot dot-gray"></span>
+                <span class="legend-text">Pendiente</span>
+                <span class="legend-val">{{ 100 - (miPractica.avance ?? 0) }}%</span>
+              </div>
             </div>
           </div>
-          <div class="card-value" *ngIf="!cargando; else skeletonTpl">{{ stats.seguimientos }}</div>
-          <div class="card-label">Total Etapas productivas activas</div>
-          <div class="card-sub">registrados</div>
+        </div>
+      }
+
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       VISTA ADMIN / INSTRUCTOR — estadísticas agregadas
+  ══════════════════════════════════════════════════════════════════════════ -->
+  @if (!esAprendiz()) {
+    <div class="dash-body">
+
+      <!-- Columna izquierda: tarjetas -->
+      <div class="dash-left">
+
+        <!-- Fila 1 -->
+        <div class="cards-row">
+
+          <div class="stat-card accent-card">
+            <div class="card-top">
+              <span class="card-tag tag-green">activos</span>
+              <div class="card-icon icon-green">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857
+                       M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857
+                       m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+              </div>
+            </div>
+            <div class="card-value" *ngIf="!cargando; else skeletonTpl">{{ stats.aprendices }}</div>
+            <div class="card-label">{{ esInstructor() ? 'Mis Aprendices' : 'Total Aprendices' }}</div>
+            <div class="card-sub">en formación</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="card-top">
+              <span class="card-tag tag-blue">en curso</span>
+              <div class="card-icon icon-blue">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2
+                       M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+              </div>
+            </div>
+            <div class="card-value" *ngIf="!cargando; else skeletonTpl">{{ stats.seguimientos }}</div>
+            <div class="card-label">Etapas Activas</div>
+            <div class="card-sub">en ejecución</div>
+          </div>
+
         </div>
 
+        <!-- Fila 2 -->
+        <div class="cards-row">
+
+          <div class="stat-card">
+            <div class="card-top">
+              <span class="card-tag tag-orange">retirados</span>
+              <div class="card-icon icon-orange">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586
+                       a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+              </div>
+            </div>
+            <div class="card-value" *ngIf="!cargando; else skeletonTpl">{{ stats.documentos }}</div>
+            <div class="card-label">Etapas Desertadas</div>
+            <div class="card-sub">retirados</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="card-top">
+              <span class="card-tag tag-green">éxito</span>
+              <div class="card-icon icon-purple">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0
+                       014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42
+                       3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806
+                       1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42
+                       3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0
+                       01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438
+                       3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                </svg>
+              </div>
+            </div>
+            <div class="card-value" *ngIf="!cargando; else skeletonTpl">{{ stats.instructores }}</div>
+            <div class="card-label">Etapas Certificadas</div>
+            <div class="card-sub">completadas</div>
+          </div>
+
+        </div>
       </div>
 
-      <!-- Fila 2 -->
-      <div class="cards-row">
-
-        <div class="stat-card">
-          <div class="card-top">
-            <span class="card-tag tag-orange">-3%</span>
-            <div class="card-icon icon-orange">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586
-                     a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-              </svg>
+      <!-- Dona 1: Etapa Productiva Activa -->
+      <div class="dash-right">
+        <div class="donut-card">
+          <div class="donut-header">
+            <div>
+              <h3 class="donut-title">Etapa Productiva</h3>
+              <p class="donut-sub">
+                {{ esInstructor() ? 'Aprendices de tu cargo en etapa' : 'Aprendices en etapa productiva' }}
+              </p>
             </div>
           </div>
-          <div class="card-value" *ngIf="!cargando; else skeletonTpl">{{ stats.documentos }}</div>
-          <div class="card-label">total etapas desertadas</div>
-          <div class="card-sub">retirados</div>
-        </div>
-
-        <div class="stat-card">
-          <div class="card-top">
-            <span class="card-tag tag-green">+5%</span>
-            <div class="card-icon icon-purple">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6
-                     6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-              </svg>
+          <div class="donut-wrapper">
+            <svg class="donut-svg" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="54" fill="none" stroke="#f1f5f9" stroke-width="10"/>
+              <circle cx="60" cy="60" r="54" fill="none" stroke="#39A900" stroke-width="10"
+                stroke-linecap="round"
+                [attr.stroke-dasharray]="circleDashFor(etapaActiva.porcentaje)"
+                stroke-dashoffset="0" transform="rotate(-90 60 60)" class="donut-progress"/>
+            </svg>
+            <div class="donut-center">
+              <span class="donut-number" *ngIf="!cargando; else skeletonSmall">
+                {{ etapaActiva.total }}
+              </span>
+              <span class="donut-pct">{{ etapaActiva.porcentaje }}%</span>
             </div>
           </div>
-          <div class="card-value" *ngIf="!cargando; else skeletonTpl">{{ stats.instructores }}</div>
-          <div class="card-label">Tota de ejecuciones con exito</div>
-          <div class="card-sub">activos</div>
+          <div class="donut-legend">
+            <div class="legend-item">
+              <span class="legend-dot dot-green"></span>
+              <span class="legend-text">En etapa productiva</span>
+              <span class="legend-val">{{ etapaActiva.total }}</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot dot-gray"></span>
+              <span class="legend-text">Otros</span>
+              <span class="legend-val">{{ stats.aprendices - etapaActiva.total }}</span>
+            </div>
+          </div>
         </div>
+      </div>
 
+      <!-- Dona 2: Etapas Certificadas -->
+      <div class="dash-right">
+        <div class="donut-card">
+          <div class="donut-header">
+            <div>
+              <h3 class="donut-title">Etapas Certificadas</h3>
+              <p class="donut-sub">
+                {{ esInstructor() ? 'De tus aprendices' : 'Total aprendices certificados' }}
+              </p>
+            </div>
+          </div>
+          <div class="donut-wrapper">
+            <svg class="donut-svg" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="54" fill="none" stroke="#f1f5f9" stroke-width="10"/>
+              <circle cx="60" cy="60" r="54" fill="none" stroke="#2563eb" stroke-width="10"
+                stroke-linecap="round"
+                [attr.stroke-dasharray]="circleDashFor(etapaCertificada.porcentaje)"
+                stroke-dashoffset="0" transform="rotate(-90 60 60)" class="donut-progress"/>
+            </svg>
+            <div class="donut-center">
+              <span class="donut-number" *ngIf="!cargando; else skeletonSmall">
+                {{ etapaCertificada.total }}
+              </span>
+              <span class="donut-pct">{{ etapaCertificada.porcentaje }}%</span>
+            </div>
+          </div>
+          <div class="donut-legend">
+            <div class="legend-item">
+              <span class="legend-dot dot-blue"></span>
+              <span class="legend-text">Certificadas</span>
+              <span class="legend-val">{{ etapaCertificada.total }}</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot dot-gray"></span>
+              <span class="legend-text">Pendientes</span>
+              <span class="legend-val">{{ stats.aprendices - etapaCertificada.total }}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
     </div>
-
-    <!-- Columna derecha: gráfico circular -->
-    <!-- Dona 1: Etapa Productiva Activa -->
-<div class="dash-right">
-  <div class="donut-card">
-    <div class="donut-header">
-      <div>
-        <h3 class="donut-title">Etapa Productiva</h3>
-        <p class="donut-sub">Total aprendices en etapa productiva</p>
-      </div>
-    </div>
-
-    <div class="donut-wrapper">
-      <svg class="donut-svg" viewBox="0 0 120 120">
-        <circle cx="60" cy="60" r="54" fill="none" stroke="#f1f5f9" stroke-width="10"/>
-        <circle
-          cx="60" cy="60" r="54"
-          fill="none"
-          stroke="#39A900"
-          stroke-width="10"
-          stroke-linecap="round"
-          [attr.stroke-dasharray]="circleDashFor(etapaActiva.porcentaje)"
-          stroke-dashoffset="0"
-          transform="rotate(-90 60 60)"
-          class="donut-progress"
-        />
-      </svg>
-      <div class="donut-center">
-        <span class="donut-number" *ngIf="!cargando; else skeletonSmall">
-          {{ etapaActiva.total }}
-        </span>
-        <span class="donut-pct">{{ etapaActiva.porcentaje }}%</span>
-      </div>
-    </div>
-
-    <div class="donut-legend">
-      <div class="legend-item">
-        <span class="legend-dot dot-green"></span>
-        <span class="legend-text">En etapa productiva</span>
-        <span class="legend-val">{{ etapaActiva.total }}</span>
-      </div>
-      <div class="legend-item">
-        <span class="legend-dot dot-gray"></span>
-        <span class="legend-text">Otros aprendices</span>
-        <span class="legend-val">{{ stats.aprendices - etapaActiva.total }}</span>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Dona 2: Etapas Certificadas -->
-<div class="dash-right">
-  <div class="donut-card">
-    <div class="donut-header">
-      <div>
-        <h3 class="donut-title">Etapa Productiva Certificadas</h3>
-        <p class="donut-sub">Total aprendices certificados</p>
-      </div>
-    </div>
-
-    <div class="donut-wrapper">
-      <svg class="donut-svg" viewBox="0 0 120 120">
-        <circle cx="60" cy="60" r="54" fill="none" stroke="#f1f5f9" stroke-width="10"/>
-        <circle
-          cx="60" cy="60" r="54"
-          fill="none"
-          stroke="#2563eb"
-          stroke-width="10"
-          stroke-linecap="round"
-          [attr.stroke-dasharray]="circleDashFor(etapaCertificada.porcentaje)"
-          stroke-dashoffset="0"
-          transform="rotate(-90 60 60)"
-          class="donut-progress"
-        />
-      </svg>
-      <div class="donut-center">
-        <span class="donut-number" *ngIf="!cargando; else skeletonSmall">
-          {{ etapaCertificada.total }}
-        </span>
-        <span class="donut-pct">{{ etapaCertificada.porcentaje }}%</span>
-      </div>
-    </div>
-
-    <div class="donut-legend">
-      <div class="legend-item">
-        <span class="legend-dot dot-blue"></span>
-        <span class="legend-text">Certificadas</span>
-        <span class="legend-val">{{ etapaCertificada.total }}</span>
-      </div>
-      <div class="legend-item">
-        <span class="legend-dot dot-gray"></span>
-        <span class="legend-text">Pendientes por certificar</span>
-        <span class="legend-val">{{ stats.aprendices - etapaCertificada.total }}</span>
-      </div>
-    </div>
-  </div>
-</div>
+  }
 
 </div>
 

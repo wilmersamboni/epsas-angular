@@ -47,6 +47,17 @@ export interface SeguimientoItem {
   fechaFin: string;
   actasPdf?: string;
   bitacoras: BitacoraItem[];
+  observaciones: ObservacionItem[];
+}
+
+/** Asignación de instructor a una etapa práctica. */
+export interface AsignacionItem {
+  id: string;
+  instructor: string;   // UUID del instructor
+  fechaInicio: string;
+  fechaFin: string;
+  estado: string;
+  horas: number;
 }
 
 /** Etapa práctica asociada a una matrícula. */
@@ -62,6 +73,7 @@ export interface EtapaPracticaItem {
   empresa?: string;
   modalidad?: string;
   seguimientos: SeguimientoItem[];
+  asignaciones: AsignacionItem[];
 }
 
 /** Resultado completo de la consulta compuesta. */
@@ -69,4 +81,11 @@ export interface ResultadoConsulta {
   estudiante: Estudiante;
   historial: HistorialAcademico[];
   practicas: EtapaPracticaItem[];
+}
+
+
+export interface ObservacionItem {
+  id: string;
+  fecha: string;
+  descripcion: string;
 }

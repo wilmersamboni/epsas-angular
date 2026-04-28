@@ -2,6 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { Curso } from '../../../shared/models';
 
 /**
@@ -146,9 +147,10 @@ export class PageCourseComponent implements OnInit {
   private idArea!: number;
 
   constructor(
-    private route: ActivatedRoute,
+    private route:  ActivatedRoute,
     public  router: Router,
     private api:    ApiService,
+    private toast:  ToastService,
   ) {}
 
   ngOnInit(): void {
@@ -196,12 +198,15 @@ export class PageCourseComponent implements OnInit {
       const sel = this.cursoSeleccionado();
       if (sel) {
         await this.api.editarCurso(sel.id_curso, this.form);
+        this.toast.ok('Curso actualizado', `El curso ${this.form.codigo} fue guardado.`);
       } else {
         await this.api.crearCurso({ ...this.form, fk_area: this.idArea });
+        this.toast.ok('Curso creado', `El curso ${this.form.codigo} fue registrado correctamente.`);
       }
       this.cerrarModal();
       await this.cargarCursos();
-    } catch {
+    } catch (e: any) {
+      this.toast.httpError(e, 'No se pudo guardar el curso.');
       this.modalError.set('No se pudo guardar.');
     } finally {
       this.saving.set(false);
@@ -212,9 +217,10 @@ export class PageCourseComponent implements OnInit {
     if (!window.confirm('¿Seguro que deseas eliminar este curso?')) return;
     try {
       await this.api.eliminarCurso(curso.id_curso);
+      this.toast.ok('Curso eliminado', 'El curso fue eliminado correctamente.');
       await this.cargarCursos();
-    } catch {
-      alert('No se pudo eliminar el curso.');
+    } catch (e: any) {
+      this.toast.httpError(e, 'No se pudo eliminar el curso.');
     }
   }
 }
