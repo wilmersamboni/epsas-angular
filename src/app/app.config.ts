@@ -21,7 +21,6 @@ export const appConfig: ApplicationConfig = {
       theme: { preset: Aura }
     }),
 
-    // 🔥 AQUÍ ESTÁ LA SOLUCIÓN
     provideLottieOptions({
       player: () => player,
     }),
