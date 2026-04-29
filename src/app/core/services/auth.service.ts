@@ -57,12 +57,8 @@ export class AuthService {
     localStorage.removeItem('cargo');
 
     this._user.set(null);
-<<<<<<< HEAD
-    this.router.navigate(['/login'], { replaceUrl: true });
-=======
     this.router.navigate(['/'], { replaceUrl: true });
     
->>>>>>> origin/wilmer
   }
 
   // ── actualizarUser() ──────────────────────────────────────

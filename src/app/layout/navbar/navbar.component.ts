@@ -10,7 +10,7 @@ import { NotificacionesCampanaComponent } from './notificaciones-campana.compone
   template: `
     <header class="bg-white border-b border-gray-100 sticky top-0 z-50"
             style="box-shadow: 0 1px 8px 0 rgba(0,0,0,.06);">
-      <div class="h-14 flex items-center justify-between px-5">
+      <nav class="h-14 flex items-center justify-between px-5">
 
         <!-- ── Marca ── -->
         <a routerLink="/" class="flex items-center gap-2.5 select-none">
@@ -47,7 +47,7 @@ import { NotificacionesCampanaComponent } from './notificaciones-campana.compone
           </div>
 
         </div>
-      </div>
+      </nav>
 
       <!-- Marca -->
       <a routerLink="/" class="flex items-center gap-2">
@@ -69,7 +69,6 @@ import { NotificacionesCampanaComponent } from './notificaciones-campana.compone
                  outline-none transition-colors"
         />
       </div>
-    </nav>
     </header>
   `,
 })

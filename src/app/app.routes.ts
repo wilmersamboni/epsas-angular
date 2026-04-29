@@ -24,11 +24,11 @@ export const routes: Routes = [
     path: '',
     loadComponent: () =>
       import('./layout/main-layout/main-layout.component').then(m => m.MainLayoutComponent),
-    canActivate: [authGuard],
+    // canActivate: [authGuard],
     children: [
       { path: 'home', loadComponent: () => import('./features/home/home.component').then(m => m.HomeComponent) },
       { path: 'seguimiento', loadComponent: () => import('./features/seguimiento/seguimiento.component').then(m => m.SeguimientoComponent) },
-      { path: 'docs', canActivate: [roleGuard], data: { roles: ['administrador'] }, loadComponent: () => import('./features/historial/historial.component').then(m => m.HistorialComponent) },
+      // { path: 'docs', canActivate: [roleGuard], data: { roles: ['administrador'] }, loadComponent: () => import('./features/historial/historial.component').then(m => m.HistorialComponent) },
       { path: 'format', loadComponent: () => import('./features/formatos/formatos.component').then(m => m.FormatosComponent) },
       { path: 'blog', loadComponent: () => import('./features/chat/chat.component').then(m => m.ChatComponent) },
       { path: 'admin', canActivate: [roleGuard], data: { roles: ['administrador'] }, loadComponent: () => import('./features/admin/admin-panel/admin-panel.component').then(m => m.AdminPanelComponent) },
