@@ -236,7 +236,7 @@ import { AuthService } from '../../../core/services/auth.service';
                   </svg>
                 </span>
                 <input
-                  [type]="showPassword ? 'text' : 'password'"
+                  [type]="showPassword() ? 'text' : 'password'"
                   [(ngModel)]="credentials.password"
                   name="password"
                   placeholder="••••••••"
@@ -249,12 +249,12 @@ import { AuthService } from '../../../core/services/auth.service';
                   (blur)="$event.target.style.borderColor='#e2ece5';$event.target.style.background='#f5faf6'"
                 />
                 <button type="button"
-                  (click)="showPassword = !showPassword"
+                  (click)="showPassword.set(!showPassword())"
                   class="absolute"
                   style="right:12px;top:50%;transform:translateY(-50%);
                          color:#8fa896;background:none;border:none;cursor:pointer;padding:0;
                          display:flex;align-items:center;">
-                  @if (showPassword) {
+                  @if (showPassword()) {
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                       stroke="currentColor" stroke-width="2">
                       <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
@@ -331,7 +331,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   credentials  = { login: '', password: '' };
   loading      = signal(false);
   error        = signal<string | null>(null);
-  showPassword = false;
+  showPassword = signal(false);
   year         = new Date().getFullYear();
   btnHover     = signal(false);
   btnPressed   = signal(false);

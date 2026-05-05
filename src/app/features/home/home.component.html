@@ -11,25 +11,22 @@
       <p class="dash-date">{{ fecha }}</p>
     </div>
 
-    <!-- Exportar solo para admin e instructor -->
     @if (!esAprendiz()) {
       <div class="export-buttons">
-        <button class="btn-export btn-pdf mt-5" (click)="exportarPDF()" [disabled]="exportando || cargando">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0
-                 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-          </svg>
-          {{ exportando ? 'Exportando...' : 'Exportar PDF' }}
-        </button>
-        <button class="btn-export btn-excel mt-5" (click)="exportarExcel()" [disabled]="exportando || cargando">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586
-                 a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-          </svg>
-          {{ exportando ? 'Exportando...' : 'Exportar Excel' }}
-        </button>
+        <p-button
+          [label]="exportando ? 'Exportando...' : 'Exportar PDF'"
+          icon="pi pi-file-pdf"
+          severity="danger"
+          [disabled]="exportando || cargando"
+          (onClick)="exportarPDF()"
+        />
+        <p-button
+          [label]="exportando ? 'Exportando...' : 'Exportar Excel'"
+          icon="pi pi-file-excel"
+          severity="success"
+          [disabled]="exportando || cargando"
+          (onClick)="exportarExcel()"
+        />
       </div>
     }
   </div>
@@ -41,125 +38,121 @@
     <div class="dash-body">
 
       @if (cargando) {
-        <div class="skeleton-block"></div>
+        <!-- Skeletons de carga -->
+        <div class="dash-left">
+          <p-skeleton height="130px" borderRadius="16px" styleClass="mb-5"/>
+          <p-skeleton height="12px" borderRadius="8px" styleClass="mb-5"/>
+          <div class="cards-row">
+            <p-skeleton height="100px" borderRadius="16px"/>
+            <p-skeleton height="100px" borderRadius="16px"/>
+            <p-skeleton height="100px" borderRadius="16px"/>
+            <p-skeleton height="100px" borderRadius="16px"/>
+          </div>
+        </div>
+        <div class="dash-right">
+          <p-skeleton height="360px" borderRadius="20px"/>
+        </div>
+
       } @else if (!miPractica) {
         <!-- Sin práctica asignada -->
         <div class="empty-state">
-          <div class="empty-icon">📋</div>
+          <i class="pi pi-clipboard empty-icon"></i>
           <h3>No tienes una etapa práctica asignada aún</h3>
           <p>Tu instructor o administrador la creará cuando estés listo.</p>
         </div>
+
       } @else {
-        <!-- Tarjeta principal: estado y progreso -->
-        <div class="dash-left" style="flex:1">
+        <!-- Columna izquierda -->
+        <div class="dash-left">
 
-          <!-- Bienvenida + estado -->
-          <div class="personal-hero">
-            <div class="personal-hero-left">
-              <p class="personal-label">Tu etapa práctica</p>
-              <h2 class="personal-empresa">{{ miPractica.empresaNombre }}</h2>
-              <span class="badge" [ngClass]="estadoClase(miPractica.estado)">
-                {{ miPractica.estado }}
-              </span>
-            </div>
-            <div class="personal-hero-right">
-              <span class="avance-number">{{ miPractica.avance ?? 0 }}%</span>
-              <span class="avance-label">de avance</span>
-            </div>
-          </div>
-
-          <!-- Barra de progreso -->
-          <div class="progress-bar-wrap">
-            <div class="progress-bar-track">
-              <div class="progress-bar-fill" [style.width.%]="miPractica.avance ?? 0"></div>
-            </div>
-            <span class="progress-bar-pct">{{ miPractica.avance ?? 0 }}%</span>
-          </div>
-
-          <!-- Detalles en tarjetas pequeñas -->
-          <div class="cards-row" style="margin-top:1rem">
-
-            <div class="stat-card">
-              <div class="card-top">
-                <div class="card-icon icon-green">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0
-                         00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                  </svg>
-                </div>
+          <!-- Hero card: empresa + estado + avance -->
+          <p-card styleClass="hero-card">
+            <div class="hero-content">
+              <div class="hero-info">
+                <p class="personal-label">Tu etapa práctica</p>
+                <h2 class="personal-empresa">{{ miPractica.empresaNombre }}</h2>
+                <p-tag
+                  [value]="miPractica.estado"
+                  [severity]="estadoSeverity(miPractica.estado)"
+                  styleClass="mt-2"
+                />
               </div>
-              <div class="card-value" style="font-size:1rem">{{ miPractica.fecha_inicio ?? '—' }}</div>
+              <div class="avance-box">
+                <span class="avance-number">{{ miPractica.avance ?? 0 }}%</span>
+                <span class="avance-label">de avance</span>
+              </div>
+            </div>
+          </p-card>
+
+          <!-- Barra de progreso con p-progressbar -->
+          <div class="progress-wrap">
+            <div class="progress-header">
+              <span class="progress-label">Progreso general</span>
+              <span class="progress-pct">{{ miPractica.avance ?? 0 }}%</span>
+            </div>
+            <p-progressbar
+              [value]="miPractica.avance ?? 0"
+              [showValue]="false"
+              styleClass="sena-progress"
+            />
+          </div>
+
+          <!-- Detalles en tarjetas con p-card -->
+          <div class="cards-row">
+
+            <p-card styleClass="detail-card">
+              <div class="detail-icon icon-green">
+                <i class="pi pi-calendar"></i>
+              </div>
+              <div class="card-value-sm">{{ miPractica.fecha_inicio ?? '—' }}</div>
               <div class="card-label">Fecha de inicio</div>
-            </div>
+            </p-card>
 
-            <div class="stat-card">
-              <div class="card-top">
-                <div class="card-icon icon-blue">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0
-                         00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                  </svg>
-                </div>
+            <p-card styleClass="detail-card">
+              <div class="detail-icon icon-blue">
+                <i class="pi pi-calendar-times"></i>
               </div>
-              <div class="card-value" style="font-size:1rem">{{ miPractica.fecha_fin ?? '—' }}</div>
-              <div class="card-label">Fecha de finalización</div>
-            </div>
+              <div class="card-value-sm">{{ miPractica.fecha_fin ?? '—' }}</div>
+              <div class="card-label">Fecha finalización</div>
+            </p-card>
 
-            <div class="stat-card">
-              <div class="card-top">
-                <div class="card-icon icon-orange">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168
-                         5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477
-                         4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0
-                         3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5
-                         18c-1.746 0-3.332.477-4.5 1.253"/>
-                  </svg>
-                </div>
+            <p-card styleClass="detail-card">
+              <div class="detail-icon icon-orange">
+                <i class="pi pi-book"></i>
               </div>
-              <div class="card-value" style="font-size:.9rem;line-height:1.3">{{ miPractica.programa || '—' }}</div>
+              <div class="card-value-sm text-sm">{{ miPractica.programa || '—' }}</div>
               <div class="card-label">Programa</div>
-            </div>
+            </p-card>
 
-            <div class="stat-card">
-              <div class="card-top">
-                <div class="card-icon icon-purple">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
-                  </svg>
-                </div>
+            <p-card styleClass="detail-card">
+              <div class="detail-icon icon-purple">
+                <i class="pi pi-hashtag"></i>
               </div>
-              <div class="card-value" style="font-size:1rem">{{ miPractica.ficha || '—' }}</div>
+              <div class="card-value-sm">{{ miPractica.ficha || '—' }}</div>
               <div class="card-label">Ficha</div>
-            </div>
+            </p-card>
 
           </div>
         </div>
 
-        <!-- Dona de progreso personal -->
+        <!-- Columna derecha: gráfica de progreso personal -->
         <div class="dash-right">
-          <div class="donut-card">
+          <p-card styleClass="donut-card">
             <div class="donut-header">
-              <div>
-                <h3 class="donut-title">Mi Progreso</h3>
-                <p class="donut-sub">Avance de tu etapa práctica</p>
-              </div>
+              <h3 class="donut-title">Mi Progreso</h3>
+              <p class="donut-sub">Avance de tu etapa práctica</p>
             </div>
-            <div class="donut-wrapper">
-              <svg class="donut-svg" viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r="54" fill="none" stroke="#f1f5f9" stroke-width="10"/>
-                <circle cx="60" cy="60" r="54" fill="none" stroke="#39A900" stroke-width="10"
-                  stroke-linecap="round"
-                  [attr.stroke-dasharray]="circleDashFor(miPractica.avance ?? 0)"
-                  stroke-dashoffset="0" transform="rotate(-90 60 60)" class="donut-progress"/>
-              </svg>
-              <div class="donut-center">
+            <div class="chart-container">
+              <p-chart
+                type="doughnut"
+                [data]="chartDataPersonal"
+                [options]="chartOptions"
+                width="100%"
+                height="220px"
+              />
+              <div class="chart-center">
                 <span class="donut-number">{{ miPractica.avance ?? 0 }}</span>
-                <span class="donut-pct">%</span>
+                <span class="donut-pct-label">%</span>
               </div>
             </div>
             <div class="donut-legend">
@@ -174,194 +167,207 @@
                 <span class="legend-val">{{ 100 - (miPractica.avance ?? 0) }}%</span>
               </div>
             </div>
-          </div>
+          </p-card>
         </div>
-      }
 
+      }
     </div>
   }
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       VISTA ADMIN / INSTRUCTOR — estadísticas agregadas
+       VISTA ADMIN / INSTRUCTOR — estadísticas + gráficas
   ══════════════════════════════════════════════════════════════════════════ -->
   @if (!esAprendiz()) {
-    <div class="dash-body">
 
-      <!-- Columna izquierda: tarjetas -->
-      <div class="dash-left">
+    <!-- ── Fila superior: 4 KPI cards profesionales ─────────────────────── -->
+    <div class="kpi-row">
 
-        <!-- Fila 1 -->
-        <div class="cards-row">
-
-          <div class="stat-card accent-card">
-            <div class="card-top">
-              <span class="card-tag tag-green">activos</span>
-              <div class="card-icon icon-green">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857
-                       M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857
-                       m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
-              </div>
+      <!-- Card 1: Total Aprendices -->
+      <p-card styleClass="kpi-card kpi-green">
+        <div class="kpi-inner">
+          <div class="kpi-top">
+            <div class="kpi-icon sc-green">
+              <i class="pi pi-users"></i>
             </div>
-            <div class="card-value" *ngIf="!cargando; else skeletonTpl">{{ stats.aprendices }}</div>
-            <div class="card-label">{{ esInstructor() ? 'Mis Aprendices' : 'Total Aprendices' }}</div>
-            <div class="card-sub">en formación</div>
+            <span class="kpi-badge badge-green">Activos</span>
           </div>
-
-          <div class="stat-card">
-            <div class="card-top">
-              <span class="card-tag tag-blue">en curso</span>
-              <div class="card-icon icon-blue">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2
-                       M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                </svg>
-              </div>
-            </div>
-            <div class="card-value" *ngIf="!cargando; else skeletonTpl">{{ stats.seguimientos }}</div>
-            <div class="card-label">Etapas Activas</div>
-            <div class="card-sub">en ejecución</div>
-          </div>
-
-        </div>
-
-        <!-- Fila 2 -->
-        <div class="cards-row">
-
-          <div class="stat-card">
-            <div class="card-top">
-              <span class="card-tag tag-orange">retirados</span>
-              <div class="card-icon icon-orange">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586
-                       a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-              </div>
-            </div>
-            <div class="card-value" *ngIf="!cargando; else skeletonTpl">{{ stats.documentos }}</div>
-            <div class="card-label">Etapas Desertadas</div>
-            <div class="card-sub">retirados</div>
-          </div>
-
-          <div class="stat-card">
-            <div class="card-top">
-              <span class="card-tag tag-green">éxito</span>
-              <div class="card-icon icon-purple">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0
-                       014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42
-                       3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806
-                       1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42
-                       3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0
-                       01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438
-                       3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
-                </svg>
-              </div>
-            </div>
-            <div class="card-value" *ngIf="!cargando; else skeletonTpl">{{ stats.instructores }}</div>
-            <div class="card-label">Etapas Certificadas</div>
-            <div class="card-sub">completadas</div>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- Dona 1: Etapa Productiva Activa -->
-      <div class="dash-right">
-        <div class="donut-card">
-          <div class="donut-header">
-            <div>
-              <h3 class="donut-title">Etapa Productiva</h3>
-              <p class="donut-sub">
-                {{ esInstructor() ? 'Aprendices de tu cargo en etapa' : 'Aprendices en etapa productiva' }}
-              </p>
-            </div>
-          </div>
-          <div class="donut-wrapper">
-            <svg class="donut-svg" viewBox="0 0 120 120">
-              <circle cx="60" cy="60" r="54" fill="none" stroke="#f1f5f9" stroke-width="10"/>
-              <circle cx="60" cy="60" r="54" fill="none" stroke="#39A900" stroke-width="10"
-                stroke-linecap="round"
-                [attr.stroke-dasharray]="circleDashFor(etapaActiva.porcentaje)"
-                stroke-dashoffset="0" transform="rotate(-90 60 60)" class="donut-progress"/>
-            </svg>
-            <div class="donut-center">
-              <span class="donut-number" *ngIf="!cargando; else skeletonSmall">
-                {{ etapaActiva.total }}
-              </span>
-              <span class="donut-pct">{{ etapaActiva.porcentaje }}%</span>
-            </div>
-          </div>
-          <div class="donut-legend">
-            <div class="legend-item">
-              <span class="legend-dot dot-green"></span>
-              <span class="legend-text">En etapa productiva</span>
-              <span class="legend-val">{{ etapaActiva.total }}</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-dot dot-gray"></span>
-              <span class="legend-text">Otros</span>
-              <span class="legend-val">{{ stats.aprendices - etapaActiva.total }}</span>
-            </div>
+          @if (cargando) {
+            <p-skeleton height="40px" width="90px" styleClass="mt-3 mb-1"/>
+            <p-skeleton height="13px" width="130px"/>
+          } @else {
+            <div class="kpi-num">{{ stats.aprendices | number }}</div>
+            <div class="kpi-title">{{ esInstructor() ? 'Mis Aprendices' : 'Total Aprendices' }}</div>
+          }
+          <div class="kpi-divider green-div"></div>
+          <div class="kpi-context">
+            <i class="pi pi-arrow-right-arrow-left ctx-icon green-txt"></i>
+            <span class="ctx-txt">en formación activa</span>
           </div>
         </div>
-      </div>
+      </p-card>
+
+      <!-- Card 2: Etapas Activas -->
+      <p-card styleClass="kpi-card kpi-blue">
+        <div class="kpi-inner">
+          <div class="kpi-top">
+            <div class="kpi-icon sc-blue">
+              <i class="pi pi-clipboard"></i>
+            </div>
+            <span class="kpi-badge badge-blue">En curso</span>
+          </div>
+          @if (cargando) {
+            <p-skeleton height="40px" width="70px" styleClass="mt-3 mb-1"/>
+            <p-skeleton height="13px" width="110px"/>
+          } @else {
+            <div class="kpi-num">{{ stats.seguimientos | number }}</div>
+            <div class="kpi-title">Etapas Activas</div>
+          }
+          <div class="kpi-divider blue-div"></div>
+          <div class="kpi-context">
+            <i class="pi pi-chart-pie ctx-icon blue-txt"></i>
+            <span class="ctx-txt">
+              {{ stats.aprendices > 0 ? ((stats.seguimientos / stats.aprendices) * 100 | number:'1.0-0') : 0 }}% del total
+            </span>
+          </div>
+        </div>
+      </p-card>
+
+      <!-- Card 3: Etapas Desertadas -->
+      <p-card styleClass="kpi-card kpi-orange">
+        <div class="kpi-inner">
+          <div class="kpi-top">
+            <div class="kpi-icon sc-orange">
+              <i class="pi pi-times-circle"></i>
+            </div>
+            <span class="kpi-badge badge-orange">Retirados</span>
+          </div>
+          @if (cargando) {
+            <p-skeleton height="40px" width="60px" styleClass="mt-3 mb-1"/>
+            <p-skeleton height="13px" width="120px"/>
+          } @else {
+            <div class="kpi-num">{{ stats.documentos | number }}</div>
+            <div class="kpi-title">Etapas Desertadas</div>
+          }
+          <div class="kpi-divider orange-div"></div>
+          <div class="kpi-context">
+            <i class="pi pi-chart-pie ctx-icon orange-txt"></i>
+            <span class="ctx-txt">
+              {{ stats.aprendices > 0 ? ((stats.documentos / stats.aprendices) * 100 | number:'1.0-0') : 0 }}% del total
+            </span>
+          </div>
+        </div>
+      </p-card>
+
+      <!-- Card 4: Etapas Certificadas -->
+      <p-card styleClass="kpi-card kpi-purple">
+        <div class="kpi-inner">
+          <div class="kpi-top">
+            <div class="kpi-icon sc-purple">
+              <i class="pi pi-check-circle"></i>
+            </div>
+            <span class="kpi-badge badge-purple">Éxito</span>
+          </div>
+          @if (cargando) {
+            <p-skeleton height="40px" width="60px" styleClass="mt-3 mb-1"/>
+            <p-skeleton height="13px" width="120px"/>
+          } @else {
+            <div class="kpi-num">{{ stats.instructores | number }}</div>
+            <div class="kpi-title">Etapas Certificadas</div>
+          }
+          <div class="kpi-divider purple-div"></div>
+          <div class="kpi-context">
+            <i class="pi pi-chart-pie ctx-icon purple-txt"></i>
+            <span class="ctx-txt">
+              {{ stats.aprendices > 0 ? ((stats.instructores / stats.aprendices) * 100 | number:'1.0-0') : 0 }}% del total
+            </span>
+          </div>
+        </div>
+      </p-card>
+
+    </div>
+
+    <!-- ── Fila inferior: 2 donuts ──────────────────────────────────────── -->
+    <div class="donuts-row">
+
+      <!-- Dona 1: Etapa Productiva -->
+      <p-card styleClass="donut-card">
+        <div class="donut-header">
+          <h3 class="donut-title">Etapa Productiva</h3>
+          <p class="donut-sub">
+            {{ esInstructor() ? 'Aprendices de tu cargo en etapa' : 'Aprendices en etapa productiva' }}
+          </p>
+        </div>
+        @if (cargando) {
+          <p-skeleton shape="circle" size="180px" styleClass="mx-auto mb-4"/>
+        } @else {
+          <div class="chart-container">
+            <p-chart
+              type="doughnut"
+              [data]="chartDataEtapaActiva"
+              [options]="chartOptions"
+              width="100%"
+              height="220px"
+            />
+            <div class="chart-center">
+              <span class="donut-number">{{ etapaActiva.total }}</span>
+              <span class="donut-pct-label">{{ etapaActiva.porcentaje }}%</span>
+            </div>
+          </div>
+        }
+        <div class="donut-legend">
+          <div class="legend-item">
+            <span class="legend-dot dot-green"></span>
+            <span class="legend-text">En etapa productiva</span>
+            <span class="legend-val">{{ etapaActiva.total }}</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot dot-gray"></span>
+            <span class="legend-text">Otros</span>
+            <span class="legend-val">{{ stats.aprendices - etapaActiva.total }}</span>
+          </div>
+        </div>
+      </p-card>
 
       <!-- Dona 2: Etapas Certificadas -->
-      <div class="dash-right">
-        <div class="donut-card">
-          <div class="donut-header">
-            <div>
-              <h3 class="donut-title">Etapas Certificadas</h3>
-              <p class="donut-sub">
-                {{ esInstructor() ? 'De tus aprendices' : 'Total aprendices certificados' }}
-              </p>
+      <p-card styleClass="donut-card">
+        <div class="donut-header">
+          <h3 class="donut-title">Etapas Certificadas</h3>
+          <p class="donut-sub">
+            {{ esInstructor() ? 'De tus aprendices' : 'Total aprendices certificados' }}
+          </p>
+        </div>
+        @if (cargando) {
+          <p-skeleton shape="circle" size="180px" styleClass="mx-auto mb-4"/>
+        } @else {
+          <div class="chart-container">
+            <p-chart
+              type="doughnut"
+              [data]="chartDataEtapaCertificada"
+              [options]="chartOptions"
+              width="100%"
+              height="220px"
+            />
+            <div class="chart-center">
+              <span class="donut-number">{{ etapaCertificada.total }}</span>
+              <span class="donut-pct-label">{{ etapaCertificada.porcentaje }}%</span>
             </div>
           </div>
-          <div class="donut-wrapper">
-            <svg class="donut-svg" viewBox="0 0 120 120">
-              <circle cx="60" cy="60" r="54" fill="none" stroke="#f1f5f9" stroke-width="10"/>
-              <circle cx="60" cy="60" r="54" fill="none" stroke="#2563eb" stroke-width="10"
-                stroke-linecap="round"
-                [attr.stroke-dasharray]="circleDashFor(etapaCertificada.porcentaje)"
-                stroke-dashoffset="0" transform="rotate(-90 60 60)" class="donut-progress"/>
-            </svg>
-            <div class="donut-center">
-              <span class="donut-number" *ngIf="!cargando; else skeletonSmall">
-                {{ etapaCertificada.total }}
-              </span>
-              <span class="donut-pct">{{ etapaCertificada.porcentaje }}%</span>
-            </div>
+        }
+        <div class="donut-legend">
+          <div class="legend-item">
+            <span class="legend-dot dot-blue"></span>
+            <span class="legend-text">Certificadas</span>
+            <span class="legend-val">{{ etapaCertificada.total }}</span>
           </div>
-          <div class="donut-legend">
-            <div class="legend-item">
-              <span class="legend-dot dot-blue"></span>
-              <span class="legend-text">Certificadas</span>
-              <span class="legend-val">{{ etapaCertificada.total }}</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-dot dot-gray"></span>
-              <span class="legend-text">Pendientes</span>
-              <span class="legend-val">{{ stats.aprendices - etapaCertificada.total }}</span>
-            </div>
+          <div class="legend-item">
+            <span class="legend-dot dot-gray"></span>
+            <span class="legend-text">Pendientes</span>
+            <span class="legend-val">{{ stats.aprendices - etapaCertificada.total }}</span>
           </div>
         </div>
-      </div>
+      </p-card>
 
     </div>
   }
 
 </div>
-
-<!-- Skeletons -->
-<ng-template #skeletonTpl>
-  <div class="skeleton skeleton-lg"></div>
-</ng-template>
-<ng-template #skeletonSmall>
-  <div class="skeleton skeleton-sm"></div>
-</ng-template>

@@ -1,11 +1,15 @@
-const BASE = '/api';
+const BASE  = '/api';
+const BASE2 = '/api2';
 
 export type Modulo =
-  | 'personas' | 'matriculas' | 'cursos' | 'programas'
-  | 'areas' | 'sedes' | 'centros'
-  | 'usuarios' | 'credenciales' | 'roles'
-  | 'municipios' | 'aplicativos'
-  | 'departamentos'; // catálogo interno, no aparece como pestaña
+  // ── backend-epsas (api) ────────────────────────────────
+  | 'personas' | 'matriculas' | 'cursos' | 'programas' | 'areas'
+  | 'usuarios' | 'credenciales'
+  // ── catálogos internos (no pestaña) ───────────────────
+  | 'sedes' | 'centros' | 'roles' | 'municipios' | 'aplicativos' | 'departamentos'
+  // ── backend-practica-hexagonal (api2) ─────────────────
+  | 'empresas' | 'modalidades' | 'etapas' | 'asignaciones'
+  | 'seguimientos' | 'bitacoras' | 'observaciones' | 'formatos';
 
 export interface Selector {
   /** Módulo del que se cargan las opciones */
@@ -14,6 +18,12 @@ export interface Selector {
   label: string;
   /** Campo a usar como valor (el FK que se envía al backend) */
   value: string;
+  /**
+   * Filtro opcional: solo incluye items donde item[campo] === valor.
+   * Útil para filtrar personas por cargo, etc.
+   * Ejemplo: { cargo: 'aprendiz' }
+   */
+  filtro?: Record<string, any>;
 }
 
 export interface ModuloConfig {
@@ -24,99 +34,35 @@ export interface ModuloConfig {
   actualizar: ((id: string) => string) | null;
   eliminar:   ((id: string) => string) | null;
 
-  /** Columnas a mostrar en la tabla (si no se define, se derivan de los datos) */
+  /** Columnas a mostrar en la tabla */
   columnas?: string[];
 
-  /** Campos del formulario de creación/edición (independiente de los datos cargados) */
+  /** Campos del formulario de creación/edición */
   campos?: string[];
 
-  /**
-   * Campos FK que deben renderizarse como <select>.
-   * Clave: nombre del campo en el form. Valor: de dónde cargar las opciones.
-   */
+  /** Campos FK que deben renderizarse como <select> */
   selectores?: Record<string, Selector>;
 
-  /**
-   * Tipo de input HTML por campo. Por defecto 'text'.
-   * Ejemplo: { fechaInicio: 'date', cedula: 'number', correo: 'email' }
-   */
+  /** Tipo de input HTML por campo. Por defecto 'text'. */
   tiposCampo?: Record<string, 'date' | 'number' | 'email' | 'text'>;
+
+  /** Si true, usa PATCH en lugar de PUT para actualizar */
+  usePatch?: boolean;
+
+  /** Grupo visual para separar pestañas */
+  grupo?: 'epsas' | 'practica';
 }
 
 export const CONFIG: Record<Modulo, ModuloConfig> = {
 
-  // ── Catálogo interno (no pestaña) ────────────────────────────
+  // ── Catálogos (algunos visibles como pestaña) ──────────────────────────
+
   departamentos: {
     label: 'Departamentos', idKey: 'idDepartamento',
     listar: `${BASE}/departamentos`,
     crear: null, actualizar: null, eliminar: null,
-  },
-
-  // ── Módulos con pestañas ──────────────────────────────────────
-  personas: {
-    label: 'Personas', idKey: 'idPersona',
-    listar: `${BASE}/personas`, crear: `${BASE}/personas`,
-    actualizar: id => `${BASE}/personas/${id}`,
-    eliminar:   id => `${BASE}/personas/${id}`,
-    campos: ['nombre', 'cedula', 'telefono', 'municipioId', 'direccion', 'correo', 'genero', 'cargo', 'estado'],
-    selectores: {
-      municipioId: { modulo: 'municipios', label: 'nombre', value: 'idMunicipio' },
-    },
-    tiposCampo: {
-      cedula:   'number',
-      telefono: 'number',
-      correo:   'email',
-    },
-  },
-
-  matriculas: {
-    label: 'Matrículas', idKey: 'idMatricula',
-    listar: `${BASE}/matriculas`, crear: `${BASE}/matriculas`,
-    actualizar: id => `${BASE}/matriculas/${id}`,
-    eliminar:   id => `${BASE}/matriculas/${id}`,
-    columnas: ['estudiante', 'curso'],
-    campos: ['persona', 'curso'],
-    selectores: {
-      persona: { modulo: 'personas', label: 'nombre', value: 'idPersona' },
-      curso:   { modulo: 'cursos',   label: 'codigo', value: 'idCurso'  },
-    },
-  },
-
-  cursos: {
-    label: 'Cursos', idKey: 'idCurso',
-    listar: `${BASE}/cursos`, crear: `${BASE}/cursos`,
-    actualizar: id => `${BASE}/curso/actualizar_jwsv/${id}`,
-    eliminar:   id => `${BASE}/curso/eliminar_jwsv/${id}`,
-    campos: ['codigo', 'fechaInicio', 'fechaFin', 'finLectiva', 'areaId', 'programaId', 'liderId'],
-    selectores: {
-      areaId:     { modulo: 'areas',     label: 'nombre', value: 'idArea'     },
-      programaId: { modulo: 'programas', label: 'nombre', value: 'idPrograma' },
-      liderId:    { modulo: 'personas',  label: 'nombre', value: 'idPersona'  },
-    },
-    tiposCampo: {
-      fechaInicio: 'date',
-      fechaFin:    'date',
-      finLectiva:  'date',
-    },
-  },
-
-  programas: {
-    label: 'Programas', idKey: 'idPrograma',
-    listar: `${BASE}/programas`, crear: `${BASE}/programas`,
-    actualizar: id => `${BASE}/programa/actualizar_jwsv/${id}`,
-    eliminar:   id => `${BASE}/programas/${id}`,
-    campos: ['nombre', 'tipo'],
-  },
-
-  areas: {
-    label: 'Áreas', idKey: 'idArea',
-    listar: `${BASE}/areas`, crear: `${BASE}/areas`,
-    actualizar: id => `${BASE}/area/actualizar_jwsv/${id}`,
-    eliminar:   id => `${BASE}/area/eliminar_jwsv/${id}`,
-    campos: ['nombre', 'sedeId'],
-    selectores: {
-      sedeId: { modulo: 'sedes', label: 'nombre', value: 'idSede' },
-    },
+    grupo: 'epsas',
+    columnas: ['nombre'],
   },
 
   sedes: {
@@ -141,32 +87,6 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
     },
   },
 
-  usuarios: {
-    label: 'Usuarios', idKey: 'idUsuario',
-    listar: `${BASE}/usuarios`, crear: `${BASE}/usuarios`,
-    actualizar: id => `${BASE}/usuario/actualizar_jwsv/${id}`,
-    eliminar:   id => `${BASE}/usuario/eliminar_jwsv/${id}`,
-    columnas: ['persona', 'aplicativo'],
-    campos: ['personaId', 'aplicativoId'],
-    selectores: {
-      personaId:    { modulo: 'personas',    label: 'nombre', value: 'idPersona'    },
-      aplicativoId: { modulo: 'aplicativos', label: 'nombre', value: 'idAplicativo' },
-    },
-  },
-
-  credenciales: {
-    label: 'Credenciales', idKey: 'idCredencial',
-    listar: `${BASE}/credenciales`, crear: `${BASE}/credenciales`,
-    actualizar: id => `${BASE}/credencial/actualizar_jwsv/${id}`,
-    eliminar:   id => `${BASE}/credencial/eliminar_jwsv/${id}`,
-    columnas: ['login', 'rol', 'usuario'],
-    campos: ['login', 'password', 'rolId', 'usuarioId'],
-    selectores: {
-      rolId:     { modulo: 'roles',    label: 'nombre',  value: 'idRol'     },
-      usuarioId: { modulo: 'usuarios', label: 'persona', value: 'idUsuario' },
-    },
-  },
-
   roles: {
     label: 'Roles', idKey: 'idRol',
     listar: `${BASE}/roles`, crear: `${BASE}/roles`,
@@ -184,6 +104,8 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
     listar: `${BASE}/municipios`, crear: `${BASE}/municipio/registrar_jwsv`,
     actualizar: id => `${BASE}/municipio/actualizar_jwsv/${id}`,
     eliminar:   id => `${BASE}/municipio/eliminar_jwsv/${id}`,
+    grupo: 'epsas',
+    columnas: ['nombre', 'departamento'],
     campos: ['nombre', 'departamentoId'],
     selectores: {
       departamentoId: { modulo: 'departamentos', label: 'nombre', value: 'idDepartamento' },
@@ -197,11 +119,268 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
     eliminar:   id => `${BASE}/aplicativo/eliminar_jwsv/${id}`,
     campos: ['nombre'],
   },
+
+  // ── Módulos api (backend-epsas) ───────────────────────────────────────
+
+  personas: {
+    label: 'Personas', idKey: 'idPersona',
+    listar: `${BASE}/personas`, crear: `${BASE}/personas`,
+    actualizar: id => `${BASE}/personas/${id}`,
+    eliminar:   id => `${BASE}/personas/${id}`,
+    grupo: 'epsas',
+    campos: ['nombre', 'cedula', 'telefono', 'municipioId', 'direccion', 'correo', 'genero', 'cargo', 'estado'],
+    selectores: {
+      municipioId: { modulo: 'municipios', label: 'nombre', value: 'idMunicipio' },
+    },
+    tiposCampo: {
+      cedula:   'number',
+      telefono: 'number',
+      correo:   'email',
+    },
+  },
+
+  matriculas: {
+    label: 'Matrículas', idKey: 'idMatricula',
+    listar: `${BASE}/matriculas`, crear: `${BASE}/matriculas`,
+    actualizar: id => `${BASE}/matriculas/${id}`,
+    eliminar:   id => `${BASE}/matriculas/${id}`,
+    grupo: 'epsas',
+    columnas: ['estudiante', 'curso'],
+    campos: ['persona', 'curso'],
+    selectores: {
+      persona: { modulo: 'personas', label: 'nombre', value: 'idPersona' },
+      curso:   { modulo: 'cursos',   label: 'codigo', value: 'idCurso'  },
+    },
+  },
+
+  cursos: {
+    label: 'Cursos', idKey: 'idCurso',
+    listar: `${BASE}/cursos`, crear: `${BASE}/cursos`,
+    actualizar: id => `${BASE}/curso/actualizar_jwsv/${id}`,
+    eliminar:   id => `${BASE}/curso/eliminar_jwsv/${id}`,
+    grupo: 'epsas',
+    // area, programa y lider vienen como objetos anidados (eager); aplanarFila extrae 'nombre'
+    columnas: ['codigo', 'area', 'programa', 'lider', 'fechaInicio', 'fechaFin'],
+    campos: ['codigo', 'fechaInicio', 'fechaFin', 'finLectiva', 'areaId', 'programaId', 'liderId'],
+    selectores: {
+      areaId:     { modulo: 'areas',     label: 'nombre', value: 'idArea'     },
+      programaId: { modulo: 'programas', label: 'nombre', value: 'idPrograma' },
+      liderId:    { modulo: 'personas',  label: 'nombre', value: 'idPersona'  },
+    },
+    tiposCampo: {
+      fechaInicio: 'date',
+      fechaFin:    'date',
+      finLectiva:  'date',
+    },
+  },
+
+  programas: {
+    label: 'Programas', idKey: 'idPrograma',
+    listar: `${BASE}/programas`, crear: `${BASE}/programas`,
+    actualizar: id => `${BASE}/programas/${id}`,
+    eliminar:   id => `${BASE}/programas/${id}`,
+    grupo: 'epsas',
+    usePatch: true,
+    columnas: ['nombre', 'tipo'],
+    campos: ['nombre', 'tipo'],
+  },
+
+  areas: {
+    label: 'Áreas', idKey: 'idArea',
+    listar: `${BASE}/areas`, crear: `${BASE}/areas`,
+    actualizar: id => `${BASE}/areas/${id}`,
+    eliminar:   id => `${BASE}/areas/${id}`,
+    grupo: 'epsas',
+    // sede viene como objeto anidado (eager); aplanarFila extrae 'nombre'
+    columnas: ['nombre', 'sede'],
+    campos: ['nombre', 'sedeId'],
+    selectores: {
+      sedeId: { modulo: 'sedes', label: 'nombre', value: 'idSede' },
+    },
+  },
+
+  usuarios: {
+    label: 'Usuarios', idKey: 'idUsuario',
+    listar: `${BASE}/usuarios`, crear: `${BASE}/usuarios`,
+    actualizar: id => `${BASE}/usuarios/${id}`,
+    eliminar:   id => `${BASE}/usuarios/${id}`,
+    grupo: 'epsas',
+    columnas: ['persona', 'aplicativo'],
+    campos: ['personaId', 'aplicativoId'],
+    selectores: {
+      personaId:    { modulo: 'personas',    label: 'nombre', value: 'idPersona'    },
+      aplicativoId: { modulo: 'aplicativos', label: 'nombre', value: 'idAplicativo' },
+    },
+  },
+
+  credenciales: {
+    label: 'Credenciales', idKey: 'idCredencial',
+    listar: `${BASE}/credenciales`, crear: `${BASE}/credenciales`,
+    actualizar: id => `${BASE}/credenciales/${id}`,
+    eliminar:   id => `${BASE}/credenciales/${id}`,
+    grupo: 'epsas',
+    usePatch: true,
+    columnas: ['login', 'rol', 'usuario'],
+    campos: ['login', 'password', 'rolId', 'usuarioId'],
+    selectores: {
+      rolId:     { modulo: 'roles',    label: 'nombre',  value: 'idRol'     },
+      usuarioId: { modulo: 'usuarios', label: 'persona', value: 'idUsuario' },
+    },
+  },
+
+  // ── Módulos api2 (backend-practica-hexagonal) ────────────────────────
+
+  empresas: {
+    label: 'Empresas', idKey: 'id',
+    listar: `${BASE2}/empresas`, crear: `${BASE2}/empresas`,
+    actualizar: id => `${BASE2}/empresas/${id}`,
+    eliminar:   id => `${BASE2}/empresas/${id}`,
+    grupo: 'practica',
+    usePatch: true,
+    // 'municipio' guarda el UUID del municipio como texto plano → resolver lo convierte al nombre
+    columnas: ['nit', 'nombre', 'municipio', 'telefono', 'correo', 'estado'],
+    campos: ['nit', 'nombre', 'direccion', 'telefono', 'correo', 'municipio', 'estado'],
+    selectores: {
+      municipio: { modulo: 'municipios', label: 'nombre', value: 'idMunicipio' },
+    },
+    tiposCampo: {
+      // nit: el backend lo espera como string (@IsString), no como number
+      correo: 'email',
+    },
+  },
+
+  modalidades: {
+    label: 'Modalidades', idKey: 'id',
+    listar: `${BASE2}/modalidad`, crear: `${BASE2}/modalidad`,
+    actualizar: id => `${BASE2}/modalidad/${id}`,
+    eliminar:   id => `${BASE2}/modalidad/${id}`,
+    grupo: 'practica',
+    usePatch: true,
+    campos: ['nombre'],
+  },
+
+  etapas: {
+    label: 'Etapas Prácticas', idKey: 'id',
+    listar: `${BASE2}/etapa-practica`, crear: `${BASE2}/etapa-practica`,
+    actualizar: id => `${BASE2}/etapa-practica/${id}`,
+    eliminar:   id => `${BASE2}/etapa-practica/${id}`,
+    grupo: 'practica',
+    usePatch: true,
+    // La API devuelve empresa y modalidad como objetos anidados; aplanarFila extrae 'nombre'.
+    columnas: ['empresa', 'modalidad', 'estado', 'fecha_inicio', 'fecha_fin', 'avance'],
+    campos: ['empresaId', 'modalidadId', 'matriculaId', 'fecha_inicio', 'fecha_fin', 'estado', 'observacion'],
+    selectores: {
+      empresaId:   { modulo: 'empresas',    label: 'nombre', value: 'id' },
+      modalidadId: { modulo: 'modalidades', label: 'nombre', value: 'id' },
+    },
+    tiposCampo: {
+      fecha_inicio: 'date',
+      fecha_fin:    'date',
+    },
+  },
+
+  asignaciones: {
+    label: 'Asignaciones', idKey: 'id',
+    listar: `${BASE2}/asignaciones`, crear: `${BASE2}/asignaciones`,
+    actualizar: id => `${BASE2}/asignaciones/${id}`,
+    eliminar:   id => `${BASE2}/asignaciones/${id}`,
+    grupo: 'practica',
+    usePatch: true,
+    // 'instructor' es un personaId UUID → el selector lo resuelve al nombre
+    columnas: ['instructor', 'fecha_inicio', 'fecha_fin', 'estado', 'horas'],
+    campos: ['etapaId', 'instructor', 'fecha_inicio', 'fecha_fin', 'estado', 'horas'],
+    selectores: {
+      // instructor guarda el UUID de la persona (no termina en Id, displayKey = instructor)
+      instructor: { modulo: 'personas', label: 'nombre', value: 'idPersona' },
+    },
+    tiposCampo: {
+      fecha_inicio: 'date',
+      fecha_fin:    'date',
+      horas:        'number',
+    },
+  },
+
+  seguimientos: {
+    label: 'Seguimientos', idKey: 'id',
+    listar: `${BASE2}/seguimientos`, crear: `${BASE2}/seguimientos`,
+    actualizar: id => `${BASE2}/seguimientos/${id}`,
+    eliminar:   id => `${BASE2}/seguimientos/${id}`,
+    grupo: 'practica',
+    usePatch: true,
+    // 'aprendiz' se calcula en frontend cruzando etapa → matricula → persona
+    columnas: ['aprendiz', 'estado', 'observacion', 'fecha_inicio', 'fecha_fin'],
+    campos: ['etapaId', 'asignacionId', 'observacion', 'fecha_inicio', 'fecha_fin', 'estado'],
+    selectores: {
+      // etapaId → se muestra como "nombre del aprendiz" (calculado en cargarDatos)
+      etapaId:      { modulo: 'etapas',      label: 'aprendiz',   value: 'id' },
+      // asignacionId → se muestra como "instructor de la asignación"
+      asignacionId: { modulo: 'asignaciones', label: 'instructor', value: 'id' },
+    },
+    tiposCampo: {
+      fecha_inicio: 'date',
+      fecha_fin:    'date',
+    },
+  },
+
+  bitacoras: {
+    label: 'Bitácoras', idKey: 'id',
+    listar: `${BASE2}/bitacoras`, crear: `${BASE2}/bitacoras`,
+    actualizar: id => `${BASE2}/bitacoras/${id}`,
+    eliminar:   id => `${BASE2}/bitacoras/${id}`,
+    grupo: 'practica',
+    usePatch: true,
+    // seguimiento llega como objeto anidado → ocultar con columnas explícitas
+    columnas: ['fecha', 'estado', 'bitacora_pdf'],
+    campos: ['seguimientoId', 'fecha', 'bitacora_pdf', 'estado'],
+    tiposCampo: {
+      fecha: 'date',
+    },
+  },
+
+  observaciones: {
+    label: 'Observaciones', idKey: 'id',
+    listar: `${BASE2}/observaciones`, crear: `${BASE2}/observaciones`,
+    actualizar: id => `${BASE2}/observaciones/${id}`,
+    eliminar:   id => `${BASE2}/observaciones/${id}`,
+    grupo: 'practica',
+    usePatch: true,
+    // 'persona' guarda un UUID de la tabla personas → el selector lo resuelve al nombre
+    columnas: ['fecha', 'descripcion', 'persona', 'evidencia_foto'],
+    campos: ['seguimientoId', 'fecha', 'descripcion', 'persona', 'evidencia_foto'],
+    selectores: {
+      persona: { modulo: 'personas', label: 'nombre', value: 'idPersona' },
+    },
+    tiposCampo: {
+      fecha: 'date',
+    },
+  },
+
+  formatos: {
+    label: 'Formatos', idKey: 'id',
+    listar: `${BASE2}/formatos`, crear: null,
+    actualizar: id => `${BASE2}/formatos/${id}`,
+    eliminar:   id => `${BASE2}/formatos/${id}`,
+    grupo: 'practica',
+    usePatch: true,
+    columnas: ['tipo', 'nombre_original', 'mime_type', 'estado'],
+    campos: ['tipo', 'nombre'],
+  },
+
 };
 
 
+/** Módulos que NO aparecen como pestañas (catálogos internos / de referencia) */
+const OCULTOS: Modulo[] = [
+  'sedes', 'centros', 'roles', 'aplicativos',
+];
 
-/** Solo los módulos que aparecen como pestañas (excluye catálogos internos) */
+/** Solo los módulos que aparecen como pestañas en el panel */
 export const MODULOS = (Object.keys(CONFIG) as Modulo[]).filter(
-  m => m !== 'departamentos'
+  m => !OCULTOS.includes(m)
 );
+
+/** Módulos del grupo epsas (backend-epsas / api) */
+export const MODULOS_EPSAS = MODULOS.filter(m => CONFIG[m].grupo === 'epsas');
+
+/** Módulos del grupo practica (backend-practica-hexagonal / api2) */
+export const MODULOS_PRACTICA = MODULOS.filter(m => CONFIG[m].grupo === 'practica');

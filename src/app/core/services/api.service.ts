@@ -65,18 +65,28 @@ export class ApiService {
   }
 
   // ── Personas / Aprendices ─────────────────────────────────────────────────
-  async listarAprendices(): Promise<any[]> {
-    const resp: any = await firstValueFrom(this.http.get(`${BASE}/personas`));
-    // El backend puede devolver: array directo, { data: [] }, { aprendices: [] }, etc.
-    if (Array.isArray(resp)) return resp;
-    if (resp?.data   && Array.isArray(resp.data))       return resp.data;
+
+  /** Trae TODAS las personas del backend (uso interno). */
+  private async listarTodasPersonas(): Promise<any[]> {
+    const resp: any = await firstValueFrom(
+      this.http.get(`${BASE}/personas`, { withCredentials: true })
+    );
+    if (Array.isArray(resp))                              return resp;
+    if (resp?.data       && Array.isArray(resp.data))       return resp.data;
     if (resp?.aprendices && Array.isArray(resp.aprendices)) return resp.aprendices;
     if (resp?.personas   && Array.isArray(resp.personas))   return resp.personas;
     return [];
   }
-  /** Retorna solo personas con cargo 'instructor' o 'administrador' */
+
+  /** Retorna SOLO las personas con cargo === 'aprendiz'. */
+  async listarAprendices(): Promise<any[]> {
+    const todas = await this.listarTodasPersonas();
+    return todas.filter((p: any) => p.cargo === 'aprendiz');
+  }
+
+  /** Retorna solo personas con cargo 'instructor' o 'administrador'. */
   async listarInstructores(): Promise<any[]> {
-    const todas = await this.listarAprendices();
+    const todas = await this.listarTodasPersonas();
     return todas.filter((p: any) =>
       p.cargo === 'instructor' || p.cargo === 'administrador'
     );
