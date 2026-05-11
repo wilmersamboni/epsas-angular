@@ -1,4 +1,4 @@
-import { Component, signal, computed } from "@angular/core";
+import { Component, signal, computed, OnInit, inject } from "@angular/core";
 
 import { AprendicesToolbarComponent } from "../components/toolbar/aprendices-toolbar.component";
 import { AprendicesTableComponent } from "../components/table/aprendices-table.component";
@@ -6,6 +6,7 @@ import { TablePaginationComponent } from "../components/pagination/table-paginat
 import { SeguimientosModalComponent } from "../components/seguimientos-modal.component";
 import { ObservacionModalComponent } from "../components/observacion-modal.component";
 import { CrearPracticaModalComponent } from "../components/crear-practica-modal.component";
+import { PersonaService } from "../../../core/services/persona.service";
 
 @Component({
   selector: 'app-aprendices-page',
@@ -21,101 +22,142 @@ import { CrearPracticaModalComponent } from "../components/crear-practica-modal.
   template: `
   <div class="bg-white rounded-2xl shadow border">
 
-    <app-aprendices-toolbar
-      [filter]="filterValue()"
-      [areas]="areas()"
-      [selectedAreas]="selectedAreas()"
-      [statusOptions]="statusOptions"
-      [selectedStatuses]="selectedStatuses()"
-      (filterChange)="filterValue.set($event)"
-      (areasChange)="selectedAreas.set($event)"
-      (statusChange)="selectedStatuses.set($event)"
-    ></app-aprendices-toolbar>
+    @if (cargando()) {
+      <div class="flex items-center justify-center p-10 text-gray-500 gap-3">
+        <svg class="animate-spin h-5 w-5 text-[#39A900]" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+        </svg>
+        Cargando aprendices...
+      </div>
+    } @else {
 
-    <app-aprendices-table
-      [rows]="paged()"
-      [columns]="headerColumns()"
-      (seguimientos)="abrirSeguimientos($event)"
-      (observacion)="abrirObservacion($event)"
-      (crearPractica)="abrirCrearPractica($event)"
-    ></app-aprendices-table>
+      <app-aprendices-toolbar
+        [filter]="filterValue()"
+        [areas]="areas()"
+        [selectedAreas]="selectedAreas()"
+        [statusOptions]="statusOptions"
+        [selectedStatuses]="selectedStatuses()"
+        (filterChange)="filterValue.set($event)"
+        (areasChange)="selectedAreas.set($event)"
+        (statusChange)="selectedStatuses.set($event)"
+      ></app-aprendices-toolbar>
 
-    <app-table-pagination
-      [page]="page()"
-      [pages]="pages()"
-      (pageChange)="page.set($event)"
-    ></app-table-pagination>
+      @if (filtrados().length === 0) {
+        <div class="text-center text-gray-400 py-10">No se encontraron aprendices.</div>
+      } @else {
+        <app-aprendices-table
+          [rows]="paged()"
+          [columns]="headerColumns()"
+          (seguimientos)="abrirSeguimientos($event)"
+          (observacion)="abrirObservacion($event)"
+          (crearPractica)="abrirCrearPractica($event)"
+        ></app-aprendices-table>
+
+        <app-table-pagination
+          [page]="page()"
+          [pages]="pages()"
+          (pageChange)="page.set($event)"
+        ></app-table-pagination>
+      }
+
+    }
 
   </div>
   `
 })
-export class AprendicesPage {
+export class AprendicesPage implements OnInit {
 
-  // 🔎 filtro de búsqueda
-  filterValue = signal('');
+  private personaSvc = inject(PersonaService);
 
-  // 📄 paginación
-  page = signal(1);
-  pageSize = 10;
+  // ── Estado ────────────────────────────────────────────────────────────────
+  cargando = signal(false);
 
-  // 📂 áreas
-  areas = signal<string[]>([
-    'Administrativa',
-    'Sistemas',
-    'Contabilidad'
-  ]);
+  /** Aprendices crudos del API (cargo === 'aprendiz') */
+  private aprendices = signal<any[]>([]);
 
-  selectedAreas = signal<string[]>([]);
-
-  // 📊 estados
-  statusOptions = [
-    { uid: 'activo', name: 'Activo' },
-    { uid: 'practica', name: 'Práctica' },
-    { uid: 'egresado', name: 'Egresado' }
-  ];
-
+  // ── Filtros ───────────────────────────────────────────────────────────────
+  filterValue    = signal('');
+  selectedAreas  = signal<string[]>([]);
   selectedStatuses = signal<string[]>([]);
 
-  // 📑 columnas de tabla
+  areas = signal<string[]>([]);
+
+  statusOptions = [
+    { uid: 'activo',   name: 'Activo'   },
+    { uid: 'inactivo', name: 'Inactivo' },
+  ];
+
+  // ── Paginación ────────────────────────────────────────────────────────────
+  page     = signal(1);
+  pageSize = 10;
+
+  // ── Columnas ──────────────────────────────────────────────────────────────
   headerColumns = signal([
-    { key: 'name', name: 'Nombre' },
-    { key: 'area', name: 'Área' },
-    { key: 'status', name: 'Estado' }
+    { key: 'name',   name: 'Nombre'  },
+    { key: 'cedula', name: 'Cédula'  },
+    { key: 'correo', name: 'Correo'  },
+    { key: 'status', name: 'Estado'  },
   ]);
 
-  // 📊 datos de ejemplo
-  rows = signal<any[]>([
-    { id:1, name:'Juan Pérez', area:'Sistemas', status:'activo' },
-    { id:2, name:'Laura Gómez', area:'Administrativa', status:'practica' },
-    { id:3, name:'Carlos Ruiz', area:'Contabilidad', status:'egresado' }
-  ]);
+  // ── Datos filtrados ───────────────────────────────────────────────────────
+  filtrados = computed(() => {
+    const texto   = this.filterValue().toLowerCase().trim();
+    const estados = this.selectedStatuses();
 
-  // 📄 total de páginas
-  pages = computed(() =>
-    Math.ceil(this.rows().length / this.pageSize)
-  );
+    return this.aprendices().filter(a => {
+      const coincideTexto = !texto ||
+        a.name?.toLowerCase().includes(texto) ||
+        String(a.cedula ?? '').includes(texto) ||
+        a.correo?.toLowerCase().includes(texto);
 
-  // 📄 datos paginados
-  paged = computed(() => {
+      const coincideEstado = !estados.length || estados.includes(a.status);
 
-    const start = (this.page() - 1) * this.pageSize;
-    const end = start + this.pageSize;
-
-    return this.rows().slice(start, end);
-
+      return coincideTexto && coincideEstado;
+    });
   });
 
-  // 🎯 acciones
-  abrirSeguimientos(row:any){
+  // ── Paginación ────────────────────────────────────────────────────────────
+  pages = computed(() => Math.max(1, Math.ceil(this.filtrados().length / this.pageSize)));
+
+  paged = computed(() => {
+    const inicio = (this.page() - 1) * this.pageSize;
+    return this.filtrados().slice(inicio, inicio + this.pageSize);
+  });
+
+  // ── Carga inicial ─────────────────────────────────────────────────────────
+  async ngOnInit(): Promise<void> {
+    this.cargando.set(true);
+    try {
+      const personas = await this.personaSvc.listarAprendices();
+      // Mapea campos del API al formato que espera la tabla
+      const filas = personas.map((p: any) => ({
+        id:     p.idPersona,
+        name:   p.nombre   ?? '—',
+        cedula: p.cedula   ?? '—',
+        correo: p.correo   ?? '—',
+        status: p.estado   ?? '—',
+        // Guardamos el objeto completo para acciones posteriores
+        _raw: p,
+      }));
+      this.aprendices.set(filas);
+    } catch (err) {
+      console.error('[AprendicesPage] Error cargando aprendices:', err);
+    } finally {
+      this.cargando.set(false);
+    }
+  }
+
+  // ── Acciones ──────────────────────────────────────────────────────────────
+  abrirSeguimientos(row: any): void {
     console.log('seguimientos', row);
   }
 
-  abrirObservacion(row:any){
+  abrirObservacion(row: any): void {
     console.log('observacion', row);
   }
 
-  abrirCrearPractica(row:any){
+  abrirCrearPractica(row: any): void {
     console.log('crear practica', row);
   }
-
 }

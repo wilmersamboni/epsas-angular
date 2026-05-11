@@ -1,136 +1,192 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
+import { ToastModule } from 'primeng/toast';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { MessageService, ConfirmationService } from 'primeng/api';
+
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
+import { ToastService } from '../../core/services/toast.service';
 import { Formato } from '../../shared/models';
 
-/**
- * Equivalente a PricingPage.tsx de React.
- * Sube, lista y elimina archivos PDF.
- */
+import { FormatoCardComponent } from './components/formato-card.component';
+import { SubirFormatoModalComponent } from './components/subir-formato-modal.component';
+
+const TIPOS = [
+  { value: 'bitacora',         label: 'Bitácora',        icon: '📋' },
+  { value: 'acta_seguimiento', label: 'Acta seguimiento', icon: '📝' },
+  { value: 'otro',             label: 'Otro',             icon: '📁' },
+];
+
 @Component({
   selector: 'app-formatos',
   standalone: true,
-  imports: [],
+  imports: [ToastModule, ConfirmDialogModule, FormatoCardComponent, SubirFormatoModalComponent],
+  providers: [MessageService, ConfirmationService],
+  styles: [`
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { animation: spin 0.8s linear infinite; }
+  `],
   template: `
-    <section class="flex flex-col items-center gap-8 py-10">
+    <p-toast position="top-right" [baseZIndex]="9999" />
+    <p-confirmdialog />
 
-      <h1 class="text-3xl font-bold text-gray-800">Formatos</h1>
+    <section class="min-h-screen bg-gray-50 px-4 py-10">
+      <div class="max-w-6xl mx-auto space-y-8">
 
-      <!-- Subir -->
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 w-96">
-        <label class="block text-sm font-medium text-gray-700 mb-3">Seleccionar PDF</label>
-        <input
-          type="file"
-          accept="application/pdf"
-          (change)="onFileChange($event)"
-          class="block w-full text-sm text-gray-500
-                 file:me-4 file:py-2 file:px-4
-                 file:rounded-lg file:border-0
-                 file:text-sm file:font-semibold
-                 file:bg-[#39A900] file:text-white
-                 hover:file:bg-[#2d8400] cursor-pointer"
-        />
-        <button
-          (click)="handleUpload()"
-          [disabled]="!archivo || uploading()"
-          class="mt-4 w-full py-2.5 bg-[#39A900] text-white font-semibold rounded-lg
-                 hover:bg-[#2d8400] transition-colors disabled:opacity-50"
-        >
-          {{ uploading() ? 'Subiendo...' : 'Subir Archivo' }}
-        </button>
-      </div>
+        <!-- ── Header ──────────────────────────────────────────────── -->
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Formatos</h1>
+            <p class="text-sm text-gray-500 mt-0.5">
+              {{ formatos().length }} archivo{{ formatos().length !== 1 ? 's' : '' }}
+              disponible{{ formatos().length !== 1 ? 's' : '' }}
+            </p>
+          </div>
 
-      <!-- Listado -->
-      <div class="w-full max-w-5xl bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">Archivos Subidos</h2>
-        <hr class="mb-4 border-gray-100" />
+          @if (esAdmin()) {
+            <button
+              (click)="mostrarForm.set(!mostrarForm())"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-[#39A900] hover:bg-[#2d8400]
+                     text-white text-sm font-semibold rounded-xl transition-all duration-200
+                     shadow-sm hover:shadow-md active:scale-95">
+              <span class="text-base leading-none">{{ mostrarForm() ? '✕' : '+' }}</span>
+              {{ mostrarForm() ? 'Cancelar' : 'Subir formato' }}
+            </button>
+          }
+        </div>
 
-        @if (loading()) {
-          <div class="flex justify-center py-8">
-            <div class="w-8 h-8 border-4 border-[#39A900]/30 border-t-[#39A900] rounded-full animate-spin"></div>
+        <!-- ── Formulario de subida ─────────────────────────────────── -->
+        @if (esAdmin() && mostrarForm()) {
+          <app-subir-formato-modal
+            [tipos]="tipos"
+            (subido)="onSubido()"
+          />
+        }
+
+        <!-- ── Filtros ───────────────────────────────────────────────── -->
+        @if (formatos().length > 0 || filtroTipo()) {
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide mr-1">Filtrar:</span>
+
+            <button
+              (click)="filtroTipo.set('')"
+              [class]="'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ' +
+                (filtroTipo() === '' ? 'bg-gray-800 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:border-gray-300')">
+              Todos
+            </button>
+
+            @for (t of tipos; track t.value) {
+              <button
+                (click)="filtroTipo.set(filtroTipo() === t.value ? '' : t.value)"
+                [class]="'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ' +
+                  (filtroTipo() === t.value
+                    ? 'bg-[#39A900] text-white'
+                    : 'bg-white text-gray-500 border border-gray-200 hover:border-[#39A900]/40')">
+                {{ t.icon }} {{ t.label }}
+              </button>
+            }
           </div>
         }
 
-        @if (!loading() && formatos().length === 0) {
-          <p class="text-center text-gray-400 py-10 text-sm">No hay formatos registrados</p>
+        <!-- ── Cargando ──────────────────────────────────────────────── -->
+        @if (loading()) {
+          <div class="flex justify-center items-center py-20">
+            <div class="flex flex-col items-center gap-3">
+              <svg class="w-8 h-8 text-[#39A900] spinner" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+              </svg>
+              <span class="text-sm text-gray-400">Cargando formatos...</span>
+            </div>
+          </div>
         }
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
-          @for (f of formatos(); track f.id_formatos) {
-            <div class="bg-white rounded-xl border border-gray-100 hover:shadow-md transition-shadow p-4">
+        <!-- ── Estado vacío ──────────────────────────────────────────── -->
+        @if (!loading() && formatosFiltrados().length === 0) {
+          <div class="flex flex-col items-center justify-center py-20 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center text-2xl mb-4">📂</div>
+            <p class="text-gray-500 font-medium">
+              {{ filtroTipo() ? 'No hay formatos de este tipo' : 'No hay formatos registrados' }}
+            </p>
+            <p class="text-sm text-gray-400 mt-1">
+              {{ esAdmin() ? 'Sube el primer formato con el botón de arriba.' : 'Consulta con el administrador.' }}
+            </p>
+          </div>
+        }
 
-              <div class="flex items-start gap-3 mb-4">
-                <div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-red-500 text-lg flex-shrink-0">
-                  📄
-                </div>
-                <div class="flex-1 overflow-hidden">
-                  <p class="font-medium text-sm text-gray-800 line-clamp-2">{{ f.nombre }}</p>
-                  <span class="inline-block mt-1 text-[10px] font-semibold px-2 py-0.5
-                                bg-red-50 text-red-500 rounded-full">PDF</span>
-                </div>
-              </div>
+        <!-- ── Grilla de cards ───────────────────────────────────────── -->
+        @if (!loading() && formatosFiltrados().length > 0) {
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            @for (f of formatosFiltrados(); track f.id) {
+              <app-formato-card
+                [formato]="f"
+                [esAdmin]="esAdmin()"
+                (eliminar)="handleEliminar($event)"
+              />
+            }
+          </div>
+        }
 
-              <div class="flex justify-between gap-2">
-                <a [href]="'http://localhost:3000/uploads/' + f.formato_pdf"
-                   target="_blank"
-                   class="flex-1 text-center py-1.5 text-xs font-medium rounded-lg
-                          bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">
-                  Ver
-                </a>
-                <a [href]="'http://localhost:3000/uploads/' + f.formato_pdf"
-                   [download]="f.nombre"
-                   class="flex-1 text-center py-1.5 text-xs font-medium rounded-lg
-                          bg-green-50 text-green-600 hover:bg-green-100 transition-colors">
-                  Descargar
-                </a>
-                <button (click)="handleEliminar(f.id_formatos)"
-                  class="flex-1 py-1.5 text-xs font-medium rounded-lg
-                         bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
-                  Eliminar
-                </button>
-              </div>
-            </div>
-          }
-        </div>
       </div>
     </section>
   `,
 })
 export class FormatosComponent implements OnInit {
-  formatos  = signal<Formato[]>([]);
-  loading   = signal(false);
-  uploading = signal(false);
-  archivo: File | null = null;
+  private auth    = inject(AuthService);
+  private api     = inject(ApiService);
+  private toast   = inject(ToastService);
+  private confirm = inject(ConfirmationService);
 
-  constructor(private api: ApiService) {}
+  readonly tipos = TIPOS;
+
+  formatos    = signal<Formato[]>([]);
+  loading     = signal(false);
+  mostrarForm = signal(false);
+  filtroTipo  = signal('');
+
+  esAdmin() { return this.auth.isAdmin(); }
+
+  formatosFiltrados() {
+    const tipo = this.filtroTipo();
+    return tipo ? this.formatos().filter(f => f.tipo === tipo) : this.formatos();
+  }
 
   ngOnInit(): void { this.cargarFormatos(); }
 
   async cargarFormatos(): Promise<void> {
     this.loading.set(true);
-    try { this.formatos.set(await this.api.listarFormatos()); }
-    catch { console.error('Error cargando formatos'); }
-    finally { this.loading.set(false); }
-  }
-
-  onFileChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.archivo = input.files?.[0] ?? null;
-  }
-
-  async handleUpload(): Promise<void> {
-    if (!this.archivo) return;
-    this.uploading.set(true);
     try {
-      await this.api.subirFormato(this.archivo.name, this.archivo);
-      this.archivo = null;
-      await this.cargarFormatos();
-    } catch { alert('Error al subir el archivo.'); }
-    finally { this.uploading.set(false); }
+      this.formatos.set(await this.api.listarFormatos());
+    } catch (e: any) {
+      this.toast.httpError(e, 'No se pudieron cargar los formatos.');
+    } finally {
+      this.loading.set(false);
+    }
   }
 
-  async handleEliminar(id: number): Promise<void> {
-    if (!confirm('¿Eliminar este formato?')) return;
-    await this.api.eliminarFormato(id);
-    await this.cargarFormatos();
+  onSubido(): void {
+    this.mostrarForm.set(false);
+    this.cargarFormatos();
+  }
+
+  handleEliminar(id: string): void {
+    if (!this.esAdmin()) return;
+    this.confirm.confirm({
+      message: '¿Estás seguro de que deseas eliminar este formato? Esta acción no se puede deshacer.',
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Sí, eliminar',
+      rejectLabel: 'Cancelar',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: async () => {
+        try {
+          await this.api.eliminarFormato(id);
+          this.toast.ok('Eliminado', 'Formato eliminado correctamente.');
+          await this.cargarFormatos();
+        } catch (e: any) {
+          this.toast.httpError(e, 'Error al eliminar el formato.');
+        }
+      },
+    });
   }
 }

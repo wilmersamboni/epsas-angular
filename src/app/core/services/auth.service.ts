@@ -8,8 +8,17 @@ import { Usuario, LoginRequest, LoginResponse } from '../../shared/models';
 export class AuthService {
   // ── Estado reactivo (señales, equivale al useState de React) ──────────────
   private _user = signal<Usuario | null>(this._loadUser());
-  readonly user = this._user.asReadonly();
+  readonly user            = this._user.asReadonly();
   readonly isAuthenticated = computed(() => this._user() !== null);
+
+  /** Cargo del usuario autenticado: 'administrador' | 'instructor' | 'aprendiz' | '' */
+  readonly cargo    = computed(() => this._user()?.cargo ?? '');
+  readonly isAdmin  = computed(() => this.cargo() === 'administrador');
+
+  /** Devuelve true si el cargo del usuario está en la lista de roles permitidos */
+  hasRole(roles: string[]): boolean {
+    return roles.includes(this.cargo());
+  }
 
   constructor(private http: HttpClient, private router: Router) {}
 
@@ -27,7 +36,8 @@ export class AuthService {
   async login(data: LoginRequest): Promise<void> {
   const resp = await firstValueFrom(
     this.http.post<LoginResponse>(
-      'http://localhost:3000/api/auth/login',
+      //'http://2.24.77.37/api/auth/login',
+       'http://localhost:3000/api/auth/login',
       data,
       { withCredentials: true }
     )
@@ -47,7 +57,7 @@ export class AuthService {
     localStorage.removeItem('centroId');
     localStorage.removeItem('cargo');
     this._user.set(null);
-    this.router.navigate(['/login'], { replaceUrl: true });
+    this.router.navigate(['/'], { replaceUrl: true });
     
   }
 

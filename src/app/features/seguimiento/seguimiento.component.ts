@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { TableInfoComponent } from './components/table-info.component';
+import { TableInfoComponent } from './components/./table-info/table-info.component';
 
 /**
  * Equivalente a AboutPage.tsx de React.
