@@ -1,10 +1,12 @@
 import {
   Component, Input, Output, EventEmitter,
-  OnChanges, SimpleChanges, signal, computed
+  OnChanges, SimpleChanges, signal, computed,
+  ViewChild, ElementRef,
 } from '@angular/core';
 import { FormsModule, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { PracticaService, MatriculaService, PersonaService } from '../../../core/services';
 import { ToastService } from '../../../core/services/toast.service';
+import { FileUploadZoneComponent } from '../../../shared/components/file-upload-zone.component';
 
 import { TuiDay } from '@taiga-ui/cdk';
 import { TuiCalendar } from '@taiga-ui/core';
@@ -26,8 +28,14 @@ import { TuiCalendar } from '@taiga-ui/core';
     FormsModule,
     ReactiveFormsModule,
     TuiCalendar,
+    FileUploadZoneComponent,
   ],
   template: `
+    <!-- Input FUERA de @if para que @ViewChild lo encuentre siempre en el DOM -->
+    <input #fileInput type="file" multiple style="display:none"
+           accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.zip"
+           (change)="onArchivosSeleccionados($event)" />
+
     @if (isOpen) {
       <div class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
         (click)="$event.target === $event.currentTarget && closed.emit()">
@@ -245,6 +253,15 @@ import { TuiCalendar } from '@taiga-ui/core';
                 }
               }
 
+              <!-- Zona de archivos -->
+              <app-file-upload-zone
+                [multiple]="true"
+                [hint]="'PDF, Word, Excel, imágenes · Máx. 10MB c/u · Hasta 20 archivos'"
+                [files]="archivosSeleccionados"
+                (filesChange)="archivosSeleccionados = $event"
+                (clickZone)="abrirSelectorArchivos()"
+              />
+
               <!-- Estado -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">Estado</label>
@@ -335,6 +352,10 @@ export class CrearPracticaModalComponent implements OnChanges {
     );
   });
 
+  /* ── Archivos ─────────────────────────────────────────────────── */
+  @ViewChild('fileInput') fileInputRef!: ElementRef<HTMLInputElement>;
+  archivosSeleccionados: File[] = [];
+
   /* ── Modelo formulario ────────────────────────────────────────── */
   form = {
     aprendizId:      '',
@@ -380,6 +401,7 @@ export class CrearPracticaModalComponent implements OnChanges {
     this.instructorTexto        = '';
     this.mostrarListaInstructor = false;
     this.calAbierto             = null;
+    this.archivosSeleccionados  = [];
     this.error.set('');
   }
 
@@ -391,7 +413,7 @@ export class CrearPracticaModalComponent implements OnChanges {
         const [mods, emps, practica] = await Promise.all([
           this.practicaSvc.listarModalidades(),
           this.practicaSvc.listarEmpresas(),
-          this.practicaSvc.obtenerPractica(this.practicaId!),   // ← mismo servicio
+          this.practicaSvc.obtenerPractica(this.practicaId!),
         ]);
         this.modalidades.set(mods);
         this.empresas.set(emps);
@@ -400,7 +422,7 @@ export class CrearPracticaModalComponent implements OnChanges {
         const [mods, emps, insts] = await Promise.all([
           this.practicaSvc.listarModalidades(),
           this.practicaSvc.listarEmpresas(),
-          this.personaSvc.listarInstructores(),                  // ← PersonaService
+          this.personaSvc.listarInstructores(),
         ]);
         this.modalidades.set(mods);
         this.empresas.set(emps);
@@ -465,6 +487,30 @@ export class CrearPracticaModalComponent implements OnChanges {
     setTimeout(() => { this.mostrarListaInstructor = false; }, 200);
   }
 
+  /* ── Archivos ─────────────────────────────────────────────────── */
+
+  abrirSelectorArchivos(): void {
+    const input = this.fileInputRef?.nativeElement;
+    if (!input) return;
+    input.value = '';
+    input.click();
+  }
+
+  onArchivosSeleccionados(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const nuevos = Array.from(input.files ?? []);
+    this.archivosSeleccionados = [...this.archivosSeleccionados, ...nuevos];
+    input.value = '';
+  }
+
+  /** Sube los archivos al endpoint del módulo documentos */
+  private async subirDocumentos(etapaId: string): Promise<void> {
+    if (!this.archivosSeleccionados.length) return;
+    const formData = new FormData();
+    this.archivosSeleccionados.forEach(f => formData.append('archivos', f));
+    await this.practicaSvc.subirDocumentos(etapaId, formData);
+  }
+
   /* ── Helpers de fecha ─────────────────────────────────────────── */
   private tuiDayToISO(day: TuiDay | null): string {
     if (!day) return '';
@@ -477,7 +523,6 @@ export class CrearPracticaModalComponent implements OnChanges {
     if (!iso) return null;
     const parts = iso.substring(0, 10).split('-');
     if (parts.length !== 3) return null;
-    // TuiDay: month es 0-based; usar el constructor para que instanceof funcione
     return new TuiDay(+parts[0], +parts[1] - 1, +parts[2]);
   }
 
@@ -493,15 +538,24 @@ export class CrearPracticaModalComponent implements OnChanges {
 
     this.loading.set(true);
     this.error.set('');
+
     try {
+      let etapaId: string;
+
       if (this.modoEditar) {
         await this.guardarEdicion(fechaInicio, fechaFin);
+        etapaId = this.practicaId!;
       } else {
-        await this.guardarCreacion(fechaInicio, fechaFin);
+        etapaId = await this.guardarCreacion(fechaInicio, fechaFin);
       }
+
+      await this.subirDocumentos(etapaId);
+
       this.toast.ok(
         this.modoEditar ? 'Etapa actualizada' : 'Etapa creada',
-        this.modoEditar ? 'Los cambios fueron guardados correctamente.' : 'La etapa práctica fue creada correctamente.',
+        this.modoEditar
+          ? 'Los cambios fueron guardados correctamente.'
+          : 'La etapa práctica fue creada correctamente.',
       );
       this.success.emit();
       this.closed.emit();
@@ -530,7 +584,8 @@ export class CrearPracticaModalComponent implements OnChanges {
     });
   }
 
-  private async guardarCreacion(fechaInicio: string, fechaFin: string): Promise<void> {
+  /** Crea la práctica y retorna el id generado por el backend */
+  private async guardarCreacion(fechaInicio: string, fechaFin: string): Promise<string> {
     const aprendizId = this.alumnoPreseleccionado
       ? String(this.alumnoPreseleccionado.id ?? this.alumnoPreseleccionado.idPersona ?? '')
       : this.form.aprendizId;
@@ -550,10 +605,9 @@ export class CrearPracticaModalComponent implements OnChanges {
 
     const matriculaId = matriculas[0].idMatricula ?? matriculas[0].id_matricula;
 
-    // Incluir avance académico para que el backend pueda validar contra el mínimo configurado
     const avanceMatricula = this.alumnoPreseleccionado
       ? Number(this.alumnoPreseleccionado.avance_matricula ?? 0)
-      : Number((matriculas[0]?.avance ?? 0));
+      : Number(matriculas[0]?.avance ?? 0);
 
     const payload: any = {
       matriculaId,
@@ -564,9 +618,8 @@ export class CrearPracticaModalComponent implements OnChanges {
       estado:           this.form.estado,
       observacion:      this.form.observacion,
       avanceMatricula,
-    };
+        };
 
-    // Construir el objeto asignacion si se seleccionó un instructor
     if (this.form.instructorId) {
       payload.asignacion = {
         instructor:   this.form.instructorId,
@@ -577,11 +630,12 @@ export class CrearPracticaModalComponent implements OnChanges {
       };
     }
 
-    await this.practicaSvc.crearPractica(payload);
+    const respuesta = await this.practicaSvc.crearPractica(payload);
+    return String(respuesta?.id ?? respuesta?.idEtapa ?? respuesta?.etapaId ?? '');
   }
 
   /* ── Util ─────────────────────────────────────────────────────── */
   initials(name: string): string {
-    return (name ?? '').split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+    return (name ?? '').split(' ').slice(0, 2).map((n: string) => n[0]).join('').toUpperCase();
   }
 }

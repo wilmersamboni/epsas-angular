@@ -36,7 +36,8 @@ export class AuthService {
   async login(data: LoginRequest): Promise<void> {
   const resp = await firstValueFrom(
     this.http.post<LoginResponse>(
-      'http://localhost:3000/api/auth/login',
+      //'http://2.24.77.37/api/auth/login',
+       'http://localhost:3000/api/auth/login',
       data,
       { withCredentials: true }
     )
