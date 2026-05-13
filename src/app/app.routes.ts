@@ -38,6 +38,6 @@ export const routes: Routes = [
       { path: 'migracion', canActivate: [roleGuard], data: { roles: ['administrador'] }, loadComponent: () => import('./features/migracion/migration.component').then(m => m.MigrationComponent) },
     ],
   },
-  // ✅ COMODÍN: Si no es nada de lo anterior, va al 404
+  // COMODÍN: Si no es nada de lo anterior, va al 404
   { path: '**', redirectTo: '404' },
 ];

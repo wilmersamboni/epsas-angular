@@ -1,0 +1,77 @@
+[
+  {
+    "id": "admin",
+    "type": "module",
+    "text": "Módulo: Admin\n\nDescripción:\nMódulo administrativo del sistema EPSAS.\n\nRuta:\n/admin\n\nFunciones:\nAdministración, Ventanas modales, Tablas de información, Configuraciones, Servicios internos\n\nArchivos relacionados:\nadmin-panel\\admin-panel.component.ts, components\\admin-modal.component.ts, components\\admin-table.component.ts, config\\admin.config.ts, services\\admin.service.ts"
+  },
+  {
+    "id": "auth",
+    "type": "module",
+    "text": "Módulo: Auth\n\nDescripción:\nMódulo de autenticación e inicio de sesión.\n\nRuta:\n/auth\n\nFunciones:\nInicio de sesión\n\nArchivos relacionados:\nforgot-password\\forgot-password.component.ts, login\\login.component.ts"
+  },
+  {
+    "id": "chat",
+    "type": "module",
+    "text": "Módulo: Chat\n\nDescripción:\nAsistente virtual y mensajería.\n\nRuta:\n/chat\n\nFunciones:\nChat asistente\n\nArchivos relacionados:\nchat.component.ts"
+  },
+  {
+    "id": "formatos",
+    "type": "module",
+    "text": "Módulo: Formatos\n\nDescripción:\nGestión y visualización de formatos.\n\nRuta:\n/formatos\n\nFunciones:\n\n\nArchivos relacionados:\nformatos.component.ts"
+  },
+  {
+    "id": "historial",
+    "type": "module",
+    "text": "Módulo: Historial\n\nDescripción:\nConsulta de historial y registros.\n\nRuta:\n/historial\n\nFunciones:\nHistorial\n\nArchivos relacionados:\nhistorial.component.ts"
+  },
+  {
+    "id": "home",
+    "type": "module",
+    "text": "Módulo: Home\n\nDescripción:\nPágina principal del sistema.\n\nRuta:\n/home\n\nFunciones:\n\n\nArchivos relacionados:\nhome.component.css, home.component.html, home.component.ts"
+  },
+  {
+    "id": "migracion",
+    "type": "module",
+    "text": "Módulo: Migracion\n\nDescripción:\nHerramientas de migración de datos.\n\nRuta:\n/migracion\n\nFunciones:\n\n\nArchivos relacionados:\nmigration.component.ts, models\\migration.models.ts"
+  },
+  {
+    "id": "not-found",
+    "type": "module",
+    "text": "Módulo: Not found\n\nDescripción:\nMódulo not-found del sistema EPSAS.\n\nRuta:\n/not-found\n\nFunciones:\n\n\nArchivos relacionados:\nnot-found.component.css, not-found.component.html, not-found.component.ts"
+  },
+  {
+    "id": "seguimiento",
+    "type": "module",
+    "text": "Módulo: Seguimiento\n\nDescripción:\nGestión de aprendices, prácticas, observaciones y seguimiento.\n\nRuta:\n/seguimiento\n\nFunciones:\nVentanas modales, Prácticas, Observaciones, Tablas de información, Seguimiento de aprendices\n\nArchivos relacionados:\ncomponents\\bitacoras-modal.component.ts, components\\crear-practica-modal.component.ts, components\\filters\\area-filter.component.ts, components\\filters\\estado-filter.component.ts, components\\observacion-modal.component.ts, components\\pagination\\table-pagination.component.ts, components\\seguimientos-modal.component.ts, components\\table\\aprendices-row.component.ts, components\\table\\aprendices-table.component.ts, components\\table-info\\table-body.component.ts, components\\table-info\\table-header.component.ts, components\\table-info\\table-info.component.ts, components\\table-info\\table-info.types.ts, components\\table-info\\table-pagination.component.ts, components\\table-info\\table-toolbar.component.ts, components\\table-info.component.ts, components\\toolbar\\aprendices-toolbar.component.ts, components\\toolbar\\column-selector.component.ts, components\\toolbar\\search-input.component.ts, modals\\crear-practica-modal.component.ts, modals\\editar-practica-modal.component.ts, modals\\gestionar-asignaciones-modal.component.ts, modals\\observacion-modal.component.ts, modals\\seguimientos-modal.component.ts, models\\aprendiz.model.ts, page-course\\page-course.component.ts, page-table\\aprendices.page.ts.ts, seguimiento.component.ts, utils\\table.constants.ts"
+  },
+  {
+    "id": "settings",
+    "type": "module",
+    "text": "Módulo: Settings\n\nDescripción:\nConfiguración general del sistema.\n\nRuta:\n/settings\n\nFunciones:\n\n\nArchivos relacionados:\nsettings.component.ts"
+  },
+  {
+    "id": "floating-buttons",
+    "type": "layout",
+    "text": "Módulo: Floating buttons\n\nDescripción:\nMódulo floating-buttons del sistema EPSAS.\n\nRuta:\nNo definida\n\nFunciones:\n\n\nArchivos relacionados:\nfloating-buttons.css, floating-buttons.html, floating-buttons.spec.ts, floating-buttons.ts"
+  },
+  {
+    "id": "footer",
+    "type": "layout",
+    "text": "Módulo: Footer\n\nDescripción:\nPie de página institucional.\n\nRuta:\nNo definida\n\nFunciones:\n\n\nArchivos relacionados:\nfooter.component.ts"
+  },
+  {
+    "id": "main-layout",
+    "type": "layout",
+    "text": "Módulo: Main layout\n\nDescripción:\nMódulo main-layout del sistema EPSAS.\n\nRuta:\nNo definida\n\nFunciones:\n\n\nArchivos relacionados:\nmain-layout.component.ts"
+  },
+  {
+    "id": "navbar",
+    "type": "layout",
+    "text": "Módulo: Navbar\n\nDescripción:\nBarra superior de navegación.\n\nRuta:\nNo definida\n\nFunciones:\n\n\nArchivos relacionados:\nnavbar.component.ts, notificaciones-campana.component.ts"
+  },
+  {
+    "id": "sidebar",
+    "type": "layout",
+    "text": "Módulo: Sidebar\n\nDescripción:\nMenú lateral de navegación.\n\nRuta:\nNo definida\n\nFunciones:\n\n\nArchivos relacionados:\nsidebar.component.ts"
+  }
+]
