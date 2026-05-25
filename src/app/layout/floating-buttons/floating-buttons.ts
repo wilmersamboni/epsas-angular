@@ -18,6 +18,7 @@ export class FloatingButtons implements OnDestroy {
   chatAbierto = false;
   mensajeUsuario = '';
   cargando = false;
+  open = false;
 
   // ── Temporizadores ──
   private timerInactividad: any = null;
@@ -28,7 +29,6 @@ export class FloatingButtons implements OnDestroy {
   mensajes: { rol: 'usuario' | 'asistente', texto: string }[] = [
     { rol: 'asistente', texto: '¡Hola! Soy tu asistente virtual. ¿En qué puedo ayudarte con la plataforma?' }
   ];
-
   constructor(
     private chatService: ChatService,
     private sanitizer: DomSanitizer
@@ -80,15 +80,37 @@ export class FloatingButtons implements OnDestroy {
     return this.sanitizer.bypassSecurityTrustHtml(html);
   }
 
-  openAssistant() {
-    this.chatAbierto = !this.chatAbierto;
-    if (this.chatAbierto) {
-      this.reiniciarTimer();
-    } else {
-      clearTimeout(this.timerInactividad);
-      clearTimeout(this.timerCierre);
-    }
+  toggle() {
+    this.open = !this.open;
   }
+
+  openAssistant() {
+  this.chatAbierto = !this.chatAbierto;
+  this.open = false
+
+  if (this.chatAbierto) {
+    this.reiniciarTimer();
+  } else {
+    clearTimeout(this.timerInactividad);
+    clearTimeout(this.timerCierre);
+  }
+
+  this.open = false;//cierra
+}
+abrirWhatsApp() {
+  window.open('https://wa.me/573223699382', '_blank');
+  this.open = false;
+}
+
+  // openAssistant() {
+  //   this.chatAbierto = !this.chatAbierto;
+  //   if (this.chatAbierto) {
+  //     this.reiniciarTimer();
+  //   } else {
+  //     clearTimeout(this.timerInactividad);
+  //     clearTimeout(this.timerCierre);
+  //   }
+  // }
 
   enviar() {
     if (!this.mensajeUsuario.trim() || this.cargando) return;
@@ -117,6 +139,18 @@ export class FloatingButtons implements OnDestroy {
     clearTimeout(this.timerInactividad);
     clearTimeout(this.timerCierre);
   }
+
+// // WhatsApp
+// abrirWhatsApp() {
+//   window.open('https://wa.me/573223699382', '_blank');
+//   this.open = false; // cerrar menú
+// }
+
+// // Chatbot
+// openAssistant() {
+//   this.chatAbierto = !this.chatAbierto;
+//   this.open = false; // cerrar menú
+// }
 }
 
 
