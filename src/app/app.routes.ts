@@ -15,7 +15,7 @@ export const routes: Routes = [
         m => m.ForgotPasswordComponent
       ),
   },
-  // ✅ RUTA 404 PÚBLICA (Fuera del Guard para que todos puedan verla)
+  //  RUTA 404 PÚBLICA (Fuera del Guard para que todos puedan verla)
   {
     path: '404',
     loadComponent: () => import('./features/not-found/not-found.component').then(m => m.NotFoundComponent)

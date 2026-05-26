@@ -37,3 +37,44 @@ const PROXY_CONFIG = {
 };
 
 module.exports = PROXY_CONFIG;
+
+
+
+// const PROXY_CONFIG = {
+//   "/api/": {
+//     target: "http://2.24.77.37",  // ← IP del VPS
+//     secure: false,
+//     changeOrigin: true,
+//     logLevel: "debug"
+//   },
+//   "/uploads/": {
+//     target: "http://2.24.77.37",  // ← IP del VPS
+//     secure: false,
+//     changeOrigin: true,
+//     logLevel: "debug"
+//   },
+//   "/api2/": {
+//     target: "http://2.24.77.37",  // ← IP del VPS
+//     secure: false,
+//     changeOrigin: true,
+//     logLevel: "debug",
+//     cookieDomainRewrite: "localhost",
+//     onProxyReq(proxyReq, req) {
+//       if (req.headers.cookie) {
+//         proxyReq.setHeader("Cookie", req.headers.cookie);
+//       }
+//     },
+//     onProxyRes(proxyRes) {
+//       const cookies = proxyRes.headers["set-cookie"];
+//       if (cookies) {
+//         proxyRes.headers["set-cookie"] = cookies.map(c =>
+//           c.replace(/; SameSite=None/gi, "")
+//            .replace(/; Secure/gi, "")
+//         );
+//       }
+//     },
+//     logLevel: "debug"
+//   }
+// };
+
+// module.exports = PROXY_CONFIG;

@@ -1,210 +1,192 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { ToastModule } from 'primeng/toast';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { MessageService, ConfirmationService } from 'primeng/api';
+
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { Formato } from '../../shared/models';
 
-const TIPOS: { value: string; label: string }[] = [
-  { value: 'contrato',           label: 'Contrato' },
-  { value: 'acta_inicio',        label: 'Acta de inicio' },
-  { value: 'acta_seguimiento_1', label: 'Acta seguimiento 1' },
-  { value: 'acta_seguimiento_2', label: 'Acta seguimiento 2' },
-  { value: 'carta_presentacion', label: 'Carta de presentación' },
-  { value: 'paz_y_salvo',        label: 'Paz y salvo' },
-  { value: 'certificado',        label: 'Certificado' },
-  { value: 'otro',               label: 'Otro' },
-];
+import { FormatoCardComponent } from './components/formato-card.component';
+import { SubirFormatoModalComponent } from './components/subir-formato-modal.component';
 
-const FILE_BASE = 'http://localhost:3001/uploads/formatos/';
+const TIPOS = [
+  { value: 'bitacora',         label: 'Bitácora',        icon: '📋' },
+  { value: 'acta_seguimiento', label: 'Acta seguimiento', icon: '📝' },
+  { value: 'otro',             label: 'Otro',             icon: '📁' },
+];
 
 @Component({
   selector: 'app-formatos',
   standalone: true,
-  imports: [FormsModule],
+  imports: [ToastModule, ConfirmDialogModule, FormatoCardComponent, SubirFormatoModalComponent],
+  providers: [MessageService, ConfirmationService],
+  styles: [`
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { animation: spin 0.8s linear infinite; }
+  `],
   template: `
-    <section class="flex flex-col items-center gap-8 py-10">
+    <p-toast position="top-right" [baseZIndex]="9999" />
+    <p-confirmdialog />
 
-      <h1 class="text-3xl font-bold text-gray-800">Formatos</h1>
+    <section class="min-h-screen bg-gray-50 px-4 py-10">
+      <div class="max-w-6xl mx-auto space-y-8">
 
-      <!-- ── Subir (solo administrador) ───────────────────────────────── -->
-      @if (esAdmin()) {
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 w-full max-w-md">
-          <h2 class="text-base font-semibold text-gray-800 mb-4">Subir nuevo formato</h2>
+        <!-- ── Header ──────────────────────────────────────────────── -->
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Formatos</h1>
+            <p class="text-sm text-gray-500 mt-0.5">
+              {{ formatos().length }} archivo{{ formatos().length !== 1 ? 's' : '' }}
+              disponible{{ formatos().length !== 1 ? 's' : '' }}
+            </p>
+          </div>
 
-          <!-- Nombre -->
-          <label class="block text-sm font-medium text-gray-700 mb-1">Nombre descriptivo</label>
-          <input
-            type="text"
-            [(ngModel)]="nombreFormato"
-            placeholder="Ej: Contrato empresa XYZ"
-            class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm mb-3
-                   focus:outline-none focus:ring-2 focus:ring-[#39A900]/30 focus:border-[#39A900]"
-          />
-
-          <!-- Tipo -->
-          <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de formato</label>
-          <select
-            [(ngModel)]="tipoSeleccionado"
-            class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm mb-3
-                   focus:outline-none focus:ring-2 focus:ring-[#39A900]/30 focus:border-[#39A900]">
-            <option value="">Selecciona un tipo</option>
-            @for (t of tipos; track t.value) {
-              <option [value]="t.value">{{ t.label }}</option>
-            }
-          </select>
-
-          <!-- Archivo -->
-          <label class="block text-sm font-medium text-gray-700 mb-1">Archivo</label>
-          <input
-            type="file"
-            accept="application/pdf,.doc,.docx,image/*"
-            (change)="onFileChange($event)"
-            class="block w-full text-sm text-gray-500 mb-4
-                   file:me-4 file:py-2 file:px-4
-                   file:rounded-lg file:border-0
-                   file:text-sm file:font-semibold
-                   file:bg-[#39A900] file:text-white
-                   hover:file:bg-[#2d8400] cursor-pointer"
-          />
-
-          <button
-            (click)="handleUpload()"
-            [disabled]="!archivo || uploading()"
-            class="w-full py-2.5 bg-[#39A900] text-white font-semibold rounded-lg
-                   hover:bg-[#2d8400] transition-colors disabled:opacity-50">
-            {{ uploading() ? 'Subiendo...' : 'Subir archivo' }}
-          </button>
+          @if (esAdmin()) {
+            <button
+              (click)="mostrarForm.set(!mostrarForm())"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-[#39A900] hover:bg-[#2d8400]
+                     text-white text-sm font-semibold rounded-xl transition-all duration-200
+                     shadow-sm hover:shadow-md active:scale-95">
+              <span class="text-base leading-none">{{ mostrarForm() ? '✕' : '+' }}</span>
+              {{ mostrarForm() ? 'Cancelar' : 'Subir formato' }}
+            </button>
+          }
         </div>
-      }
 
-      <!-- ── Listado ────────────────────────────────────────────────── -->
-      <div class="w-full max-w-5xl bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">Archivos disponibles</h2>
-        <hr class="mb-4 border-gray-100" />
+        <!-- ── Formulario de subida ─────────────────────────────────── -->
+        @if (esAdmin() && mostrarForm()) {
+          <app-subir-formato-modal
+            [tipos]="tipos"
+            (subido)="onSubido()"
+          />
+        }
 
-        @if (loading()) {
-          <div class="flex justify-center py-8">
-            <div class="w-8 h-8 border-4 border-[#39A900]/30 border-t-[#39A900] rounded-full animate-spin"></div>
+        <!-- ── Filtros ───────────────────────────────────────────────── -->
+        @if (formatos().length > 0 || filtroTipo()) {
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide mr-1">Filtrar:</span>
+
+            <button
+              (click)="filtroTipo.set('')"
+              [class]="'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ' +
+                (filtroTipo() === '' ? 'bg-gray-800 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:border-gray-300')">
+              Todos
+            </button>
+
+            @for (t of tipos; track t.value) {
+              <button
+                (click)="filtroTipo.set(filtroTipo() === t.value ? '' : t.value)"
+                [class]="'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ' +
+                  (filtroTipo() === t.value
+                    ? 'bg-[#39A900] text-white'
+                    : 'bg-white text-gray-500 border border-gray-200 hover:border-[#39A900]/40')">
+                {{ t.icon }} {{ t.label }}
+              </button>
+            }
           </div>
         }
 
-        @if (!loading() && formatos().length === 0) {
-          <p class="text-center text-gray-400 py-10 text-sm">No hay formatos registrados</p>
+        <!-- ── Cargando ──────────────────────────────────────────────── -->
+        @if (loading()) {
+          <div class="flex justify-center items-center py-20">
+            <div class="flex flex-col items-center gap-3">
+              <svg class="w-8 h-8 text-[#39A900] spinner" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+              </svg>
+              <span class="text-sm text-gray-400">Cargando formatos...</span>
+            </div>
+          </div>
         }
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
-          @for (f of formatos(); track f.id) {
-            <div class="bg-white rounded-xl border border-gray-100 hover:shadow-md transition-shadow p-4">
+        <!-- ── Estado vacío ──────────────────────────────────────────── -->
+        @if (!loading() && formatosFiltrados().length === 0) {
+          <div class="flex flex-col items-center justify-center py-20 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center text-2xl mb-4">📂</div>
+            <p class="text-gray-500 font-medium">
+              {{ filtroTipo() ? 'No hay formatos de este tipo' : 'No hay formatos registrados' }}
+            </p>
+            <p class="text-sm text-gray-400 mt-1">
+              {{ esAdmin() ? 'Sube el primer formato con el botón de arriba.' : 'Consulta con el administrador.' }}
+            </p>
+          </div>
+        }
 
-              <div class="flex items-start gap-3 mb-4">
-                <div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-red-500 text-lg flex-shrink-0">
-                  📄
-                </div>
-                <div class="flex-1 overflow-hidden">
-                  <p class="font-medium text-sm text-gray-800 line-clamp-2">{{ f.nombre }}</p>
-                  <span class="inline-block mt-1 text-[10px] font-semibold px-2 py-0.5
-                                bg-[#39A900]/10 text-[#39A900] rounded-full capitalize">
-                    {{ tipoLabel(f.tipo) }}
-                  </span>
-                </div>
-              </div>
+        <!-- ── Grilla de cards ───────────────────────────────────────── -->
+        @if (!loading() && formatosFiltrados().length > 0) {
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            @for (f of formatosFiltrados(); track f.id) {
+              <app-formato-card
+                [formato]="f"
+                [esAdmin]="esAdmin()"
+                (eliminar)="handleEliminar($event)"
+              />
+            }
+          </div>
+        }
 
-              <!-- Acciones -->
-              <div class="flex justify-between gap-2">
-                <a [href]="fileUrl(f.ruta_archivo)"
-                   target="_blank"
-                   class="flex-1 text-center py-1.5 text-xs font-medium rounded-lg
-                          bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">
-                  Ver
-                </a>
-                <a [href]="fileUrl(f.ruta_archivo)"
-                   [download]="f.nombre_original"
-                   class="flex-1 text-center py-1.5 text-xs font-medium rounded-lg
-                          bg-green-50 text-green-600 hover:bg-green-100 transition-colors">
-                  Descargar
-                </a>
-                @if (esAdmin()) {
-                  <button (click)="handleEliminar(f.id)"
-                    class="flex-1 py-1.5 text-xs font-medium rounded-lg
-                           bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
-                    Eliminar
-                  </button>
-                }
-              </div>
-
-            </div>
-          }
-        </div>
       </div>
-
     </section>
   `,
 })
 export class FormatosComponent implements OnInit {
-  private auth = inject(AuthService);
+  private auth    = inject(AuthService);
+  private api     = inject(ApiService);
+  private toast   = inject(ToastService);
+  private confirm = inject(ConfirmationService);
 
   readonly tipos = TIPOS;
 
-  formatos         = signal<Formato[]>([]);
-  loading          = signal(false);
-  uploading        = signal(false);
-  archivo:           File | null = null;
-  nombreFormato    = '';
-  tipoSeleccionado = '';
+  formatos    = signal<Formato[]>([]);
+  loading     = signal(false);
+  mostrarForm = signal(false);
+  filtroTipo  = signal('');
 
   esAdmin() { return this.auth.isAdmin(); }
 
-  constructor(private api: ApiService, private toast: ToastService) {}
+  formatosFiltrados() {
+    const tipo = this.filtroTipo();
+    return tipo ? this.formatos().filter(f => f.tipo === tipo) : this.formatos();
+  }
 
   ngOnInit(): void { this.cargarFormatos(); }
 
   async cargarFormatos(): Promise<void> {
     this.loading.set(true);
-    try { this.formatos.set(await this.api.listarFormatos()); }
-    catch (e: any) { this.toast.httpError(e, 'No se pudieron cargar los formatos.'); }
-    finally { this.loading.set(false); }
-  }
-
-  onFileChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.archivo = input.files?.[0] ?? null;
-  }
-
-  async handleUpload(): Promise<void> {
-    if (!this.archivo) { this.toast.warn('Campo requerido', 'Selecciona un archivo.'); return; }
-    if (!this.nombreFormato.trim()) { this.toast.warn('Campo requerido', 'Escribe un nombre descriptivo.'); return; }
-    if (!this.tipoSeleccionado) { this.toast.warn('Campo requerido', 'Selecciona el tipo de formato.'); return; }
-    if (!this.esAdmin()) return;
-
-    this.uploading.set(true);
     try {
-      await this.api.subirFormato(this.nombreFormato.trim(), this.tipoSeleccionado, this.archivo);
-      this.archivo          = null;
-      this.nombreFormato    = '';
-      this.tipoSeleccionado = '';
-      this.toast.ok('Archivo subido', 'El formato fue registrado correctamente.');
-      await this.cargarFormatos();
+      this.formatos.set(await this.api.listarFormatos());
     } catch (e: any) {
-      this.toast.httpError(e, 'Error al subir el archivo.');
-    } finally { this.uploading.set(false); }
+      this.toast.httpError(e, 'No se pudieron cargar los formatos.');
+    } finally {
+      this.loading.set(false);
+    }
   }
 
-  async handleEliminar(id: string): Promise<void> {
+  onSubido(): void {
+    this.mostrarForm.set(false);
+    this.cargarFormatos();
+  }
+
+  handleEliminar(id: string): void {
     if (!this.esAdmin()) return;
-    if (!confirm('¿Eliminar este formato?')) return;
-    try {
-      await this.api.eliminarFormato(id);
-      this.toast.ok('Eliminado', 'Formato eliminado correctamente.');
-      await this.cargarFormatos();
-    } catch (e: any) { this.toast.httpError(e, 'Error al eliminar el formato.'); }
-  }
-
-  fileUrl(rutaArchivo: string): string {
-    return FILE_BASE + rutaArchivo;
-  }
-
-  tipoLabel(tipo: string): string {
-    return TIPOS.find(t => t.value === tipo)?.label ?? tipo;
+    this.confirm.confirm({
+      message: '¿Estás seguro de que deseas eliminar este formato? Esta acción no se puede deshacer.',
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Sí, eliminar',
+      rejectLabel: 'Cancelar',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: async () => {
+        try {
+          await this.api.eliminarFormato(id);
+          this.toast.ok('Eliminado', 'Formato eliminado correctamente.');
+          await this.cargarFormatos();
+        } catch (e: any) {
+          this.toast.httpError(e, 'Error al eliminar el formato.');
+        }
+      },
+    });
   }
 }

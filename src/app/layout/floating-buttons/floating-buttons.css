@@ -162,3 +162,139 @@
 .chat-input button:hover {
   background: #1557b0;
 }
+
+/* overlay */
+/* Overlay oscuro */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.6);
+  z-index: 10;
+}
+
+/* Botón flotante */
+.fab {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  left: auto;
+  z-index: 20;
+  font-size: 24px;
+}
+
+.fab-menu {
+  position: fixed;
+  bottom: 100px;
+  right: auto;
+  left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  opacity: 0;
+  transform: translateY(20px);
+  pointer-events: none;
+  transition: all 0.3s ease;
+  z-index: 20;
+}
+
+.fab-menu button {
+  border: none;
+  border-radius: 25px;
+  padding: 10px 15px;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  text-align: left;
+}
+
+/* Cuando está activo */
+.fab-menu.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* Contenedor principal a la izquierda */
+.fab-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 15px;
+}
+
+/* El Robot (Tu disparador) */
+.robot-trigger {
+  width: 150px;
+  height:150px;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.robot-trigger:hover {
+  transform: scale(1.1);
+}
+
+/* Menú de opciones */
+.options-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 10px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.options-menu.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* Botones de opción */
+.opt-btn {
+  background: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 30px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-weight: 500;
+  color: #333;
+  transition: background 0.3s, transform 0.2s;
+}
+
+.opt-btn:hover {
+  background: #f8f9fa;
+  transform: translateX(5px);
+}
+
+.opt-btn.wa-color {
+  border-left: 4px solid #25D366;
+}
+
+.opt-btn.chat-color {
+  border-left: 4px solid #1a73e8;
+}
+
+/* Overlay para cerrar al hacer clic fuera */
+.overlay-invisible {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9998;
+  background: rgba(0,0,0,0.1); /* Sutil desenfoque opcional */
+}

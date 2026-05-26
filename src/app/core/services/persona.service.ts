@@ -11,8 +11,11 @@ export class PersonaService {
 
   // ── Personas / Aprendices ──────────────────────────────────────────────────
 
-  async listarAprendices(): Promise<any[]> {
-    const resp: any = await firstValueFrom(this.http.get(`${BASE}/personas`));
+  /** Retorna TODAS las personas (uso interno). */
+  async listarTodas(): Promise<any[]> {
+    const resp: any = await firstValueFrom(
+      this.http.get(`${BASE}/personas`, { withCredentials: true })
+    );
     if (Array.isArray(resp)) return resp;
     if (resp?.data       && Array.isArray(resp.data))       return resp.data;
     if (resp?.aprendices && Array.isArray(resp.aprendices)) return resp.aprendices;
@@ -20,9 +23,15 @@ export class PersonaService {
     return [];
   }
 
-  /** Retorna solo personas con cargo 'instructor' o 'administrador' */
+  /** Retorna solo personas con cargo 'aprendiz'. */
+  async listarAprendices(): Promise<any[]> {
+    const todas = await this.listarTodas();
+    return todas.filter((p: any) => p.cargo === 'aprendiz');
+  }
+
+  /** Retorna solo personas con cargo 'instructor' o 'administrador'. */
   async listarInstructores(): Promise<any[]> {
-    const todas = await this.listarAprendices();
+    const todas = await this.listarTodas();
     return todas.filter((p: any) =>
       p.cargo === 'instructor' || p.cargo === 'administrador'
     );

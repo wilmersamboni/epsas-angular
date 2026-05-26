@@ -99,6 +99,59 @@ export class PracticaService {
     return firstValueFrom(this.http.delete(`${BASE2}/asignaciones/${id}`));
   }
 
+  // ── Documentos ───────────────────────────────────────────────────────────
+
+  async subirDocumentos(etapaId: string, formData: FormData): Promise<any> {
+    return firstValueFrom(
+      this.http.post(`${BASE2}/etapas-practicas/${etapaId}/documentos`, formData)
+    );
+  }
+
+  async listarDocumentos(etapaId: string): Promise<any[]> {
+    try {
+      const resp: any = await firstValueFrom(
+        this.http.get(`${BASE2}/etapas-practicas/${etapaId}/documentos`)
+      );
+      return Array.isArray(resp) ? resp : resp?.data ?? [];
+    } catch { return []; }
+  }
+
+  async eliminarDocumento(etapaId: string, documentoId: string): Promise<any> {
+    return firstValueFrom(
+      this.http.delete(`${BASE2}/etapas-practicas/${etapaId}/documentos/${documentoId}`)
+    );
+  }
+
+  /** URL del endpoint de descarga */
+  urlDescargar(etapaId: string, documentoId: string): string {
+    return `${BASE2}/etapas-practicas/${etapaId}/documentos/${documentoId}/descargar`;
+  }
+
+  /**
+   * Descarga un documento pasando por HttpClient para que el interceptor
+   * agregue los headers (X-Centro-ID, X-Cargo) requeridos por el backend.
+   * Crea un Blob URL temporal y lo revoca al terminar.
+   */
+  async descargarDocumento(
+    etapaId: string,
+    documentoId: string,
+    nombreOriginal: string,
+  ): Promise<void> {
+    const url  = this.urlDescargar(etapaId, documentoId);
+    const blob = await firstValueFrom(
+      this.http.get(url, { responseType: 'blob' }),
+    );
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href          = objectUrl;
+    a.download      = nombreOriginal;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  }
+
   // ── Modalidades y Empresas ────────────────────────────────────────────────
 
   async listarModalidades(): Promise<any[]> {
