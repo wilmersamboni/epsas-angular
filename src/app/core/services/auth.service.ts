@@ -33,7 +33,7 @@ export class AuthService {
 
   // ── login() ────────────────────────────────────────────────
   async login(data: LoginRequest): Promise<void> {
-<<<<<<< HEAD
+// <<<<<<< HEAD
     const resp = await firstValueFrom(
       this.http.post<LoginResponse>(
         'http://localhost:3000/api/auth/login',
@@ -41,23 +41,23 @@ export class AuthService {
         { withCredentials: true }
       )
     );
-=======
-  const resp = await firstValueFrom(
-    this.http.post<LoginResponse>(
-      //'http://2.24.77.37/api/auth/login',
-       'http://localhost:3000/api/auth/login',
-      data,
-      { withCredentials: true }
-    )
-  );
-  localStorage.setItem('user', JSON.stringify(resp.usuario));
-  //localStorage.setItem('token', resp.token);
-  localStorage.setItem('centroId', resp.centroId ?? '');
-  localStorage.setItem('cargo', resp.usuario.cargo ?? '');
-  this._user.set(resp.usuario);
+// =======
+//   const resp = await firstValueFrom(
+//     this.http.post<LoginResponse>(
+//       //'http://2.24.77.37/api/auth/login',
+//        'http://localhost:3000/api/auth/login',
+//       data,
+//       { withCredentials: true }
+//     )
+//   );
+//   localStorage.setItem('user', JSON.stringify(resp.usuario));
+//   //localStorage.setItem('token', resp.token);
+//   localStorage.setItem('centroId', resp.centroId ?? '');
+//   localStorage.setItem('cargo', resp.usuario.cargo ?? '');
+//   this._user.set(resp.usuario);
   
-}
->>>>>>> 5ef786105faea8f307e6a6c132143e2086a56911
+// }
+// >>>>>>> 5ef786105faea8f307e6a6c132143e2086a56911
 
     localStorage.setItem('user', JSON.stringify(resp.usuario));
     localStorage.setItem('centroId', resp.centroId ?? '');

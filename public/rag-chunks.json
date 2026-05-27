@@ -2,76 +2,66 @@
   {
     "id": "admin",
     "type": "module",
-    "text": "Módulo: Admin\n\nDescripción:\nMódulo administrativo del sistema EPSAS.\n\nRuta:\n/admin\n\nFunciones:\nAdministración, Ventanas modales, Tablas de información, Configuraciones, Servicios internos\n\nArchivos relacionados:\nadmin-panel\\admin-panel.component.ts, components\\admin-modal.component.ts, components\\admin-table.component.ts, config\\admin.config.ts, services\\admin.service.ts"
+    "text": "Módulo: Admin (Administración)\n\nDescripción:\nPanel de administración del sistema EPSAS. Desde aquí los administradores pueden gestionar configuraciones generales, ver tablas de información, administrar usuarios y acceder a servicios internos del sistema.\n\nRuta: /admin\n\nPreguntas frecuentes:\n- ¿Cómo accedo al panel de administración? → Ve a la ruta /admin. Solo usuarios con rol administrador pueden acceder.\n- ¿Dónde configuro el sistema? → En el módulo Admin encontrarás todas las configuraciones disponibles.\n- ¿Cómo veo la información del sistema? → El módulo Admin tiene tablas de información con todos los datos del sistema."
   },
   {
     "id": "auth",
     "type": "module",
-    "text": "Módulo: Auth\n\nDescripción:\nMódulo de autenticación e inicio de sesión.\n\nRuta:\n/auth\n\nFunciones:\nInicio de sesión\n\nArchivos relacionados:\nforgot-password\\forgot-password.component.ts, login\\login.component.ts"
+    "text": "Módulo: Auth (Autenticación)\n\nDescripción:\nMódulo de inicio de sesión y recuperación de contraseña del sistema EPSAS.\n\nRuta: /auth\n\nPreguntas frecuentes:\n- ¿Cómo inicio sesión? → Ingresa a /auth o a la pantalla de login con tu usuario y contraseña.\n- ¿Olvidé mi contraseña, qué hago? → En la pantalla de login hay una opción 'Olvidé mi contraseña' (forgot password) para recuperar el acceso.\n- ¿Cómo entro al sistema? → Dirígete a la página de inicio de sesión en /auth e ingresa tus credenciales."
   },
   {
     "id": "chat",
     "type": "module",
-    "text": "Módulo: Chat\n\nDescripción:\nAsistente virtual y mensajería.\n\nRuta:\n/chat\n\nFunciones:\nChat asistente\n\nArchivos relacionados:\nchat.component.ts"
+    "text": "Módulo: Chat (Asistente Virtual)\n\nDescripción:\nAsistente virtual integrado en el sistema EPSAS para resolver dudas y consultas.\n\nRuta: /chat\n\nPreguntas frecuentes:\n- ¿Cómo uso el asistente virtual? → Ve a la sección Chat en /chat y escribe tu pregunta.\n- ¿Dónde puedo hacer consultas? → El módulo Chat está disponible para resolver tus dudas sobre el sistema."
   },
   {
     "id": "formatos",
     "type": "module",
-    "text": "Módulo: Formatos\n\nDescripción:\nGestión y visualización de formatos.\n\nRuta:\n/formatos\n\nFunciones:\n\n\nArchivos relacionados:\nformatos.component.ts"
+    "text": "Módulo: Formatos\n\nDescripción:\nSección para gestionar, ver y descargar formatos y documentos del sistema EPSAS.\n\nRuta: /formatos\n\nPreguntas frecuentes:\n- ¿Dónde encuentro los formatos? → En la sección Formatos disponible en /formatos.\n- ¿Cómo descargo un formato? → Ingresa al módulo Formatos, busca el formato que necesitas y descárgalo.\n- ¿Dónde están los documentos del sistema? → Los documentos y formatos están en el módulo Formatos en /formatos."
   },
   {
     "id": "historial",
     "type": "module",
-    "text": "Módulo: Historial\n\nDescripción:\nConsulta de historial y registros.\n\nRuta:\n/historial\n\nFunciones:\nHistorial\n\nArchivos relacionados:\nhistorial.component.ts"
+    "text": "Módulo: Historial\n\nDescripción:\nConsulta el historial de actividades, registros y acciones realizadas en el sistema EPSAS.\n\nRuta: /historial\n\nPreguntas frecuentes:\n- ¿Cómo veo mi historial? → Ve a la sección Historial en /historial para ver todos tus registros.\n- ¿Dónde están mis registros anteriores? → En el módulo Historial puedes consultar todas las actividades pasadas.\n- ¿Cómo consulto actividades anteriores? → Ingresa a /historial para ver el registro completo de actividades."
   },
   {
     "id": "home",
     "type": "module",
-    "text": "Módulo: Home\n\nDescripción:\nPágina principal del sistema.\n\nRuta:\n/home\n\nFunciones:\n\n\nArchivos relacionados:\nhome.component.css, home.component.html, home.component.ts"
+    "text": "Módulo: Home (Página Principal)\n\nDescripción:\nPágina de inicio del sistema EPSAS. Es la pantalla principal que ves al ingresar al sistema.\n\nRuta: /home\n\nPreguntas frecuentes:\n- ¿Cómo regreso al inicio? → Haz clic en el logo o navega a /home.\n- ¿Qué es la página principal? → La página Home en /home es el punto de partida del sistema con acceso a todos los módulos."
   },
   {
     "id": "migracion",
     "type": "module",
-    "text": "Módulo: Migracion\n\nDescripción:\nHerramientas de migración de datos.\n\nRuta:\n/migracion\n\nFunciones:\n\n\nArchivos relacionados:\nmigration.component.ts, models\\migration.models.ts"
-  },
-  {
-    "id": "not-found",
-    "type": "module",
-    "text": "Módulo: Not found\n\nDescripción:\nMódulo not-found del sistema EPSAS.\n\nRuta:\n/not-found\n\nFunciones:\n\n\nArchivos relacionados:\nnot-found.component.css, not-found.component.html, not-found.component.ts"
+    "text": "Módulo: Migración de Datos\n\nDescripción:\nHerramientas para migrar e importar datos al sistema EPSAS.\n\nRuta: /migracion\n\nPreguntas frecuentes:\n- ¿Cómo migro datos al sistema? → Usa el módulo Migración en /migracion para importar y transferir datos.\n- ¿Cómo importo información? → El módulo de Migración en /migracion permite cargar datos al sistema."
   },
   {
     "id": "seguimiento",
     "type": "module",
-    "text": "Módulo: Seguimiento\n\nDescripción:\nGestión de aprendices, prácticas, observaciones y seguimiento.\n\nRuta:\n/seguimiento\n\nFunciones:\nVentanas modales, Prácticas, Observaciones, Tablas de información, Seguimiento de aprendices\n\nArchivos relacionados:\ncomponents\\bitacoras-modal.component.ts, components\\crear-practica-modal.component.ts, components\\filters\\area-filter.component.ts, components\\filters\\estado-filter.component.ts, components\\observacion-modal.component.ts, components\\pagination\\table-pagination.component.ts, components\\seguimientos-modal.component.ts, components\\table\\aprendices-row.component.ts, components\\table\\aprendices-table.component.ts, components\\table-info\\table-body.component.ts, components\\table-info\\table-header.component.ts, components\\table-info\\table-info.component.ts, components\\table-info\\table-info.types.ts, components\\table-info\\table-pagination.component.ts, components\\table-info\\table-toolbar.component.ts, components\\table-info.component.ts, components\\toolbar\\aprendices-toolbar.component.ts, components\\toolbar\\column-selector.component.ts, components\\toolbar\\search-input.component.ts, modals\\crear-practica-modal.component.ts, modals\\editar-practica-modal.component.ts, modals\\gestionar-asignaciones-modal.component.ts, modals\\observacion-modal.component.ts, modals\\seguimientos-modal.component.ts, models\\aprendiz.model.ts, page-course\\page-course.component.ts, page-table\\aprendices.page.ts.ts, seguimiento.component.ts, utils\\table.constants.ts"
+    "text": "Módulo: Seguimiento de Aprendices\n\nDescripción:\nGestión completa de aprendices, prácticas, observaciones y seguimiento de formación en el sistema EPSAS.\n\nRuta: /seguimiento\n\nPreguntas frecuentes:\n- ¿Cómo veo la lista de aprendices? → Ve al módulo Seguimiento en /seguimiento para ver la tabla de aprendices.\n- ¿Cómo registro una práctica? → En Seguimiento, usa el botón 'Crear práctica' para registrar una nueva práctica.\n- ¿Cómo agrego una observación a un aprendiz? → En el módulo Seguimiento, selecciona el aprendiz y usa la opción de observaciones.\n- ¿Cómo hago seguimiento a un aprendiz? → Ingresa a /seguimiento, busca al aprendiz en la tabla y revisa su información de seguimiento.\n- ¿Cómo filtro los aprendices? → En Seguimiento hay filtros por área y estado disponibles en la barra de herramientas.\n- ¿Cómo edito una práctica? → En el módulo Seguimiento selecciona la práctica y usa la opción de editar.\n- ¿Cómo gestiono las asignaciones? → En Seguimiento usa la opción 'Gestionar asignaciones' disponible en el módulo."
   },
   {
     "id": "settings",
     "type": "module",
-    "text": "Módulo: Settings\n\nDescripción:\nConfiguración general del sistema.\n\nRuta:\n/settings\n\nFunciones:\n\n\nArchivos relacionados:\nsettings.component.ts"
-  },
-  {
-    "id": "floating-buttons",
-    "type": "layout",
-    "text": "Módulo: Floating buttons\n\nDescripción:\nMódulo floating-buttons del sistema EPSAS.\n\nRuta:\nNo definida\n\nFunciones:\n\n\nArchivos relacionados:\nfloating-buttons.css, floating-buttons.html, floating-buttons.spec.ts, floating-buttons.ts"
-  },
-  {
-    "id": "footer",
-    "type": "layout",
-    "text": "Módulo: Footer\n\nDescripción:\nPie de página institucional.\n\nRuta:\nNo definida\n\nFunciones:\n\n\nArchivos relacionados:\nfooter.component.ts"
-  },
-  {
-    "id": "main-layout",
-    "type": "layout",
-    "text": "Módulo: Main layout\n\nDescripción:\nMódulo main-layout del sistema EPSAS.\n\nRuta:\nNo definida\n\nFunciones:\n\n\nArchivos relacionados:\nmain-layout.component.ts"
+    "text": "Módulo: Settings (Configuración)\n\nDescripción:\nConfiguración general y personal del sistema EPSAS. Aquí puedes actualizar tus datos personales, cambiar preferencias y ajustar la configuración de tu cuenta.\n\nRuta: /settings\n\nPreguntas frecuentes:\n- ¿Cómo actualizo mis datos? → Ve a Settings en /settings para actualizar tu información personal.\n- ¿Cómo cambio mi contraseña? → En la sección Settings (/settings) puedes cambiar tu contraseña.\n- ¿Cómo configuro mi perfil? → Ingresa a /settings para editar tu perfil y preferencias.\n- ¿Cómo cambio mi información personal? → En el módulo Settings encontrarás las opciones para actualizar tus datos.\n- ¿Cómo cambio mi foto de perfil? → Ve a Settings en /settings y busca la opción de foto de perfil."
   },
   {
     "id": "navbar",
     "type": "layout",
-    "text": "Módulo: Navbar\n\nDescripción:\nBarra superior de navegación.\n\nRuta:\nNo definida\n\nFunciones:\n\n\nArchivos relacionados:\nnavbar.component.ts, notificaciones-campana.component.ts"
+    "text": "Navbar (Barra de navegación superior)\n\nDescripción:\nBarra superior del sistema EPSAS con acceso rápido a notificaciones y opciones principales.\n\nPreguntas frecuentes:\n- ¿Cómo veo mis notificaciones? → Las notificaciones aparecen en el ícono de campana en la barra superior (navbar).\n- ¿Dónde están las notificaciones? → En la parte superior de la pantalla hay un ícono de campana con tus notificaciones."
   },
   {
     "id": "sidebar",
     "type": "layout",
-    "text": "Módulo: Sidebar\n\nDescripción:\nMenú lateral de navegación.\n\nRuta:\nNo definida\n\nFunciones:\n\n\nArchivos relacionados:\nsidebar.component.ts"
+    "text": "Sidebar (Menú lateral)\n\nDescripción:\nMenú lateral de navegación del sistema EPSAS con acceso a todos los módulos disponibles.\n\nPreguntas frecuentes:\n- ¿Cómo navego entre secciones? → Usa el menú lateral (sidebar) para acceder a los diferentes módulos del sistema.\n- ¿Dónde está el menú principal? → El menú principal está en el panel lateral izquierdo de la pantalla.\n- ¿Cómo accedo a los módulos? → Haz clic en el menú lateral para ver y acceder a todos los módulos disponibles."
+  },
+  {
+    "id": "footer",
+    "type": "layout",
+    "text": "Footer (Pie de página)\n\nDescripción:\nPie de página institucional del sistema EPSAS con información de contacto y enlaces importantes.\n\nPreguntas frecuentes:\n- ¿Cómo contacto al soporte? → En la parte inferior de la página (footer) encontrarás información de contacto.\n- ¿Dónde está la información de contacto? → Revisa el pie de página (footer) al final de cualquier pantalla del sistema."
+  },
+  {
+    "id": "not-found",
+    "type": "module",
+    "text": "Página Not Found (Error 404)\n\nDescripción:\nPágina de error que aparece cuando intentas acceder a una ruta que no existe en el sistema EPSAS.\n\nPreguntas frecuentes:\n- ¿Por qué veo una página de error? → Aparece cuando la URL ingresada no existe. Regresa al inicio desde /home.\n- ¿Qué hago si veo un error 404? → La página no existe o la URL está mal escrita. Ve a /home para regresar al sistema."
   }
 ]
