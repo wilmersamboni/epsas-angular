@@ -33,26 +33,15 @@ export interface ModuloConfig {
   crear:      string | null;
   actualizar: ((id: string) => string) | null;
   eliminar:   ((id: string) => string) | null;
-
-  /** Columnas a mostrar en la tabla */
   columnas?: string[];
-
-  /** Campos del formulario de creación/edición */
   campos?: string[];
-
-  /** Campos FK que deben renderizarse como <select> */
   selectores?: Record<string, Selector>;
-
-  /** Tipo de input HTML por campo. Por defecto 'text'. */
   tiposCampo?: Record<string, 'date' | 'number' | 'email' | 'text'>;
-
-  /** Si true, usa PATCH en lugar de PUT para actualizar */
   usePatch?: boolean;
-
-  /** Grupo visual para separar pestañas */
   grupo?: 'epsas' | 'practica';
+  /** Opciones estáticas para dropdowns sin módulo externo */
+  opcionesEstaticas?: Record<string, { label: string; value: string }[]>;
 }
-
 export const CONFIG: Record<Modulo, ModuloConfig> = {
 
   // ── Catálogos (algunos visibles como pestaña) ──────────────────────────
@@ -230,25 +219,25 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
 
   // ── Módulos api2 (backend-practica-hexagonal) ────────────────────────
 
-  empresas: {
+ empresas: {
     label: 'Empresas', idKey: 'id',
     listar: `${BASE2}/empresas`, crear: `${BASE2}/empresas`,
     actualizar: id => `${BASE2}/empresas/${id}`,
     eliminar:   id => `${BASE2}/empresas/${id}`,
     grupo: 'practica',
     usePatch: true,
-    // 'municipio' guarda el UUID del municipio como texto plano → resolver lo convierte al nombre
     columnas: ['nit', 'nombre', 'municipio', 'telefono', 'correo', 'estado'],
-    campos: ['nit', 'nombre', 'direccion', 'telefono', 'correo', 'municipio', 'estado'],
+    campos: ['nit', 'nombre', 'direccion', 'telefono', 'correo', 'municipio', 'estado', 'tipo', 'longitud', 'latitud'],
     selectores: {
       municipio: { modulo: 'municipios', label: 'nombre', value: 'idMunicipio' },
     },
     tiposCampo: {
-      // nit: el backend lo espera como string (@IsString), no como number
-      correo: 'email',
+      correo:   'email',
+      longitud: 'text',
+      latitud:  'text',
     },
   },
-
+  
   modalidades: {
     label: 'Modalidades', idKey: 'id',
     listar: `${BASE2}/modalidad`, crear: `${BASE2}/modalidad`,
@@ -259,19 +248,25 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
     campos: ['nombre'],
   },
 
-  etapas: {
+ etapas: {
     label: 'Etapas Prácticas', idKey: 'id',
     listar: `${BASE2}/etapa-practica`, crear: `${BASE2}/etapa-practica`,
     actualizar: id => `${BASE2}/etapa-practica/${id}`,
     eliminar:   id => `${BASE2}/etapa-practica/${id}`,
     grupo: 'practica',
     usePatch: true,
-    // La API devuelve empresa y modalidad como objetos anidados; aplanarFila extrae 'nombre'.
     columnas: ['empresa', 'modalidad', 'estado', 'fecha_inicio', 'fecha_fin', 'avance'],
     campos: ['empresaId', 'modalidadId', 'matriculaId', 'fecha_inicio', 'fecha_fin', 'estado', 'observacion'],
     selectores: {
-      empresaId:   { modulo: 'empresas',    label: 'nombre', value: 'id' },
-      modalidadId: { modulo: 'modalidades', label: 'nombre', value: 'id' },
+      empresaId:   { modulo: 'empresas',    label: 'nombre',     value: 'id' },
+      modalidadId: { modulo: 'modalidades', label: 'nombre',     value: 'id' },
+      matriculaId: { modulo: 'matriculas',  label: 'estudiante', value: 'idMatricula', filtro: { cargo: 'aprendiz' } },
+    },
+    opcionesEstaticas: {
+      estado: [
+        { label: 'Activo',   value: 'activo'   },
+        { label: 'Inactivo', value: 'inactivo' },
+      ],
     },
     tiposCampo: {
       fecha_inicio: 'date',
@@ -286,12 +281,17 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
     eliminar:   id => `${BASE2}/asignaciones/${id}`,
     grupo: 'practica',
     usePatch: true,
-    // 'instructor' es un personaId UUID → el selector lo resuelve al nombre
     columnas: ['instructor', 'fecha_inicio', 'fecha_fin', 'estado', 'horas'],
     campos: ['etapaId', 'instructor', 'fecha_inicio', 'fecha_fin', 'estado', 'horas'],
     selectores: {
-      // instructor guarda el UUID de la persona (no termina en Id, displayKey = instructor)
-      instructor: { modulo: 'personas', label: 'nombre', value: 'idPersona' },
+      etapaId:    { modulo: 'etapas',   label: 'aprendiz', value: 'id' },
+      instructor: { modulo: 'personas', label: 'nombre',   value: 'idPersona', filtro: { cargo: 'instructor' } },
+    },
+    opcionesEstaticas: {
+      estado: [
+        { label: 'Activo',   value: 'activo'   },
+        { label: 'Inactivo', value: 'inactivo' },
+      ],
     },
     tiposCampo: {
       fecha_inicio: 'date',
@@ -301,24 +301,27 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
   },
 
   seguimientos: {
-    label: 'Seguimientos', idKey: 'id',
-    listar: `${BASE2}/seguimientos`, crear: `${BASE2}/seguimientos`,
-    actualizar: id => `${BASE2}/seguimientos/${id}`,
-    eliminar:   id => `${BASE2}/seguimientos/${id}`,
-    grupo: 'practica',
-    usePatch: true,
-    // 'aprendiz' se calcula en frontend cruzando etapa → matricula → persona
-    columnas: ['aprendiz', 'estado', 'observacion', 'fecha_inicio', 'fecha_fin'],
-    campos: ['etapaId', 'asignacionId', 'observacion', 'fecha_inicio', 'fecha_fin', 'estado'],
-    selectores: {
-      // etapaId → se muestra como "nombre del aprendiz" (calculado en cargarDatos)
-      etapaId:      { modulo: 'etapas',      label: 'aprendiz',   value: 'id' },
-      // asignacionId → se muestra como "instructor de la asignación"
-      asignacionId: { modulo: 'asignaciones', label: 'instructor', value: 'id' },
-    },
-    tiposCampo: {
-      fecha_inicio: 'date',
-      fecha_fin:    'date',
+      label: 'Seguimientos', idKey: 'id',
+      listar: `${BASE2}/seguimientos`, crear: `${BASE2}/seguimientos`,
+      actualizar: id => `${BASE2}/seguimientos/${id}`,
+      eliminar:   id => `${BASE2}/seguimientos/${id}`,
+      grupo: 'practica',
+      usePatch: true,
+      columnas: ['aprendiz', 'estado', 'observacion', 'fecha_inicio', 'fecha_fin'],
+      campos: ['etapaId', 'asignacionId', 'observacion', 'fecha_inicio', 'fecha_fin', 'estado'],
+      selectores: {
+        etapaId:      { modulo: 'etapas',       label: 'aprendiz',   value: 'id' },
+        asignacionId: { modulo: 'asignaciones', label: 'instructor', value: 'id' },
+      },
+      opcionesEstaticas: {
+        estado: [
+          { label: 'Activo',   value: 'activo'   },
+          { label: 'Inactivo', value: 'inactivo' },
+        ],
+      },
+      tiposCampo: {
+        fecha_inicio: 'date',
+        fecha_fin:    'date',
     },
   },
 

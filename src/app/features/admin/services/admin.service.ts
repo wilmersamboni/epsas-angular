@@ -150,6 +150,7 @@ export class AdminService {
           ...m,
           estudiante: m.persona?.nombre ?? m.persona?.name ?? '—',
           curso:      m.curso?.codigo   ?? m.curso?.nombre  ?? '—',
+          cargo:      m.persona?.cargo  ?? '—',
         }));
       }
 
@@ -184,14 +185,13 @@ export class AdminService {
       if (mod === 'seguimientos') {
         const etapas: any[] = this.rawData()['etapas'] ?? [];
         rows = rows.map((s: any) => {
-          const etapaId = s.etapa?.id ?? s.etapaId ?? '';
+          const etapaId = s.etapa?.id ?? s.etapaId ?? s.etapa ?? '';
           const etapa = etapas.find(
             (e: any) => String(e.id ?? '').toLowerCase() === String(etapaId).toLowerCase()
           );
           return { ...s, aprendiz: etapa?.aprendiz ?? '—' };
         });
       }
-
       // Resolución inline de municipio en empresas:
       // 'municipio' guarda UUID del municipio como texto plano en api2.
       // Si rawData de municipios ya está disponible lo resolvemos aquí;
@@ -436,11 +436,17 @@ export class AdminService {
       }
 
       opciones[campo] = items.map(item => ({
-        label: item[selector.label] ?? '—',
-        value: item[selector.value],
-      }));
+      label: item[selector.label] ?? '—',
+      value: item[selector.value],
+    }));
     }
-    return opciones;
+    // Opciones estáticas
+        const staticOpts = cfg.opcionesEstaticas ?? {};
+        for (const [campo, opts] of Object.entries(staticOpts)) {
+          opciones[campo] = opts;
+        }
+
+        return opciones;
   }
 
   // ── MODAL ─────────────────────────────────────────────
