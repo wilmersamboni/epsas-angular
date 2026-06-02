@@ -507,29 +507,28 @@ export class ForgotPasswordComponent implements OnInit {
     finally  { this.loading.set(false); }
   }
 
-  async verificarCodigo(): Promise<void> {
-    if (!this.codigo.trim()) { this.error.set('Ingresa el código recibido.'); return; }
+  verificarCodigo(): void {
+    if (!this.codigo.trim()) { this.error.set('Ingresa el código de 6 dígitos recibido en tu correo.'); return; }
+    if (!/^\d{6}$/.test(this.codigo.trim())) { this.error.set('El código debe tener exactamente 6 dígitos numéricos.'); return; }
     this.error.set(null);
-    this.mensaje.set(null);
-    this.loading.set(true);
-    try {
-      await this.api.verificarCodigo(this.correo, this.codigo);
-      this.mensaje.set('Código correcto. Ingresa tu nueva contraseña.');
-      this.step.set(3);
-    } catch { this.error.set('Código incorrecto o expirado.'); }
-    finally  { this.loading.set(false); }
+    this.mensaje.set('Código ingresado. Ahora elige tu nueva contraseña.');
+    this.step.set(3);
   }
 
   async cambiarPassword(): Promise<void> {
     if (!this.nuevaPassword.trim()) { this.error.set('Ingresa la nueva contraseña.'); return; }
+    if (this.nuevaPassword.trim().length < 6) { this.error.set('La contraseña debe tener al menos 6 caracteres.'); return; }
     this.error.set(null);
     this.loading.set(true);
     try {
-      await this.api.cambiarPassword(this.correo, this.codigo, this.nuevaPassword);
-      this.mensaje.set('Contrasena actualizada correctamente. Ya puedes iniciar sesion.');
+      await this.api.restablecerPassword(this.correo, this.codigo.trim(), this.nuevaPassword.trim());
+      this.mensaje.set('Contraseña actualizada correctamente. Ya puedes iniciar sesión.');
       this.step.set(1);
       this.correo = ''; this.codigo = ''; this.nuevaPassword = '';
-    } catch { this.error.set('No se pudo cambiar la contrasena. Intenta de nuevo.'); }
+    } catch (err: any) {
+      const msg = err?.error?.message ?? 'No se pudo cambiar la contraseña. El código puede ser incorrecto o haber expirado.';
+      this.error.set(msg);
+    }
     finally  { this.loading.set(false); }
   }
 }
