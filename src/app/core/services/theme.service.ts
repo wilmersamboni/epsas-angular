@@ -212,6 +212,13 @@ ${dark ? `
 
   /* Sidebar */
   aside { background-color: #1e293b !important; border-color: #334155 !important; }
+  .nav-link { color: #94a3b8 !important; }
+  .nav-link:hover { background-color: #334155 !important; color: #f8fafc !important; }
+  .nav-link svg { color: #94a3b8 !important; }
+  .nav-link:hover svg { color: #f8fafc !important; }
+  .nav-section-label { color: #cbd5e1 !important; }
+  .nav-logout { color: #94a3b8 !important; }
+  .nav-logout:hover { background-color: #7f1d1d !important; color: #fecaca !important; }
 
   /* Modales / overlays */
   .modal-backdrop, [class*="bg-black\\/"] { background-color: rgba(0,0,0,.65) !important; }

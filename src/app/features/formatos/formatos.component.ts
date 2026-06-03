@@ -7,6 +7,7 @@ import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { Formato } from '../../shared/models';
+import { NotificacionService } from '../../core/services/notificacion.service';
 
 import { FormatoCardComponent } from './components/formato-card.component';
 import { SubirFormatoModalComponent } from './components/subir-formato-modal.component';
@@ -59,7 +60,7 @@ const TIPOS = [
         @if (esAdmin() && mostrarForm()) {
           <app-subir-formato-modal
             [tipos]="tipos"
-            (subido)="onSubido()"
+            (subido)="onSubido($event.nombre, $event.tipo)"
           />
         }
 
@@ -132,10 +133,11 @@ const TIPOS = [
   `,
 })
 export class FormatosComponent implements OnInit {
-  private auth    = inject(AuthService);
-  private api     = inject(ApiService);
-  private toast   = inject(ToastService);
-  private confirm = inject(ConfirmationService);
+  private auth            = inject(AuthService);
+  private api             = inject(ApiService);
+  private toast           = inject(ToastService);
+  private confirm         = inject(ConfirmationService);
+  private notificacionSvc = inject(NotificacionService);
 
   readonly tipos = TIPOS;
 
@@ -164,13 +166,36 @@ export class FormatosComponent implements OnInit {
     }
   }
 
-  onSubido(): void {
+  /** Llamado por el modal de subida cuando el admin sube un formato nuevo */
+  async onSubido(formatoNombre?: string, formatoTipo?: string): Promise<void> {
     this.mostrarForm.set(false);
-    this.cargarFormatos();
+    await this.cargarFormatos();
+
+    // Notificar a instructores y aprendices del nuevo formato
+    if (this.esAdmin()) {
+      const adminNombre = this.auth.user()?.nombre ?? 'El administrador';
+      const { instructorIds, aprendizIds } =
+        await this.notificacionSvc.obtenerIdsInstructoresYAprendices();
+      const destinatarios = [...instructorIds, ...aprendizIds];
+
+      if (destinatarios.length > 0) {
+        await this.notificacionSvc.notificarFormatoNuevo({
+          destinatarios,
+          formatoNombre: formatoNombre ?? 'Nuevo formato',
+          formatoTipo:   formatoTipo   ?? 'documento',
+          adminNombre,
+        });
+      }
+    }
   }
 
   handleEliminar(id: string): void {
     if (!this.esAdmin()) return;
+
+    // Guarda el nombre del formato antes de eliminar
+    const formato = this.formatos().find(f => f.id === id);
+    const nombre  = formato?.nombre ?? 'Formato';
+
     this.confirm.confirm({
       message: '¿Estás seguro de que deseas eliminar este formato? Esta acción no se puede deshacer.',
       header: 'Confirmar eliminación',
@@ -183,6 +208,20 @@ export class FormatosComponent implements OnInit {
           await this.api.eliminarFormato(id);
           this.toast.ok('Eliminado', 'Formato eliminado correctamente.');
           await this.cargarFormatos();
+
+          // Notificar a instructores y aprendices de la eliminación
+          const adminNombre = this.auth.user()?.nombre ?? 'El administrador';
+          const { instructorIds, aprendizIds } =
+            await this.notificacionSvc.obtenerIdsInstructoresYAprendices();
+          const destinatarios = [...instructorIds, ...aprendizIds];
+
+          if (destinatarios.length > 0) {
+            await this.notificacionSvc.notificarFormatoEliminado({
+              destinatarios,
+              formatoNombre: nombre,
+              adminNombre,
+            });
+          }
         } catch (e: any) {
           this.toast.httpError(e, 'Error al eliminar el formato.');
         }

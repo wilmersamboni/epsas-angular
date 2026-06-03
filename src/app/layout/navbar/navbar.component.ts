@@ -34,9 +34,9 @@ import { NotificacionesCampanaComponent } from './notificaciones-campana.compone
             <p class="text-[11px] text-gray-400 capitalize leading-tight mt-0.5">{{ userCargo() }}</p>
           </div>
 
-          <!-- Campana de notificaciones (solo para admin) -->
-          @if (esAdmin()) {
-            <app-notificaciones-campana />
+          <!-- Campana de notificaciones para TODOS los roles autenticados -->
+          @if (estaAutenticado()) {
+            <app-notificaciones-campana [cargo]="userCargo()" />
           }
 
           <!-- Avatar con iniciales -->
@@ -75,11 +75,11 @@ import { NotificacionesCampanaComponent } from './notificaciones-campana.compone
 export class NavbarComponent {
   private auth = inject(AuthService);
 
-  userName     = computed(() => this.auth.user()?.nombre ?? 'Usuario');
-  userCargo    = computed(() => this.auth.user()?.cargo  ?? '');
-  userInitials = computed(() =>
+  userName        = computed(() => this.auth.user()?.nombre ?? 'Usuario');
+  userCargo       = computed(() => this.auth.user()?.cargo  ?? '');
+  userInitials    = computed(() =>
     (this.auth.user()?.nombre ?? 'U')
       .split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
   );
-  esAdmin = computed(() => this.auth.cargo() === 'administrador');
+  estaAutenticado = computed(() => this.auth.isAuthenticated());
 }
