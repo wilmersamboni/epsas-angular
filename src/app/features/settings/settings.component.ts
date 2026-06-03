@@ -7,7 +7,7 @@ import { ThemeService, TEMAS } from '../../core/services/theme.service';
 import { ApiService } from '../../core/services/api.service';
 import { ToastService } from '../../core/services/toast.service';
 
-type Tab = 'perfil' | 'password' | 'apariencia' | 'practicas' | 'sistema';
+type Tab = 'perfil' | 'password' | 'apariencia';
 
 @Component({
   selector: 'app-settings',
@@ -57,37 +57,6 @@ type Tab = 'perfil' | 'password' | 'apariencia' | 'practicas' | 'sistema';
             </svg>
             Apariencia
           </button>
-
-          @if (esAdmin()) {
-            <button (click)="tab.set('practicas'); cargarConfigPracticas()"
-              [class.active]="tab() === 'practicas'">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0
-                         00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2
-                         0 012 2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M9 12h6M9 16h4" stroke-linecap="round"/>
-              </svg>
-              Prácticas
-            </button>
-          }
-
-          @if (esAdmin()) {
-            <button (click)="tab.set('sistema')" [class.active]="tab() === 'sistema'">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573
-                         1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426
-                         1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37
-                         2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724
-                         1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0
-                         00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0
-                         001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                  stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              Sistema
-            </button>
-          }
         </nav>
 
         <!-- ── Panel ───────────────────────────────────────────── -->
@@ -253,131 +222,6 @@ type Tab = 'perfil' | 'password' | 'apariencia' | 'practicas' | 'sistema';
                 </div>
               </div>
 
-            </div>
-          }
-
-          <!-- ════════ PRÁCTICAS (solo admin) ════════ -->
-          @if (tab() === 'practicas' && esAdmin()) {
-            <div class="panel-section">
-              <h2 class="panel-title">Configuración de Prácticas</h2>
-              <p class="panel-sub">Parámetros para la creación de etapas prácticas</p>
-
-              @if (cargandoConfig()) {
-                <div class="spinner-wrap"><div class="spinner"></div></div>
-              } @else {
-                <div class="pref-row" style="align-items:flex-start; flex-direction:column; gap:12px">
-                  <div>
-                    <p class="pref-label">Avance mínimo requerido</p>
-                    <p class="pref-desc">
-                      Porcentaje mínimo de avance académico que debe tener un aprendiz
-                      para que el administrador pueda crearle una etapa práctica.
-                    </p>
-                  </div>
-
-                  <div class="avance-control">
-                    <div class="avance-slider-wrap">
-                      <input type="range" min="0" max="100" step="5"
-                        [(ngModel)]="configMinAvance"
-                        class="avance-slider" />
-                      <div class="avance-labels">
-                        <span>0%</span><span>50%</span><span>100%</span>
-                      </div>
-                    </div>
-                    <div class="avance-value-wrap">
-                      <input type="number" min="0" max="100"
-                        [(ngModel)]="configMinAvance"
-                        class="avance-number" />
-                      <span class="avance-pct">%</span>
-                    </div>
-                  </div>
-
-                  <div class="avance-preview">
-                    <div class="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div class="h-full rounded-full transition-all"
-                        [style.width.%]="configMinAvance"
-                        [style.background]="configMinAvance >= 70 ? '#39A900' :
-                                            configMinAvance >= 40 ? '#f5a524' : '#f31260'">
-                      </div>
-                    </div>
-                    <span class="text-sm font-semibold"
-                      [style.color]="configMinAvance >= 70 ? '#39A900' :
-                                     configMinAvance >= 40 ? '#f5a524' : '#f31260'">
-                      {{ configMinAvance }}%
-                    </span>
-                  </div>
-
-                  <p class="text-xs text-gray-400" style="margin:0">
-                    Valor actual guardado: <strong>{{ configMinAvanceSaved }}%</strong>.
-                    Un aprendiz con avance menor verá el botón "crear práctica" bloqueado.
-                  </p>
-                </div>
-
-                <div class="panel-footer">
-                  <button class="btn-primary" (click)="guardarConfigPracticas()" [disabled]="saving()">
-                    {{ saving() ? 'Guardando…' : 'Guardar configuración' }}
-                  </button>
-                </div>
-              }
-            </div>
-          }
-
-          <!-- ════════ SISTEMA (solo admin) ════════ -->
-          @if (tab() === 'sistema' && esAdmin()) {
-            <div class="panel-section">
-              <h2 class="panel-title">Información del Sistema</h2>
-              <p class="panel-sub">Datos de configuración de la plataforma</p>
-
-              <div class="sys-grid">
-                <div class="sys-card">
-                  <span class="sys-icon">🏢</span>
-                  <div>
-                    <p class="sys-label">Plataforma</p>
-                    <p class="sys-value">EPSAS v1.0</p>
-                  </div>
-                </div>
-                <div class="sys-card">
-                  <span class="sys-icon">🌐</span>
-                  <div>
-                    <p class="sys-label">Backend principal</p>
-                    <p class="sys-value">localhost:3000</p>
-                  </div>
-                </div>
-                <div class="sys-card">
-                  <span class="sys-icon">⚙️</span>
-                  <div>
-                    <p class="sys-label">Backend prácticas</p>
-                    <p class="sys-value">localhost:3001</p>
-                  </div>
-                </div>
-                <div class="sys-card">
-                  <span class="sys-icon">🗄️</span>
-                  <div>
-                    <p class="sys-label">Base de datos</p>
-                    <p class="sys-value">PostgreSQL</p>
-                  </div>
-                </div>
-                <div class="sys-card">
-                  <span class="sys-icon">⚡</span>
-                  <div>
-                    <p class="sys-label">Caché</p>
-                    <p class="sys-value">Redis</p>
-                  </div>
-                </div>
-                <div class="sys-card">
-                  <span class="sys-icon">🔐</span>
-                  <div>
-                    <p class="sys-label">Autenticación</p>
-                    <p class="sys-value">JWT + Cookie</p>
-                  </div>
-                </div>
-              </div>
-
-              <hr class="divider" />
-              <div class="panel-footer">
-                <button class="btn-danger" (click)="cerrarSesion()">
-                  Cerrar sesión
-                </button>
-              </div>
             </div>
           }
 
@@ -624,11 +468,6 @@ export class SettingsComponent implements OnInit {
   fontSize   = signal(localStorage.getItem('fontSize') ?? 'normal');
   readonly temas = TEMAS;
 
-  // Configuración de prácticas
-  cargandoConfig       = signal(false);
-  configMinAvance      = 70;
-  configMinAvanceSaved = 70;
-
   ngOnInit(): void {
     this.cargarPerfil();
     this.theme.apply();   // restaura color, fuente y modo oscuro guardados
@@ -730,31 +569,5 @@ export class SettingsComponent implements OnInit {
     this.theme.apply();
   }
 
-  // ── Configuración de Prácticas ───────────────────────────────────────
-  async cargarConfigPracticas(): Promise<void> {
-    this.cargandoConfig.set(true);
-    try {
-      const cfg = await this.apiSvc.obtenerConfiguracion();
-      this.configMinAvance      = cfg.minAvance;
-      this.configMinAvanceSaved = cfg.minAvance;
-    } catch (e: any) {
-      this.toast.httpError(e, 'No se pudo cargar la configuración.');
-    } finally { this.cargandoConfig.set(false); }
-  }
-
-  async guardarConfigPracticas(): Promise<void> {
-    this.saving.set(true);
-    const v = Math.max(0, Math.min(100, this.configMinAvance));
-    try {
-      await this.apiSvc.actualizarConfiguracion(v);
-      this.configMinAvanceSaved = v;
-      this.configMinAvance      = v;
-      this.toast.ok('Configuración guardada', `Avance mínimo establecido en ${v}%.`);
-    } catch (e: any) {
-      this.toast.httpError(e, 'Error al guardar la configuración.');
-    } finally { this.saving.set(false); }
-  }
-
   // ── Sistema ──────────────────────────────────────────────────────────
-  cerrarSesion(): void { this.auth.logout(); }
 }
