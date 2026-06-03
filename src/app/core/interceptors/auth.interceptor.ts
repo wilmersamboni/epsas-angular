@@ -1,20 +1,24 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  const token = localStorage.getItem('token');
 
-  const centroId = localStorage.getItem('centroId');
-  const cargo    = localStorage.getItem('cargo'); // ← nuevo
+  // Peticiones externas (n8n) — sin modificar
+  const isExternal = req.url.startsWith('https://bot.kromas.lat');
 
+  // Login y register no necesitan withCredentials ni token
+  const isAuthEndpoint = req.url.includes('/api/auth/login') ||
+                        req.url.includes('/api/auth/register');
 
-  const isBackendSecundario = req.url.includes('/api2/');
-
-  const headers: Record<string, string> = {};
-
-
-  if (isBackendSecundario) {
-    if (centroId) headers['X-Centro-ID'] = centroId;
-    if (cargo)    headers['X-Cargo']     = cargo; // ← nuevo
+  if (isExternal || isAuthEndpoint) {
+    return next(req);
   }
 
-  return next(req.clone({ setHeaders: headers }));
+  // Resto de peticiones — añadir token JWT
+  const authReq = req.clone({
+    withCredentials: true,
+    ...(token ? { setHeaders: { Authorization: `Bearer ${token}` } } : {}),
+  });
+
+  return next(authReq);
 };

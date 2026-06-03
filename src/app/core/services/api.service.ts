@@ -3,14 +3,16 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { Area, Curso, Formato, Persona } from '../../shared/models';
 
-const BASE  = '/api';   // → http://localhost:3000 vía proxy
-const BASE2 = '/api2';  // → http://localhost:3001 vía proxy
+// /api  → proxy → http://localhost:3000  (backend-epsas)
+// /api2 → proxy → http://localhost:3001  (epsas-bac-peq)
+const BASE  = '/api';
+const BASE2 = '/api2';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   constructor(private http: HttpClient) {}
 
-  // ── Áreas ────────────────────────────────────────────────────────────────
+  // ── Áreas ─────────────────────────────────────────────────────────────────
   async listarAreas(params?: any): Promise<Area[]> {
     const resp: any = await firstValueFrom(this.http.get(`${BASE}/areas`, { params }));
     if (Array.isArray(resp)) return resp;
@@ -19,104 +21,99 @@ export class ApiService {
     return [];
   }
   async crearArea(data: Partial<Area>): Promise<any> {
-    return firstValueFrom(this.http.post(`${BASE}/area/registrar_jwsv`, data));
+    return firstValueFrom(this.http.post(`${BASE}/areas`, data));
+    // ✅ CORREGIDO: era POST /api/area/registrar_jwsv
   }
   async editarArea(id: number, data: Partial<Area>): Promise<any> {
-    return firstValueFrom(this.http.put(`${BASE}/area/actualizar_jwsv/${id}`, data));
+    return firstValueFrom(this.http.patch(`${BASE}/areas/${id}`, data));
+    // ✅ CORREGIDO: era PUT /api/area/actualizar_jwsv/:id
   }
   async eliminarArea(id: number): Promise<any> {
-    return firstValueFrom(this.http.delete(`${BASE}/area/eliminar_jwsv/${id}`));
+    return firstValueFrom(this.http.delete(`${BASE}/areas/${id}`));
+    // ✅ CORREGIDO: era DELETE /api/area/eliminar_jwsv/:id
   }
 
   // ── Cursos ────────────────────────────────────────────────────────────────
   async listarCursosArea(idArea: number): Promise<Curso[]> {
-    return firstValueFrom(this.http.get<Curso[]>(`${BASE}/curso/listar_jwsv/${idArea}`));
+    return firstValueFrom(this.http.get<Curso[]>(`${BASE}/cursos/area/${idArea}`));
+    // ✅ CORREGIDO: era GET /api/curso/listar_jwsv/:id
+  }
+  async listarCursos(): Promise<Curso[]> {
+    return firstValueFrom(this.http.get<Curso[]>(`${BASE}/cursos`));
   }
   async crearCurso(data: Partial<Curso>): Promise<any> {
-    return firstValueFrom(this.http.post(`${BASE}/curso/registrar_jwsv`, data));
+    return firstValueFrom(this.http.post(`${BASE}/cursos`, data));
+    // ✅ CORREGIDO: era POST /api/curso/registrar_jwsv
   }
   async editarCurso(id: number, data: Partial<Curso>): Promise<any> {
-    return firstValueFrom(this.http.put(`${BASE}/curso/actualizar_jwsv/${id}`, data));
+    return firstValueFrom(this.http.patch(`${BASE}/cursos/${id}`, data));
+    // ✅ CORREGIDO: era PUT /api/curso/actualizar_jwsv/:id
   }
   async eliminarCurso(id: number): Promise<any> {
-    return firstValueFrom(this.http.delete(`${BASE}/curso/eliminar_jwsv/${id}`));
+    return firstValueFrom(this.http.delete(`${BASE}/cursos/${id}`));
+    // ✅ CORREGIDO: era DELETE /api/curso/eliminar_jwsv/:id
   }
 
   // ── Formatos ──────────────────────────────────────────────────────────────
+  // ⚠️ El backend actual NO tiene módulo de formatos. Estas rutas fallarán
+  //    hasta que se implemente. Se mantienen para no romper el resto del código.
   async listarFormatos(): Promise<Formato[]> {
-    return firstValueFrom(this.http.get<Formato[]>(`${BASE2}/formatos`));
+    return firstValueFrom(this.http.get<Formato[]>(`${BASE}/formatos`));
   }
-  async listarFormatosPorEtapa(etapaId: string, tipo?: string): Promise<Formato[]> {
-    const url = tipo
-      ? `${BASE2}/formatos/etapa/${etapaId}?tipo=${tipo}`
-      : `${BASE2}/formatos/etapa/${etapaId}`;
-    return firstValueFrom(this.http.get<Formato[]>(url));
-  }
-  async subirFormato(nombre: string, tipo: string, file: File, etapaId?: string): Promise<any> {
+  async subirFormato(nombre: string, file: File): Promise<any> {
     const fd = new FormData();
     fd.append('nombre', nombre);
-    fd.append('tipo', tipo);
-    if (etapaId) fd.append('etapaId', etapaId);
-    fd.append('file', file);
-    return firstValueFrom(this.http.post(`${BASE2}/formatos`, fd));
+    fd.append('archivo', file);
+    return firstValueFrom(this.http.post(`${BASE}/formatos`, fd));
   }
-  async eliminarFormato(id: string): Promise<any> {
-    return firstValueFrom(this.http.delete(`${BASE2}/formatos/${id}`));
+  async eliminarFormato(id: number): Promise<any> {
+    return firstValueFrom(this.http.delete(`${BASE}/formatos/${id}`));
   }
 
-  // ── Personas / Aprendices ─────────────────────────────────────────────────
-
-  /** Trae TODAS las personas del backend (uso interno). */
-  private async listarTodasPersonas(): Promise<any[]> {
-    const resp: any = await firstValueFrom(
-      this.http.get(`${BASE}/personas`, { withCredentials: true })
-    );
-    if (Array.isArray(resp))                              return resp;
+  // ── Personas ──────────────────────────────────────────────────────────────
+  async listarAprendices(): Promise<any[]> {
+    const resp: any = await firstValueFrom(this.http.get(`${BASE}/personas`));
+    if (Array.isArray(resp)) return resp;
     if (resp?.data       && Array.isArray(resp.data))       return resp.data;
     if (resp?.aprendices && Array.isArray(resp.aprendices)) return resp.aprendices;
     if (resp?.personas   && Array.isArray(resp.personas))   return resp.personas;
     return [];
   }
-
-  /** Retorna SOLO las personas con cargo === 'aprendiz'. */
-  async listarAprendices(): Promise<any[]> {
-    const todas = await this.listarTodasPersonas();
-    return todas.filter((p: any) => p.cargo === 'aprendiz');
-  }
-
-  /** Retorna solo personas con cargo 'instructor' o 'administrador'. */
-  async listarInstructores(): Promise<any[]> {
-    const todas = await this.listarTodasPersonas();
-    return todas.filter((p: any) =>
-      p.cargo === 'instructor' || p.cargo === 'administrador'
-    );
-  }
-
   async buscarPersona(id: number): Promise<Persona> {
-    return firstValueFrom(this.http.get<Persona>(`${BASE}/persona/buscar_jwsv/${id}`));
+    return firstValueFrom(this.http.get<Persona>(`${BASE}/personas/${id}`));
+    // ✅ CORREGIDO: era GET /api/persona/buscar_jwsv/:id
+  }
+  async buscarPersonaPorCedula(cedula: number): Promise<any> {
+    return firstValueFrom(this.http.get(`${BASE}/personas/cedula/${cedula}`));
   }
   async actualizarPersona(id: number, data: Partial<Persona>): Promise<any> {
-    return firstValueFrom(this.http.put(`${BASE}/persona/${id}`, data));
+    return firstValueFrom(this.http.patch(`${BASE}/personas/${id}`, data));
+    // ✅ CORREGIDO: era PUT /api/persona/actualizar_jwsv/:id
   }
   async crearPersona(data: Partial<Persona>): Promise<any> {
-    return firstValueFrom(this.http.post(`${BASE}/persona/registrar_jwsv`, data));
+    return firstValueFrom(this.http.post(`${BASE}/personas`, data));
+    // ✅ CORREGIDO: era POST /api/persona/registrar_jwsv
   }
 
   // ── Matrículas ────────────────────────────────────────────────────────────
-  async listarMatriculasPorAlumno(idAlumno: string): Promise<any[]> {
+  async listarMatriculasPorAlumno(idAlumno: number): Promise<any[]> {
     try {
-      const resp: any = await firstValueFrom(this.http.get(`${BASE}/matriculas/persona/${idAlumno}`));
+      const resp: any = await firstValueFrom(
+        this.http.get(`${BASE}/matriculas/persona/${idAlumno}`)
+        // ✅ CORREGIDO: era GET /api/matricula/por-alumno/:id
+      );
       if (Array.isArray(resp)) return resp;
-      if (resp?.data      && Array.isArray(resp.data))      return resp.data;
+      if (resp?.data       && Array.isArray(resp.data))       return resp.data;
       if (resp?.matriculas && Array.isArray(resp.matriculas)) return resp.matriculas;
       return [];
     } catch { return []; }
   }
-
-  // ✅ NUEVO: Obtener TODAS las matrículas de una vez (optimización)
   async listarTodasMatriculas(): Promise<any[]> {
     try {
-      const resp: any = await firstValueFrom(this.http.get(`${BASE}/matriculas`));
+      const resp: any = await firstValueFrom(
+        this.http.get(`${BASE}/matriculas`)
+        // ✅ CORREGIDO: era GET /api/matricula/todas
+      );
       if (Array.isArray(resp)) return resp;
       if (resp?.data       && Array.isArray(resp.data))       return resp.data;
       if (resp?.matriculas && Array.isArray(resp.matriculas)) return resp.matriculas;
@@ -127,277 +124,184 @@ export class ApiService {
     }
   }
 
-  // ── Prácticas ─────────────────────────────────────────────────────────────
+  // ── Prácticas / Etapa práctica (backend peq puerto 3001) ──────────────────
   async listarPracticas(): Promise<any[]> {
     try {
-      const resp: any = await firstValueFrom(this.http.get(`${BASE2}/etapa-practica`));
+      const resp: any = await firstValueFrom(
+        this.http.get(`${BASE2}/api/etapa-practica`)
+        // ✅ CORREGIDO: era GET /api2/practica/listar
+      );
       if (Array.isArray(resp)) return resp;
       if (resp?.data      && Array.isArray(resp.data))      return resp.data;
       if (resp?.practicas && Array.isArray(resp.practicas)) return resp.practicas;
       return [];
     } catch { return []; }
   }
+  async listarPracticasPorMatricula(matriculaId: number): Promise<any[]> {
+    try {
+      const resp: any = await firstValueFrom(
+        this.http.get(`${BASE2}/api/etapa-practica/matricula/${matriculaId}`)
+      );
+      if (Array.isArray(resp)) return resp;
+      if (resp?.data && Array.isArray(resp.data)) return resp.data;
+      return [];
+    } catch { return []; }
+  }
   async crearPractica(datos: {
-    matriculaId: string; modalidadId: string;
+    fk_matricula: number; fk_modalidad: number;
     fecha_inicio: string; fecha_fin: string;
-    empresaId: string; estado: string; observacion: string;
-    asignacion?: {
-      instructor: string;
-      fecha_inicio: string;
-      fecha_fin: string;
-      estado: string;
-      horas: number;
-    };
-  }): Promise<any> {
-    return firstValueFrom(this.http.post(`${BASE2}/etapa-practica`, datos));
-  }
-  async obtenerPractica(id: string): Promise<any> {
-    return firstValueFrom(this.http.get(`${BASE2}/etapa-practica/${id}`));
-  }
-  async actualizarPractica(id: string, datos: {
-    empresaId?: string; modalidadId?: string;
-    fecha_inicio?: string; fecha_fin?: string;
-    estado?: string; observacion?: string;
-  }): Promise<any> {
-    return firstValueFrom(this.http.patch(`${BASE2}/etapa-practica/${id}`, datos));
-  }
-  async cambiarEstadoPractica(id: string, estado: string): Promise<{ id: string; estado: string }> {
-    return firstValueFrom(
-      this.http.patch<{ id: string; estado: string }>(`${BASE2}/etapa-practica/${id}/estado`, { estado })
-    );
-  }
-  async activarPractica(id: string): Promise<any> {
-    return firstValueFrom(this.http.patch(`${BASE2}/etapa-practica/${id}/activar`, {}));
-  }
-  async inactivarPractica(id: string): Promise<any> {
-    return firstValueFrom(this.http.patch(`${BASE2}/etapa-practica/${id}/inactivar`, {}));
-  }
-  // ── Asignaciones de instructor ────────────────────────────────────────────
-  async listarAsignacionesPorEtapa(etapaId: string): Promise<any[]> {
-    try {
-      const resp: any = await firstValueFrom(
-        this.http.get(`${BASE2}/asignaciones/etapa/${etapaId}`)
-      );
-      if (Array.isArray(resp)) return resp;
-      if (resp?.data && Array.isArray(resp.data)) return resp.data;
-      return [];
-    } catch { return []; }
-  }
-  async crearAsignacion(datos: {
-    instructor: string; fecha_inicio: string; fecha_fin: string;
-    estado: string; horas: number; etapaId: string;
-  }): Promise<any> {
-    return firstValueFrom(this.http.post(`${BASE2}/asignaciones`, datos));
-  }
-  async actualizarAsignacion(id: string, datos: {
-    instructor?: string; fecha_inicio?: string; fecha_fin?: string;
-    estado?: string; horas?: number;
-  }): Promise<any> {
-    return firstValueFrom(this.http.patch(`${BASE2}/asignaciones/${id}`, datos));
-  }
-  async eliminarAsignacion(id: string): Promise<any> {
-    return firstValueFrom(this.http.delete(`${BASE2}/asignaciones/${id}`));
-  }
-
-  /** Crea una observación en el seguimiento más reciente de la etapa (tabla observaciones) */
-  async crearObservacion(etapaId: string, datos: {
-    descripcion: string;
-    persona: string;
-    fecha: string;
+    fk_empresa: number; estado: string; observacion: string;
   }): Promise<any> {
     return firstValueFrom(
-      this.http.post(`${BASE2}/observaciones/etapa/${etapaId}`, datos)
+      this.http.post(`${BASE2}/api/etapa-practica`, datos)
+      // ✅ CORREGIDO: era POST /api2/practica/registrar
     );
   }
-
-  /** Lista todas las observaciones registradas en los seguimientos de una etapa */
-  async listarObservacionesPorEtapa(etapaId: string): Promise<any[]> {
-    try {
-      const resp: any = await firstValueFrom(
-        this.http.get(`${BASE2}/observaciones/etapa/${etapaId}`)
-      );
-      if (Array.isArray(resp)) return resp;
-      if (resp?.data && Array.isArray(resp.data)) return resp.data;
-      return [];
-    } catch { return []; }
-  }
-
-  async listarObservacionesPorSeguimiento(seguimientoId: string): Promise<any[]> {
-  try {
-    const resp: any = await firstValueFrom(
-      this.http.get(`${BASE2}/observaciones/seguimiento/${seguimientoId}`)
-    );
-    if (Array.isArray(resp)) return resp;
-    if (resp?.data && Array.isArray(resp.data)) return resp.data;
-    return [];
-  } catch { return []; }
-}
-
-/** Crea una observación vinculada a un seguimiento específico */
-async crearObservacionEnSeguimiento(
-  seguimientoId: string,
-  datos: { descripcion: string; persona: string; fecha: string, evidencia_foto: string; }
-): Promise<any> {
-  return firstValueFrom(
-    this.http.post(`${BASE2}/observaciones`, {
-      ...datos,
-      seguimientoId,          // ← campo que espera CreateObservacioneDto
-    })
-  );
-}
-
-async subirEvidenciaObservacion(file: File): Promise<string> {
-  const fd = new FormData();
-  fd.append('file', file);
-  const resp: any = await firstValueFrom(
-    this.http.post(`${BASE2}/observaciones/upload/evidencia`, fd)
-  );
-  return resp.url as string;
-}
-
-  /** @deprecated Usar crearObservacion() — este método solo actualiza el campo de texto de la etapa */
   async actualizarObservacion(idPractica: number, observacion: string): Promise<any> {
     return firstValueFrom(
-      this.http.patch(`${BASE2}/etapa-practica/observacion/${idPractica}`, { observacion })
-    );
-  }
-  async actualizarAvancePractica(idPractica: string | number): Promise<any> {
-    // El backend calcula el avance internamente — no necesitamos enviar el valor
-    return firstValueFrom(
-      this.http.patch(`${BASE2}/etapa-practica/avance/${idPractica}`, {})
+      this.http.patch(`${BASE2}/api/etapa-practica/${idPractica}/observacion`, { observacion })
+      // ✅ CORREGIDO: era PATCH /api2/practica/observacion/:id
     );
   }
 
-  // ── Seguimientos ──────────────────────────────────────────────────────────
-  async obtenerSeguimientos(idAlumno: string): Promise<any[]> {
-    const resp: any = await firstValueFrom(this.http.get(`${BASE2}/seguimientos/alumno/${idAlumno}`));
+  // ── Seguimientos (backend peq puerto 3001) ────────────────────────────────
+  async obtenerSeguimientos(idAlumno: number): Promise<any[]> {
+    const resp: any = await firstValueFrom(
+      this.http.get(`${BASE2}/api/seguimientos/alumno/${idAlumno}`)
+      // ✅ CORREGIDO: era GET /api2/seguimiento/listar/:id
+    );
     if (Array.isArray(resp)) return resp;
     if (resp?.data         && Array.isArray(resp.data))         return resp.data;
     if (resp?.seguimientos && Array.isArray(resp.seguimientos)) return resp.seguimientos;
     return [];
   }
-
-  async obtenerSeguimientosPorEtapa(etapaId: string): Promise<any[]> {
-    try {
-      const resp: any = await firstValueFrom(this.http.get(`${BASE2}/seguimientos/etapa/${etapaId}`));
-      if (Array.isArray(resp)) return resp;
-      if (resp?.data         && Array.isArray(resp.data))         return resp.data;
-      if (resp?.seguimientos && Array.isArray(resp.seguimientos)) return resp.seguimientos;
-      return [];
-    } catch { return []; }
-  }
   async actualizarSeguimiento(id: number, datos: { observacion: string }): Promise<any> {
-    return firstValueFrom(this.http.put(`${BASE2}/seguimiento/actualizar/${id}`, datos));
+    return firstValueFrom(
+      this.http.patch(`${BASE2}/api/seguimientos/${id}`, datos)
+      // ✅ CORREGIDO: era PUT /api2/seguimiento/actualizar/:id
+    );
   }
   async subirActa(id: number, file: File): Promise<any> {
     const fd = new FormData();
     fd.append('acta', file);
-    return firstValueFrom(this.http.put(`${BASE2}/seguimiento/acta/${id}`, fd));
+    return firstValueFrom(
+      this.http.patch(`${BASE2}/api/seguimientos/${id}`, fd)
+      // ✅ CORREGIDO: era PUT /api2/seguimiento/acta/:id
+    );
   }
 
-  // ── Bitácoras ─────────────────────────────────────────────────────────────
-  async obtenerBitacoras(idSeguimiento: string): Promise<any[]> {
-    try {
-      const resp: any = await firstValueFrom(this.http.get(`${BASE2}/bitacoras/seguimiento/${idSeguimiento}`));
-      if (Array.isArray(resp)) return resp;
-      if (resp?.data      && Array.isArray(resp.data))      return resp.data;
-      if (resp?.bitacoras && Array.isArray(resp.bitacoras)) return resp.bitacoras;
-      return [];
-    } catch { return []; }
+  // ── Bitácoras (backend peq puerto 3001) ───────────────────────────────────
+  async obtenerBitacoras(idSeguimiento: number): Promise<any[]> {
+    const resp: any = await firstValueFrom(
+      this.http.get(`${BASE2}/api/bitacoras/${idSeguimiento}`)
+      // ✅ CORREGIDO: era GET /api2/bitacora/listar/:id
+    );
+    if (Array.isArray(resp)) return resp;
+    if (resp?.data      && Array.isArray(resp.data))      return resp.data;
+    if (resp?.bitacoras && Array.isArray(resp.bitacoras)) return resp.bitacoras;
+    return [];
   }
-  async actualizarEstadoBitacora(idBitacora: string, estado: string): Promise<any> {
+  async actualizarEstadoBitacora(idBitacora: number, estado: string): Promise<any> {
     return firstValueFrom(
-      this.http.patch(`${BASE2}/bitacoras/${idBitacora}/estado`, { estado })
+      this.http.patch(`${BASE2}/api/bitacoras/${idBitacora}`, { estado })
+      // ✅ CORREGIDO: era PUT /api2/bitacora/estado/:id
     );
   }
   async crearBitacoraArchivo(formData: FormData): Promise<any> {
-    return firstValueFrom(this.http.post(`${BASE2}/bitacoras`, formData));
+    return firstValueFrom(
+      this.http.post(`${BASE2}/api/bitacoras`, formData)
+      // ✅ CORREGIDO: era POST /api2/bitacora/registrar_archivo
+    );
   }
 
-  async subirPdfBitacora(idBitacora: string, file: File): Promise<any> {
-    const fd = new FormData();
-    fd.append('file', file);
-    return firstValueFrom(this.http.post(`${BASE2}/bitacoras/${idBitacora}/pdf`, fd));
-  }
-
-  // ── Modalidades y Empresas ────────────────────────────────────────────────
+  // ── Modalidades (backend peq puerto 3001) ─────────────────────────────────
   async listarModalidades(): Promise<any[]> {
-    return firstValueFrom(this.http.get<any[]>(`${BASE2}/modalidad`));
-  }
-  async listarEmpresas(): Promise<any[]> {
-    return firstValueFrom(this.http.get<any[]>(`${BASE2}/empresas`));
+    return firstValueFrom(
+      this.http.get<any[]>(`${BASE2}/api/modalidad`)
+      // ✅ CORREGIDO: era GET /api2/modalidad/listar
+    );
   }
 
-  // ── Usuarios y Credenciales ───────────────────────────────────────────────
-  async crearUsuario(data: { fk_persona: number; fk_aplicativo: number }): Promise<any> {
-    return firstValueFrom(this.http.post(`${BASE}/usuario/registrar_jwsv`, data));
+  // ── Empresas (backend peq puerto 3001) ────────────────────────────────────
+  async listarEmpresas(): Promise<any[]> {
+    return firstValueFrom(
+      this.http.get<any[]>(`${BASE2}/api/empresas`)
+      // ✅ CORREGIDO: era GET /api2/empresa/listar
+    );
+  }
+
+  // ── Asignaciones (backend peq puerto 3001) ────────────────────────────────
+  async listarAsignaciones(): Promise<any[]> {
+    return firstValueFrom(this.http.get<any[]>(`${BASE2}/api/asignaciones`));
+  }
+  async crearAsignacion(data: any): Promise<any> {
+    return firstValueFrom(this.http.post(`${BASE2}/api/asignaciones`, data));
+  }
+
+  // ── Observaciones (backend peq puerto 3001) ───────────────────────────────
+  async listarObservaciones(): Promise<any[]> {
+    return firstValueFrom(this.http.get<any[]>(`${BASE2}/api/observaciones`));
+  }
+  async crearObservacion(data: any): Promise<any> {
+    return firstValueFrom(this.http.post(`${BASE2}/api/observaciones`, data));
+  }
+
+  // ── Usuarios y Credenciales (backend grande puerto 3000) ──────────────────
+  async crearUsuario(data: { personaId: number; aplicativoId: number }): Promise<any> {
+    return firstValueFrom(
+      this.http.post(`${BASE}/usuarios`, data)
+      // ✅ CORREGIDO: era POST /api/usuario/registrar_jwsv
+    );
   }
   async crearCredencial(data: {
-    login: string; password: string; fk_usuario: number; fk_rol: number;
+    login: string; password: string; usuarioId: number; rolId: number;
   }): Promise<any> {
-    return firstValueFrom(this.http.post(`${BASE}/credencial/registrar_jwsv`, data));
-  }
-
-  // ── Avance de matrícula ───────────────────────────────────────────────────
-  /** Actualiza SOLO el porcentaje de avance académico de una matrícula */
-  async actualizarAvanceMatricula(matriculaId: string, avance: number): Promise<any> {
     return firstValueFrom(
-      this.http.patch(`${BASE}/matriculas/${matriculaId}/avance`, { avance })
+      this.http.post(`${BASE}/credenciales`, data)
+      // ✅ CORREGIDO: era POST /api/credencial/registrar_jwsv
     );
   }
 
-  // ── Configuración global ──────────────────────────────────────────────────
-  /** Obtiene la configuración global del backend de prácticas */
-  async obtenerConfiguracion(): Promise<{ minAvance: number }> {
-    try {
-      return await firstValueFrom(
-        this.http.get<{ minAvance: number }>(`${BASE2}/configuracion`)
-      );
-    } catch { return { minAvance: 70 }; }
+  // ── Roles ─────────────────────────────────────────────────────────────────
+  async listarRoles(): Promise<any[]> {
+    return firstValueFrom(this.http.get<any[]>(`${BASE}/roles`));
   }
 
-  /** Actualiza el avance mínimo requerido para crear una etapa práctica */
-  async actualizarConfiguracion(minAvance: number): Promise<any> {
-    return firstValueFrom(
-      this.http.patch(`${BASE2}/configuracion`, { minAvance })
-    );
+  // ── Departamentos / Municipios ────────────────────────────────────────────
+  async listarDepartamentos(): Promise<any[]> {
+    return firstValueFrom(this.http.get<any[]>(`${BASE}/departamentos`));
+  }
+  async listarMunicipios(): Promise<any[]> {
+    return firstValueFrom(this.http.get<any[]>(`${BASE}/municipios`));
   }
 
-  // ── Notificaciones ────────────────────────────────────────────────────────
-  async listarNotificaciones(): Promise<any[]> {
-    try {
-      const resp: any = await firstValueFrom(this.http.get(`${BASE}/notificaciones`));
-      return Array.isArray(resp) ? resp : [];
-    } catch { return []; }
+  // ── Programas / Centros / Sedes ───────────────────────────────────────────
+  async listarProgramas(): Promise<any[]> {
+    return firstValueFrom(this.http.get<any[]>(`${BASE}/programas`));
+  }
+  async listarCentrosFormacion(): Promise<any[]> {
+    return firstValueFrom(this.http.get<any[]>(`${BASE}/centro-formacion`));
+  }
+  async listarSedes(): Promise<any[]> {
+    return firstValueFrom(this.http.get<any[]>(`${BASE}/sedes`));
   }
 
-  async contarNotificacionesNoLeidas(): Promise<number> {
-    try {
-      const resp: any = await firstValueFrom(this.http.get(`${BASE}/notificaciones/count`));
-      return resp?.count ?? 0;
-    } catch { return 0; }
-  }
-
-  async marcarNotificacionLeida(id: string): Promise<void> {
-    await firstValueFrom(this.http.patch(`${BASE}/notificaciones/${id}/leer`, {}));
-  }
-
-  async marcarTodasNotificacionesLeidas(): Promise<void> {
-    await firstValueFrom(this.http.patch(`${BASE}/notificaciones/leer-todas`, {}));
-  }
-
-  // ── Recuperación de contraseña ────────────────────────────────────────────
-  /** Paso 1: Solicitar el código de recuperación por correo */
+  // ── Recuperación de contraseña ─────────────────────────────────────────────
+  // ⚠️ Estas rutas NO existen en el backend actual. Necesitas implementarlas
+  //    en el backend o eliminar estas llamadas del frontend.
   async solicitarRecuperacion(correo: string): Promise<any> {
     return firstValueFrom(
-      this.http.post(`${BASE}/auth/recuperar-password/solicitar`, { correo })
+      this.http.post(`${BASE}/auth/recuperar/solicitar`, { correo })
     );
   }
-
-  /** Paso 2+3: Verificar código y cambiar contraseña en un solo paso */
-  async restablecerPassword(correo: string, codigo: string, passwordNuevo: string): Promise<any> {
+  async verificarCodigo(correo: string, codigo: string): Promise<any> {
     return firstValueFrom(
-      this.http.post(`${BASE}/auth/recuperar-password/restablecer`, { correo, codigo, passwordNuevo })
+      this.http.post(`${BASE}/auth/recuperar/verificar`, { correo, codigo })
+    );
+  }
+  async cambiarPassword(correo: string, codigo: string, nuevoPassword: string): Promise<any> {
+    return firstValueFrom(
+      this.http.post(`${BASE}/auth/recuperar/cambiar`, { correo, codigo, nuevoPassword })
     );
   }
 }

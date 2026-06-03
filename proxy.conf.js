@@ -1,3 +1,13 @@
+/**
+ * proxy.conf.js
+ *
+ * /api/  → http://localhost:3000  (backend-epsas: auth, personas, matriculas, áreas, cursos...)
+ * /api2/ → http://localhost:3001  (epsas-bac-peq: etapa-practica, seguimientos, bitacoras...)
+ *
+ * Uso: ng serve --proxy-config proxy.conf.js
+ * O en angular.json → "proxyConfig": "proxy.conf.js"
+ */
+
 const PROXY_CONFIG = {
   "/api/": {
     target: "http://localhost:3000",
@@ -5,17 +15,10 @@ const PROXY_CONFIG = {
     changeOrigin: true,
     logLevel: "debug"
   },
-  "/uploads/": {
+  "/api2/": {
     target: "http://localhost:3001",
     secure: false,
     changeOrigin: true,
-    logLevel: "debug"
-  },
-  "/api2/": {  // <--- Agrega una barra "/" aquí
-    target: "http://localhost:3001",
-    secure: false,
-    changeOrigin: true,
- // <--- Asegúrate de que termine en barra
     logLevel: "debug",
     cookieDomainRewrite: "localhost",
     onProxyReq(proxyReq, req) {
@@ -28,53 +31,11 @@ const PROXY_CONFIG = {
       if (cookies) {
         proxyRes.headers["set-cookie"] = cookies.map(c =>
           c.replace(/; SameSite=None/gi, "")
-           .replace(/; Secure/gi, "")
+          .replace(/; Secure/gi, "")
         );
       }
-    },
-    logLevel: "debug"
+    }
   }
 };
 
 module.exports = PROXY_CONFIG;
-
-
-
-// const PROXY_CONFIG = {
-//   "/api/": {
-//     target: "http://2.24.77.37",  // ← IP del VPS
-//     secure: false,
-//     changeOrigin: true,
-//     logLevel: "debug"
-//   },
-//   "/uploads/": {
-//     target: "http://2.24.77.37",  // ← IP del VPS
-//     secure: false,
-//     changeOrigin: true,
-//     logLevel: "debug"
-//   },
-//   "/api2/": {
-//     target: "http://2.24.77.37",  // ← IP del VPS
-//     secure: false,
-//     changeOrigin: true,
-//     logLevel: "debug",
-//     cookieDomainRewrite: "localhost",
-//     onProxyReq(proxyReq, req) {
-//       if (req.headers.cookie) {
-//         proxyReq.setHeader("Cookie", req.headers.cookie);
-//       }
-//     },
-//     onProxyRes(proxyRes) {
-//       const cookies = proxyRes.headers["set-cookie"];
-//       if (cookies) {
-//         proxyRes.headers["set-cookie"] = cookies.map(c =>
-//           c.replace(/; SameSite=None/gi, "")
-//            .replace(/; Secure/gi, "")
-//         );
-//       }
-//     },
-//     logLevel: "debug"
-//   }
-// };
-
-// module.exports = PROXY_CONFIG;

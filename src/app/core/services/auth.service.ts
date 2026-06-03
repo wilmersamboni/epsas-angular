@@ -6,62 +6,38 @@ import { Usuario, LoginRequest, LoginResponse } from '../../shared/models';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  // ── Estado reactivo (señales, equivale al useState de React) ──────────────
   private _user = signal<Usuario | null>(this._loadUser());
-  readonly user            = this._user.asReadonly();
+  readonly user = this._user.asReadonly();
   readonly isAuthenticated = computed(() => this._user() !== null);
-
-  /** Cargo del usuario autenticado: 'administrador' | 'instructor' | 'aprendiz' | '' */
-  readonly cargo    = computed(() => this._user()?.cargo ?? '');
-  readonly isAdmin  = computed(() => this.cargo() === 'administrador');
-
-  /** Devuelve true si el cargo del usuario está en la lista de roles permitidos */
-  hasRole(roles: string[]): boolean {
-    return roles.includes(this.cargo());
-  }
 
   constructor(private http: HttpClient, private router: Router) {}
 
-  // ── Inicializar desde localStorage (igual que el init del useState) ────────
   private _loadUser(): Usuario | null {
     const saved = localStorage.getItem('user');
     return saved ? JSON.parse(saved) : null;
-    
   }
 
-  // ── login() ────────────────────────────────────────────────────────────────
-  // El login va DIRECTO a :3000 (sin proxy) para que el navegador
-  // reciba y guarde la cookie de sesión correctamente.
-  // Esa misma cookie la envía luego en las peticiones a :3001 vía proxy.
   async login(data: LoginRequest): Promise<void> {
-  const resp = await firstValueFrom(
-    this.http.post<LoginResponse>(
-      //'http://2.24.77.37/api/auth/login',
-       'http://localhost:3000/api/auth/login',
-      data,
-      { withCredentials: true }
-    )
-  );
-  localStorage.setItem('user', JSON.stringify(resp.usuario));
-  //localStorage.setItem('token', resp.token);
-  localStorage.setItem('centroId', resp.centroId ?? '');
-  localStorage.setItem('cargo', resp.usuario.cargo ?? '');
-  this._user.set(resp.usuario);
-  
-}
+    // Sin withCredentials — el backend usa JWT en localStorage, no cookies.
+    // withCredentials + wildcard CORS es incompatible con el navegador.
+    const resp = await firstValueFrom(
+      this.http.post<LoginResponse>(
+        'http://localhost:3000/api/auth/login',
+        data
+      )
+    );
+    localStorage.setItem('user', JSON.stringify(resp.usuario));
+    localStorage.setItem('token', resp.token);
+    this._user.set(resp.usuario);
+  }
 
-  // ── logout() ──────────────────────────────────────────────────────────────
   logout(): void {
     localStorage.removeItem('user');
-    //localStorage.removeItem('token');
-    localStorage.removeItem('centroId');
-    localStorage.removeItem('cargo');
+    localStorage.removeItem('token');
     this._user.set(null);
-    this.router.navigate(['/'], { replaceUrl: true });
-    
+    this.router.navigate(['/login'], { replaceUrl: true });
   }
 
-  // ── actualizarUser() — actualiza parcialmente el usuario ──────────────────
   actualizarUser(datos: Partial<Usuario>): void {
     const current = this._user();
     const nuevo = { ...current, ...datos };
@@ -69,9 +45,7 @@ export class AuthService {
     this._user.set(nuevo);
   }
 
-  // ── Obtener el token del storage ──────────────────────────────────────────
-  // getToken(): string | null {
-  //   return localStorage.getItem('token');
-  // }
-
+  getToken(): string | null {
+    return localStorage.getItem('token');
+  }
 }
