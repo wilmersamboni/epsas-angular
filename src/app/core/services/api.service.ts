@@ -401,19 +401,17 @@ async subirEvidenciaObservacion(file: File): Promise<string> {
   }
 
   // ── Recuperación de contraseña ────────────────────────────────────────────
+  /** Paso 1: Solicitar el código de recuperación por correo */
   async solicitarRecuperacion(correo: string): Promise<any> {
     return firstValueFrom(
-      this.http.post(`${BASE}/departamento/recuperar/solicitar`, { correo })
+      this.http.post(`${BASE}/auth/recuperar-password/solicitar`, { correo })
     );
   }
-  async verificarCodigo(correo: string, codigo: string): Promise<any> {
+
+  /** Paso 2+3: Verificar código y cambiar contraseña en un solo paso */
+  async restablecerPassword(correo: string, codigo: string, passwordNuevo: string): Promise<any> {
     return firstValueFrom(
-      this.http.post(`${BASE}/departamento/recuperar/verificar`, { correo, codigo })
-    );
-  }
-  async cambiarPassword(correo: string, codigo: string, nuevoPassword: string): Promise<any> {
-    return firstValueFrom(
-      this.http.post(`${BASE}/departamento/recuperar/cambiar`, { correo, codigo, nuevoPassword })
+      this.http.post(`${BASE}/auth/recuperar-password/restablecer`, { correo, codigo, passwordNuevo })
     );
   }
 }
