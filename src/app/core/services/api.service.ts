@@ -386,6 +386,20 @@ async subirEvidenciaObservacion(file: File): Promise<string> {
     await firstValueFrom(this.http.patch(`${BASE}/notificaciones/leer-todas`, {}));
   }
 
+  async crearNotificacion(payload: {
+    tipo:          string;
+    titulo:        string;
+    mensaje:       string;
+    destinatarios: string[];
+    data?:         Record<string, any>;
+  }): Promise<void> {
+    try {
+      await firstValueFrom(this.http.post(`${BASE}/notificaciones`, payload));
+    } catch (e) {
+      console.warn('[ApiService] Error creando notificación:', e);
+    }
+  }
+
   // ── Recuperación de contraseña ────────────────────────────────────────────
   async solicitarRecuperacion(correo: string): Promise<any> {
     return firstValueFrom(

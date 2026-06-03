@@ -103,7 +103,7 @@ export interface TipoFormato { value: string; label: string; icon: string; }
 })
 export class SubirFormatoModalComponent {
   @Input({ required: true }) tipos: TipoFormato[] = [];
-  @Output() subido = new EventEmitter<void>();
+  @Output() subido = new EventEmitter<{ nombre: string; tipo: string }>();
 
   @ViewChild('fileInput') fileInputRef!: ElementRef<HTMLInputElement>;
 
@@ -142,7 +142,7 @@ export class SubirFormatoModalComponent {
       await this.api.subirFormato(this.nombreFormato.trim(), this.tipoSeleccionado, archivo);
       this.resetForm();
       this.toast.ok('Archivo subido', 'El formato fue registrado correctamente.');
-      this.subido.emit();
+      this.subido.emit({ nombre: this.nombreFormato.trim(), tipo: this.tipoSeleccionado });
     } catch (e: any) {
       this.toast.httpError(e, 'Error al subir el archivo.');
     } finally {
