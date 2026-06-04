@@ -125,7 +125,7 @@ abrirWhatsApp() {
 
     this.chatService.sendMessage(texto).subscribe({
       next: (res) => {
-        this.mensajes.push({ rol: 'asistente', texto: res.output || 'Sin respuesta' });
+        this.mensajes.push({ rol: 'asistente', texto: res.reply || 'Sin respuesta' });
         this.cargando = false;
       },
       error: () => {
