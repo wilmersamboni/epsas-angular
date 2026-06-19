@@ -5,6 +5,7 @@ import { BitacorasModalComponent } from './bitacoras-modal.component';
 import { AuthService } from '../../../core/services/auth.service';
 import { SeguimientoService } from '../../../core/services';
 import { ToastService } from '../../../core/services/toast.service';
+import { NotificacionService } from '../../../core/services/notificacion.service';
 
 @Component({
   selector: 'app-seguimientos-modal',
@@ -190,6 +191,7 @@ export class SeguimientosModalComponent implements OnChanges {
   private auth           = inject(AuthService);
   private seguimientoSvc = inject(SeguimientoService);
   private toast          = inject(ToastService);
+  private notificacionSvc = inject(NotificacionService);
 
   /** Gestionar seguimiento (observaciones, actas): admin e instructor */
   canGestionarSeguimiento() { return this.auth.hasRole(['administrador', 'instructor']); }
@@ -277,6 +279,21 @@ export class SeguimientosModalComponent implements OnChanges {
       this.toast.ok('Seguimiento actualizado', 'La observación fue guardada correctamente.');
       await this.cargarSeguimientos();
       this.editOpen.set(false);
+
+      // ── Notificar al aprendiz ──────────────────────────────────────────
+      const user             = JSON.parse(localStorage.getItem('user') ?? 'null');
+      const instructorNombre = user?.nombre ?? 'El instructor';
+      const aprendizId       = this.alumno?.usuarioId ?? this.alumno?.aprendizId ?? '';
+      const fecha            = new Date().toLocaleDateString('es-CO');
+
+      if (aprendizId) {
+        await this.notificacionSvc.notificarSeguimientoActualizado({
+          aprendizId,
+          instructorNombre,
+          fecha,
+          seguimientoId: seg.id,
+        });
+      }
     } catch (e: any) { this.toast.httpError(e, 'Error al guardar el seguimiento.'); }
   }
 
@@ -284,13 +301,27 @@ export class SeguimientosModalComponent implements OnChanges {
     this.openMenu.set(null);
     try {
       await this.seguimientoSvc.cambiarEstado(item.id, estado);
-      // Actualización optimista local
       this.seguimientos.update(list =>
         list.map(s => s.id === item.id ? { ...s, estado } : s)
       );
       this.toast.ok('Estado actualizado', `El seguimiento cambió a "${estado}".`);
-      // Recarga para confirmar lo que quedó en BD
       await this.cargarSeguimientos();
+
+      // ── Notificar al aprendiz ──────────────────────────────────────────
+      const user         = JSON.parse(localStorage.getItem('user') ?? 'null');
+      const instructorNombre = user?.nombre ?? 'El instructor';
+      const aprendizId   = this.alumno?.usuarioId ?? this.alumno?.aprendizId ?? '';
+      const fecha        = new Date().toLocaleDateString('es-CO');
+
+      if (aprendizId) {
+        await this.notificacionSvc.notificarSeguimientoRevisado({
+          aprendizId,
+          instructorNombre,
+          estado,
+          fecha,
+          seguimientoId: item.id,
+        });
+      }
     } catch (e: any) { this.toast.httpError(e, 'Error al cambiar el estado.'); }
   }
 
@@ -321,6 +352,20 @@ export class SeguimientosModalComponent implements OnChanges {
       this.toast.ok('Acta subida', 'El acta PDF fue cargada correctamente.');
       // Recarga para confirmar lo que quedó en BD
       await this.cargarSeguimientos();
+      // ── Notificar al aprendiz ──────────────────────────────────────────
+      const user             = JSON.parse(localStorage.getItem('user') ?? 'null');
+      const instructorNombre = user?.nombre ?? 'El instructor';
+      const aprendizId       = this.alumno?.usuarioId ?? this.alumno?.aprendizId ?? '';
+      const fecha            = new Date().toLocaleDateString('es-CO');
+
+      if (aprendizId) {
+        await this.notificacionSvc.notificarActaSubida({
+          aprendizId,
+          instructorNombre,
+          fecha,
+          seguimientoId: targetId,
+        });
+      }
     } catch (e: any) { this.toast.httpError(e, 'Error al subir el acta.'); }
   }
 

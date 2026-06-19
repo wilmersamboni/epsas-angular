@@ -59,13 +59,12 @@ export class HomeComponent implements OnInit {
   // ── Severity para p-tag de estado ───────────────────────────────────────
   estadoSeverity(estado: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' {
     const e = (estado ?? '').toLowerCase();
-    if (['activo', 'activa', 'en_curso', 'en curso'].includes(e)) return 'success';
-    if (['certificado', 'certificada'].includes(e))               return 'info';
-    if (['desercion', 'desertado', 'desertada'].includes(e))      return 'danger';
-    if (['suspendido', 'suspendida'].includes(e))                  return 'warn';
+    if (['activo', 'activa', 'en_curso', 'en curso'].includes(e))                   return 'success';
+    if (['certificado', 'certificada'].includes(e))                                  return 'info';
+    if (['desercion', 'desertado', 'desertada', 'retirado', 'retirada'].includes(e)) return 'danger';
+    if (['suspendido', 'suspendida'].includes(e))                                     return 'warn';
     return 'secondary';
   }
-
   // ── Construcción de datos para los charts ───────────────────────────────
   private buildCharts(): void {
     const total = Math.max(this.stats.aprendices, 1);
@@ -147,16 +146,21 @@ export class HomeComponent implements OnInit {
         const matricula = matriculaMap.get(p.matriculaId);
         const persona   = matricula?.persona;
         const curso     = matricula?.curso;
+        const nombreCompleto = persona?.nombre ?? '—';
 
         return {
           ...p,
-          empresaNombre:  empresaMap.get(p.empresa?.id) ?? p.empresa?.nombre ?? '—',
-          nombre:         persona
-            ? `${persona.nombres ?? persona.nombre ?? ''} ${persona.apellidos ?? persona.apellido ?? ''}`.trim()
-            : '—',
-          identificacion: persona?.cedula        ?? persona?.documento      ?? '—',
-          ficha:          curso?.codigo          ?? curso?.numeroFicha      ?? curso?.ficha ?? '—',
-          programa:       curso?.programa?.nombre ?? curso?.nombrePrograma  ?? '—',
+          empresaNombre:  p.empresa?.nombre ?? empresaMap.get(p.empresa?.id) ?? '—',
+          modalidadNombre: p.modalidad?.nombre ?? '—',
+          nombre:          nombreCompleto,
+          identificacion:  persona?.cedula?.toString() ?? '—',
+          correo:          persona?.correo ?? '—',
+          telefono:        persona?.telefono?.toString() ?? '—',
+          municipioPersona: persona?.municipio?.nombre ?? '—',
+          ficha:           curso?.codigo ?? '—',
+          programa:        curso?.programa?.nombre ?? '—',
+          fechaInicioCurso: curso?.fechaInicio ?? '—',
+          fechaFinCurso:    curso?.fechaFin ?? '—',
         };
       });
 

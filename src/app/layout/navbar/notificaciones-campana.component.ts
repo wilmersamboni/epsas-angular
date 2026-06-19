@@ -68,6 +68,18 @@ const TIPO_META: Record<string, TipoMeta> = {
     icon: '👥', bgUnread: 'bg-purple-50', dotColor: 'bg-purple-500',
     badgeBg: 'bg-purple-100', badgeText: 'text-purple-700', label: 'Aprendices',
   },
+  seguimiento_revisado: {
+  icon: '🔄', bgUnread: 'bg-blue-50', dotColor: 'bg-blue-500',
+  badgeBg: 'bg-blue-100', badgeText: 'text-blue-700', label: 'Seguimiento revisado',
+  },
+  seguimiento_actualizado: {
+    icon: '📝', bgUnread: 'bg-yellow-50', dotColor: 'bg-yellow-500',
+    badgeBg: 'bg-yellow-100', badgeText: 'text-yellow-700', label: 'Seguimiento actualizado',
+  },
+  acta_subida: {
+    icon: '📤', bgUnread: 'bg-indigo-50', dotColor: 'bg-indigo-500',
+    badgeBg: 'bg-indigo-100', badgeText: 'text-indigo-700', label: 'Acta subida',
+  },
 };
 
 const DEFAULT_META: TipoMeta = {

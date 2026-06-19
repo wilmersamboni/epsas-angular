@@ -31,50 +31,54 @@ export class StatsService {
     return this.getDashboardData().pipe(map(d => d.stats));
   }
 
-  getDashboardData(): Observable<DashboardData> {
+      getDashboardData(): Observable<DashboardData> {
+    const user = JSON.parse(localStorage.getItem('user') ?? 'null');
+    const cargo: string = user?.cargo ?? '';
+      
     return forkJoin({
       aprendices: from(this.apiService.listarAprendices()),
       practicas:  from(this.apiService.listarPracticas()),
     }).pipe(
       map(({ aprendices, practicas }) => {
-
-        // ── Tarjetas ────────────────────────────────────────────────────────
-        const totalAprendices  = aprendices.length;
-
-        const activas = practicas.filter(p =>
+      
+        // El backend ya filtra por RLS — no necesitamos filtrar aquí
+        const practicasFiltradas = practicas;
+      
+        const totalAprendices = aprendices.length;
+      
+        const activas = practicasFiltradas.filter((p: any) =>
           ['activa', 'activo', 'en_curso', 'en curso'].includes(p.estado?.toLowerCase())
         );
-        const desertadas = practicas.filter(p =>
+        const desertadas = practicasFiltradas.filter((p: any) =>
           ['desercion', 'desertada', 'desertado', 'retirado', 'retirada'].includes(p.estado?.toLowerCase())
         );
-        const certificadas = practicas.filter(p =>
+        const certificadas = practicasFiltradas.filter((p: any) =>
           ['certificada', 'certificado', 'completada', 'completado'].includes(p.estado?.toLowerCase())
         );
-        const instructores = aprendices.filter((p: any) =>
-          p.cargo === 'instructor' || p.cargo === 'administrador'
-        );
-
+      
+        const totalBase = (cargo === 'instructor')
+          ? practicasFiltradas.length
+          : totalAprendices;
+      
         const stats: Stats = {
-          aprendices:   totalAprendices,
-          seguimientos: activas.length,      // etapas productivas activas
-          documentos:   desertadas.length,   // etapas desertadas
-          instructores: certificadas.length  // ejecuciones con éxito
+          aprendices:   cargo === 'instructor' ? practicasFiltradas.length : totalAprendices,
+          seguimientos: activas.length,
+          documentos:   desertadas.length,
+          instructores: certificadas.length
         };
-        console.log('Práctica enriquecida:', practicas[0])
-
-        // ── Donas ───────────────────────────────────────────────────────────
-        const base = totalAprendices || 1; // evita división por 0
-
+      
+        const base = Math.max(totalBase, 1);
+      
         const etapaActiva: DonaStats = {
           total:      activas.length,
           porcentaje: Math.round((activas.length / base) * 100)
         };
-
+      
         const etapaCertificada: DonaStats = {
           total:      certificadas.length,
           porcentaje: Math.round((certificadas.length / base) * 100)
         };
-
+      
         return { stats, etapaActiva, etapaCertificada };
       })
     );

@@ -32,7 +32,7 @@
   </div>
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       VISTA APRENDIZ — muestra su práctica personal
+      VISTA APRENDIZ — muestra su práctica personal
   ══════════════════════════════════════════════════════════════════════════ -->
   @if (esAprendiz()) {
     <div class="dash-body">
@@ -64,13 +64,16 @@
       } @else {
         <!-- Columna izquierda -->
         <div class="dash-left">
-
+        
           <!-- Hero card: empresa + estado + avance -->
           <p-card styleClass="hero-card">
             <div class="hero-content">
               <div class="hero-info">
                 <p class="personal-label">Tu etapa práctica</p>
                 <h2 class="personal-empresa">{{ miPractica.empresaNombre }}</h2>
+                <p class="personal-label" style="margin-top:4px; opacity:0.7">
+                  {{ miPractica.modalidadNombre }}
+                </p>
                 <p-tag
                   [value]="miPractica.estado"
                   [severity]="estadoSeverity(miPractica.estado)"
@@ -83,8 +86,8 @@
               </div>
             </div>
           </p-card>
-
-          <!-- Barra de progreso con p-progressbar -->
+        
+          <!-- Barra de progreso -->
           <div class="progress-wrap">
             <div class="progress-header">
               <span class="progress-label">Progreso general</span>
@@ -96,51 +99,67 @@
               styleClass="sena-progress"
             />
           </div>
-
-          <!-- Detalles en tarjetas con p-card -->
+        
+          <!-- Tarjetas de detalle -->
           <div class="cards-row">
-
+          
             <p-card styleClass="detail-card">
-              <div class="detail-icon icon-green">
-                <i class="pi pi-calendar"></i>
-              </div>
+              <div class="detail-icon icon-green"><i class="pi pi-calendar"></i></div>
               <div class="card-value-sm">{{ miPractica.fecha_inicio ?? '—' }}</div>
-              <div class="card-label">Fecha de inicio</div>
+              <div class="card-label">Inicio práctica</div>
             </p-card>
-
+          
             <p-card styleClass="detail-card">
-              <div class="detail-icon icon-blue">
-                <i class="pi pi-calendar-times"></i>
-              </div>
+              <div class="detail-icon icon-blue"><i class="pi pi-calendar-times"></i></div>
               <div class="card-value-sm">{{ miPractica.fecha_fin ?? '—' }}</div>
-              <div class="card-label">Fecha finalización</div>
+              <div class="card-label">Fin práctica</div>
             </p-card>
-
+          
             <p-card styleClass="detail-card">
-              <div class="detail-icon icon-orange">
-                <i class="pi pi-book"></i>
-              </div>
+              <div class="detail-icon icon-orange"><i class="pi pi-book"></i></div>
               <div class="card-value-sm text-sm">{{ miPractica.programa || '—' }}</div>
               <div class="card-label">Programa</div>
             </p-card>
-
+          
             <p-card styleClass="detail-card">
-              <div class="detail-icon icon-purple">
-                <i class="pi pi-hashtag"></i>
-              </div>
+              <div class="detail-icon icon-purple"><i class="pi pi-hashtag"></i></div>
               <div class="card-value-sm">{{ miPractica.ficha || '—' }}</div>
               <div class="card-label">Ficha</div>
             </p-card>
-
+          
+            <p-card styleClass="detail-card">
+              <div class="detail-icon icon-green"><i class="pi pi-id-card"></i></div>
+              <div class="card-value-sm text-sm">{{ miPractica.identificacion || '—' }}</div>
+              <div class="card-label">Identificación</div>
+            </p-card>
+          
+            <p-card styleClass="detail-card">
+              <div class="detail-icon icon-blue"><i class="pi pi-map-marker"></i></div>
+              <div class="card-value-sm text-sm">{{ miPractica.municipioPersona || '—' }}</div>
+              <div class="card-label">Municipio</div>
+            </p-card>
+          
+            <p-card styleClass="detail-card">
+              <div class="detail-icon icon-orange"><i class="pi pi-envelope"></i></div>
+              <div class="card-value-sm">{{ miPractica.correo || '—' }}</div>
+              <div class="card-label">Correo</div>
+            </p-card>
+          
+            <p-card styleClass="detail-card">
+              <div class="detail-icon icon-purple"><i class="pi pi-comment"></i></div>
+              <div class="card-value-sm">{{ miPractica.observacion || '—' }}</div>
+              <div class="card-label">Observación</div>
+            </p-card>
+          
           </div>
         </div>
-
-        <!-- Columna derecha: gráfica de progreso personal -->
+      
+        <!-- Columna derecha: gráfica de progreso -->
         <div class="dash-right">
           <p-card styleClass="donut-card">
             <div class="donut-header">
               <h3 class="donut-title">Mi Progreso</h3>
-              <p class="donut-sub">Avance de tu etapa práctica</p>
+              <p class="donut-sub">{{ miPractica.nombre }}</p>
             </div>
             <div class="chart-container">
               <p-chart
@@ -169,13 +188,12 @@
             </div>
           </p-card>
         </div>
-
       }
     </div>
   }
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       VISTA ADMIN / INSTRUCTOR — estadísticas + gráficas
+      VISTA ADMIN / INSTRUCTOR — estadísticas + gráficas
   ══════════════════════════════════════════════════════════════════════════ -->
   @if (!esAprendiz()) {
 

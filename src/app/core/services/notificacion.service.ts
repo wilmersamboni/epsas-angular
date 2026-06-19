@@ -28,7 +28,10 @@ export type TipoNotificacion =
     | 'bitacora_rechazada'
     | 'formato_nuevo'
     | 'formato_actualizado'
-    | 'formato_eliminado';
+    | 'formato_eliminado'
+    | 'seguimiento_revisado'
+    | 'seguimiento_actualizado'
+    | 'acta_subida';
 
 export interface CrearNotificacionPayload {
     tipo: TipoNotificacion;
@@ -200,5 +203,58 @@ export class NotificacionService {
             };
             return { instructorIds: toIds(ri), aprendizIds: toIds(ra) };
         } catch { return { instructorIds: [], aprendizIds: [] }; }
+    }
+
+    /** Instructor cambia estado de un seguimiento → notifica al aprendiz */
+    async notificarSeguimientoRevisado(params: {
+        aprendizId: string;
+        instructorNombre: string;
+        estado: string;
+        fecha: string;
+        seguimientoId: string;
+    }): Promise<void> {
+        if (!params.aprendizId) return;
+        const emoji = params.estado === 'aprobado' ? '✅' : params.estado === 'rechazado' ? '❌' : '🔄';
+        await this.crear({
+            tipo: 'seguimiento_revisado',
+            titulo: `${emoji} Seguimiento ${params.estado}`,
+            mensaje: `Tu seguimiento fue marcado como "${params.estado}" por ${params.instructorNombre} el ${params.fecha}.`,
+            destinatarios: [params.aprendizId],
+            data: { seguimientoId: params.seguimientoId, estado: params.estado, instructorNombre: params.instructorNombre },
+        });
+    }
+
+    /** Instructor actualiza observación de un seguimiento → notifica al aprendiz */
+    async notificarSeguimientoActualizado(params: {
+        aprendizId: string;
+        instructorNombre: string;
+        fecha: string;
+        seguimientoId: string;
+    }): Promise<void> {
+        if (!params.aprendizId) return;
+        await this.crear({
+            tipo: 'seguimiento_actualizado',
+            titulo: '📝 Seguimiento actualizado',
+            mensaje: `${params.instructorNombre} actualizó la observación de tu seguimiento el ${params.fecha}.`,
+            destinatarios: [params.aprendizId],
+            data: { seguimientoId: params.seguimientoId, instructorNombre: params.instructorNombre },
+        });
+    }
+
+    /** Instructor sube un acta PDF → notifica al aprendiz */
+    async notificarActaSubida(params: {
+        aprendizId: string;
+        instructorNombre: string;
+        fecha: string;
+        seguimientoId: string;
+    }): Promise<void> {
+        if (!params.aprendizId) return;
+        await this.crear({
+            tipo: 'acta_subida',
+            titulo: '📤 Acta de seguimiento subida',
+            mensaje: `${params.instructorNombre} subió un acta PDF para tu seguimiento el ${params.fecha}.`,
+            destinatarios: [params.aprendizId],
+            data: { seguimientoId: params.seguimientoId, instructorNombre: params.instructorNombre },
+        });
     }
 }
