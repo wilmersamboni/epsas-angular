@@ -60,13 +60,14 @@ export class ApiService {
   async listarFormatos(): Promise<Formato[]> {
     return firstValueFrom(this.http.get<Formato[]>(`${BASE}/formatos`));
   }
-  async subirFormato(nombre: string, file: File): Promise<any> {
+  async subirFormato(nombre: string, tipo: string, file: File): Promise<any> {
     const fd = new FormData();
     fd.append('nombre', nombre);
+    fd.append('tipo', tipo);
     fd.append('archivo', file);
     return firstValueFrom(this.http.post(`${BASE}/formatos`, fd));
   }
-  async eliminarFormato(id: number): Promise<any> {
+  async eliminarFormato(id: string | number): Promise<any> {
     return firstValueFrom(this.http.delete(`${BASE}/formatos/${id}`));
   }
 
@@ -303,5 +304,72 @@ export class ApiService {
     return firstValueFrom(
       this.http.post(`${BASE}/auth/recuperar/cambiar`, { correo, codigo, nuevoPassword })
     );
+  }
+
+  // ── Configuración ──────────────────────────────────────────────────────────
+  async obtenerConfiguracion(): Promise<any> {
+    return firstValueFrom(this.http.get(`${BASE}/configuracion`));
+  }
+
+  // ── Prácticas - métodos adicionales ────────────────────────────────────────
+  async cambiarEstadoPractica(idPractica: string, estado: string): Promise<any> {
+    return firstValueFrom(
+      this.http.patch(`${BASE2}/api/etapa-practica/${idPractica}/estado`, { estado })
+    );
+  }
+  async actualizarPractica(idPractica: string, datos: any): Promise<any> {
+    return firstValueFrom(
+      this.http.patch(`${BASE2}/api/etapa-practica/${idPractica}`, datos)
+    );
+  }
+
+  // ── Matrículas - métodos adicionales ───────────────────────────────────────
+  async actualizarAvanceMatricula(idMatricula: string, datos: any): Promise<any> {
+    return firstValueFrom(
+      this.http.patch(`${BASE}/matriculas/${idMatricula}`, datos)
+    );
+  }
+
+  // ── Asignaciones - métodos adicionales ─────────────────────────────────────
+  async listarAsignacionesPorEtapa(idEtapa: string): Promise<any[]> {
+    return firstValueFrom(
+      this.http.get<any[]>(`${BASE2}/api/asignaciones/etapa/${idEtapa}`)
+    );
+  }
+  async listarInstructores(): Promise<any[]> {
+    return firstValueFrom(this.http.get<any[]>(`${BASE}/personas?cargo=instructor`));
+  }
+  async actualizarAsignacion(id: string | number, datos: any): Promise<any> {
+    return firstValueFrom(
+      this.http.patch(`${BASE2}/api/asignaciones/${id}`, datos)
+    );
+  }
+  async eliminarAsignacion(id: string | number): Promise<any> {
+    return firstValueFrom(
+      this.http.delete(`${BASE2}/api/asignaciones/${id}`)
+    );
+  }
+
+  // ── Notificaciones ────────────────────────────────────────────────────────
+  async listarNotificaciones(): Promise<any[]> {
+    return firstValueFrom(this.http.get<any[]>(`${BASE}/notificaciones`));
+  }
+  async marcarNotificacionLeida(id: string): Promise<any> {
+    return firstValueFrom(
+      this.http.patch(`${BASE}/notificaciones/${id}/leida`, {})
+    );
+  }
+  async marcarTodasNotificacionesLeidas(): Promise<any> {
+    return firstValueFrom(
+      this.http.patch(`${BASE}/notificaciones/marcar-todas/leidas`, {})
+    );
+  }
+
+  // ── Recuperación de contraseña - alias ─────────────────────────────────
+  /**
+   * Alias de cambiarPassword para mantener compatibilidad
+   */
+  async restablecerPassword(correo: string, codigo: string, nuevoPassword: string): Promise<any> {
+    return this.cambiarPassword(correo, codigo, nuevoPassword);
   }
 }

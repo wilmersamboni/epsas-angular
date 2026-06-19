@@ -256,7 +256,7 @@ export class SidebarComponent {
 
   /** Grupos filtrados según el cargo del usuario */
   get visibleGroups(): NavGroup[] {
-    const cargo = this.auth.cargo();
+    const cargo = this.auth.cargo() ?? '';
     return this.allGroups
       .map(g => ({
         ...g,

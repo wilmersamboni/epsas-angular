@@ -36,7 +36,7 @@ export class HasRoleDirective implements OnInit {
   }
 
   private updateView(): void {
-    const cargo = this.auth.cargo();
+    const cargo = this.auth.cargo() ?? '';
     const allowed = this.appHasRole.length === 0 || this.appHasRole.includes(cargo);
 
     this.viewContainer.clear();

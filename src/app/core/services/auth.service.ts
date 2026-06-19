@@ -48,4 +48,28 @@ export class AuthService {
   getToken(): string | null {
     return localStorage.getItem('token');
   }
+
+  // ── Métodos de autorización ────────────────────────────────────────────────
+  /**
+   * Retorna el cargo del usuario actual (ej: 'administrador', 'instructor')
+   */
+  cargo(): string | undefined {
+    return this._user()?.cargo;
+  }
+
+  /**
+   * Verifica si el usuario tiene uno de los cargos especificados
+   */
+  hasRole(roles: string[]): boolean {
+    const userRole = this.cargo();
+    if (!userRole) return false;
+    return roles.includes(userRole);
+  }
+
+  /**
+   * Verifica si el usuario es administrador
+   */
+  isAdmin(): boolean {
+    return this.cargo() === 'administrador';
+  }
 }
