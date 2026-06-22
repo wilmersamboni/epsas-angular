@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { Formato } from '../../../shared/models';
 
-const FILE_BASE = 'http://localhost:3001/uploads/formatos/';
+const FILE_BASE = '/uploads/formatos/';
 
 const TIPOS: { value: string; label: string }[] = [
   { value: 'bitacora',         label: 'Bitácora' },

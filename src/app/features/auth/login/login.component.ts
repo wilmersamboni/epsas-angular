@@ -381,7 +381,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.error.set(null);
     this.loading.set(true);
     try {
-      // await this.auth.login(this.credentials);
+      await this.auth.login(this.credentials);
       this.router.navigate(['/home']);
     } catch {
       this.error.set('Usuario o contraseña incorrectos. Intenta de nuevo.');

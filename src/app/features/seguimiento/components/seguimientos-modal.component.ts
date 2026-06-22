@@ -327,7 +327,7 @@ export class SeguimientosModalComponent implements OnChanges {
   descargarActa(item: any): void {
     this.openMenu.set(null);
     if (!item.actas_pdf) return;
-    window.open(`http://localhost:3001/uploads/actas/${item.actas_pdf}`, '_blank');
+    window.open(`/uploads/actas/${item.actas_pdf}`, '_blank');
   }
 
   onAvanceActualizado(avance: number): void {

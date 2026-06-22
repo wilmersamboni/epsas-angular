@@ -6,16 +6,15 @@ const PROXY_CONFIG = {
     logLevel: "debug"
   },
   "/uploads/": {
-    target: "http://localhost:3000",
+    target: "http://localhost:3001",
     secure: false,
     changeOrigin: true,
     logLevel: "debug"
   },
-  "/api2/": {  // <--- Agrega una barra "/" aquí
-    target: "http://localhost:3000",
+  "/api2/": {
+    target: "http://localhost:3001",
     secure: false,
     changeOrigin: true,
- // <--- Asegúrate de que termine en barra
     logLevel: "debug",
     cookieDomainRewrite: "localhost",
     onProxyReq(proxyReq, req) {
@@ -31,8 +30,7 @@ const PROXY_CONFIG = {
            .replace(/; Secure/gi, "")
         );
       }
-    },
-    logLevel: "debug"
+    }
   }
 };
 
