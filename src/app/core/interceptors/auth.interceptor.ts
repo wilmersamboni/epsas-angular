@@ -39,11 +39,10 @@ function resolveTenant(): string | null {
 }
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const centroId = localStorage.getItem('centroId');
-  const cargo    = localStorage.getItem('cargo');
-  // En localhost no hay subdominio; usamos el slug guardado en localStorage
-  // (centroId contiene el slug que devuelve el login del ERP)
-  const tenant   = resolveTenant() ?? centroId ?? null;
+  const centroId   = localStorage.getItem('centroId');
+  const tenantSlug = localStorage.getItem('tenantSlug');
+  const cargo      = localStorage.getItem('cargo');
+  const tenant     = resolveTenant() ?? tenantSlug ?? null;
 
   const headers: Record<string, string> = {};
   if (tenant) headers['x-tenant'] = tenant;

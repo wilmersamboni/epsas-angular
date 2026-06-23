@@ -134,11 +134,26 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
     actualizar: id => `${BASE}/matriculas/${id}`,
     eliminar:   id => `${BASE}/matriculas/${id}`,
     grupo: 'epsas',
-    columnas: ['estudiante', 'curso'],
-    campos: ['persona', 'curso'],
+    usePatch: true,
+    columnas: ['estudiante', 'curso', 'estado', 'avance'],
+    campos: ['persona', 'curso', 'estado', 'avance'],
     selectores: {
       persona: { modulo: 'personas', label: 'nombre', value: 'idPersona' },
       curso:   { modulo: 'cursos',   label: 'codigo', value: 'idCurso'  },
+    },
+    opcionesEstaticas: {
+      estado: [
+        { label: 'Activo',            value: 'activo'            },
+        { label: 'Inactivo',          value: 'inactivo'          },
+        { label: 'Certificado',       value: 'certificado'       },
+        { label: 'Cancelado',         value: 'cancelado'         },
+        { label: 'Retiro Voluntario', value: 'retiro voluntario' },
+        { label: 'Trasladado',        value: 'trasladado'        },
+        { label: 'Aplazado',          value: 'aplazado'          },
+      ],
+    },
+    tiposCampo: {
+      avance: 'number',
     },
   },
 

@@ -43,6 +43,7 @@ export class AuthService {
   );
   localStorage.setItem('user', JSON.stringify(resp.usuario));
   localStorage.setItem('centroId', resp.centroId ?? '');
+  localStorage.setItem('tenantSlug', resp.tenantSlug ?? '');
   localStorage.setItem('cargo', resp.usuario.cargo ?? '');
   this._user.set(resp.usuario);
 }
@@ -52,6 +53,7 @@ export class AuthService {
     localStorage.removeItem('user');
     //localStorage.removeItem('token');
     localStorage.removeItem('centroId');
+    localStorage.removeItem('tenantSlug');
     localStorage.removeItem('cargo');
     this._user.set(null);
     this.router.navigate(['/'], { replaceUrl: true });

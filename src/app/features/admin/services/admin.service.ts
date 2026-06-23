@@ -148,8 +148,11 @@ export class AdminService {
       if (mod === 'matriculas') {
         rows = rows.map((m: any) => ({
           ...m,
+          // UUIDs planos para que los selectores del form pre-carguen al editar
+          persona:    m.idPersona ?? m.persona?.idPersona ?? '',
+          curso:      m.idCurso   ?? m.curso?.idCurso     ?? '',
+          // campos de display usados en tabla y en cross-ref de etapas
           estudiante: m.persona?.nombre ?? m.persona?.name ?? '—',
-          curso:      m.curso?.codigo   ?? m.curso?.nombre  ?? '—',
           cargo:      m.persona?.cargo  ?? '—',
         }));
       }
