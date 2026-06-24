@@ -185,42 +185,37 @@ import { AuthService } from '../../../core/services/auth.service';
             </div>
           }
 
-          <form (ngSubmit)="onSubmit()" class="space-y-4">
-
-            <!-- Centro (slug) — solo en localhost sin subdominio -->
-            @if (showCentroField) {
-              <div>
-                <label style="display:block;font-size:11px;font-weight:700;
-                               color:#2d4a33;margin-bottom:6px;letter-spacing:.5px;
-                               text-transform:uppercase;">
-                  Centro <span style="color:#dc2626;">*</span>
-                </label>
-                <div class="relative">
-                  <span class="absolute" style="left:13px;top:50%;transform:translateY(-50%);
-                                color:#8fa896;pointer-events:none;">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor" stroke-width="2">
-                      <path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1m4 0h1m-6 4h1m4 0h1"/>
-                    </svg>
-                  </span>
-                  <input
-                    type="text"
-                    [(ngModel)]="tenantSlug"
-                    name="tenantSlug"
-                    placeholder="yamboro"
-                    style="width:100%;padding:11px 12px 11px 38px;
-                           border:1.5px solid #e2ece5;border-radius:12px;
-                           font-size:13px;color:#071a0a;background:#f5faf6;
-                           outline:none;transition:border-color .2s,background .2s;"
-                    (focus)="$event.target.style.borderColor='#39A900';$event.target.style.background='#fff'"
-                    (blur)="$event.target.style.borderColor='#e2ece5';$event.target.style.background='#f5faf6'"
-                  />
-                </div>
-                <p style="font-size:10px;color:#8fa896;margin-top:4px;">
-                  Identificador del centro (ej: yamboro, sena)
-                </p>
+          <!-- Sin subdominio: bloquear acceso -->
+          @if (!slugFromUrl) {
+            <div style="text-align:center;padding:12px 0 4px;">
+              <div style="display:inline-flex;align-items:center;justify-content:center;
+                           width:48px;height:48px;border-radius:50%;
+                           background:#fef2f2;margin-bottom:12px;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                  stroke="#dc2626" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/>
+                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
               </div>
-            }
+              <p style="font-size:13px;font-weight:600;color:#071a0a;margin-bottom:6px;">
+                Acceso no permitido
+              </p>
+              <p style="font-size:12px;color:#6b7280;line-height:1.5;">
+                Debes acceder usando el subdominio de tu centro.<br>
+                Ejemplo:
+              </p>
+              <code style="display:inline-block;margin-top:8px;padding:6px 12px;
+                            border-radius:8px;background:#f0fdf4;
+                            color:#39A900;font-size:12px;font-weight:600;
+                            border:1px solid #bbf7d0;">
+                tu-centro.sistema.com
+              </code>
+            </div>
+          }
+
+          @if (slugFromUrl) {
+          <form (ngSubmit)="onSubmit()" class="space-y-4">
 
             <!-- Usuario -->
             <div>
@@ -350,8 +345,7 @@ import { AuthService } from '../../../core/services/auth.service';
             </button>
 
           </form>
-
-          
+          } <!-- @if slugFromUrl -->
 
           <!-- Copyright -->
           <p style="font-size:10px;color:#b8c9bb;text-align:center;margin-top:22px;">
@@ -373,14 +367,11 @@ export class LoginComponent implements OnInit, OnDestroy {
   btnPressed   = signal(false);
   senaHover    = signal(false);
 
-  // true solo en localhost plano (sin subdominio) — dev manual
-  readonly isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-
   // slug resuelto del subdominio (ej: centro-huila-test.localhost → 'centro-huila-test')
-  private readonly slugFromUrl = this.resolveSlugFromUrl();
+  readonly slugFromUrl = this.resolveSlugFromUrl();
 
-  // ocultar campo CENTRO cuando el slug viene de la URL
-  readonly showCentroField = !this.slugFromUrl;
+  // hostname sin el slug, para mostrarlo en el mensaje de error (ej: localhost:4200)
+  readonly host = window.location.host.replace(/^[^.]+\./, '');
 
   stars:     { id: number; style: string }[] = [];
   particles: { id: number; style: string }[] = [];
@@ -401,9 +392,6 @@ export class LoginComponent implements OnInit, OnDestroy {
     if (this.slugFromUrl) {
       this.tenantSlug = this.slugFromUrl;
       localStorage.setItem('tenantSlug', this.slugFromUrl);
-    } else {
-      // En localhost plano, usar el último slug guardado
-      this.tenantSlug = localStorage.getItem('tenantSlug') ?? '';
     }
 
     this.stars = Array.from({ length: 45 }, (_, i) => {
