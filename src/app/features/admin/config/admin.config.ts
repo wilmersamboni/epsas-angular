@@ -57,8 +57,9 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
   sedes: {
     label: 'Sedes', idKey: 'idSede',
     listar: `${BASE}/sedes`, crear: `${BASE}/sedes`,
-    actualizar: id => `${BASE}/sede/actualizar_jwsv/${id}`,
-    eliminar:   id => `${BASE}/sede/eliminar_jwsv/${id}`,
+    actualizar: id => `${BASE}/sedes/${id}`,
+    eliminar:   id => `${BASE}/sedes/${id}`,
+    grupo: 'epsas',
     campos: ['nombre', 'centroFormacionId'],
     selectores: {
       centroFormacionId: { modulo: 'centros', label: 'nombre', value: 'idCentro' },
@@ -66,33 +67,26 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
   },
 
   centros: {
-    label: 'Centros', idKey: 'idCentro',
-    listar: `${BASE}/centro-formacion`, crear: `${BASE}/centro-formacion`,
-    actualizar: id => `${BASE}/centro/actualizar_jwsv/${id}`,
-    eliminar:   id => `${BASE}/centro/elimimar_jwsv/${id}`,
-    campos: ['nombre', 'direccion', 'municipioId'],
-    selectores: {
-      municipioId: { modulo: 'municipios', label: 'nombre', value: 'idMunicipio' },
-    },
+    label: 'Centros de Formación', idKey: 'idCentro',
+    listar: `${BASE}/centro-formacion`,
+    crear: null, actualizar: null, eliminar: null,
+    grupo: 'epsas',
+    columnas: ['nombre', 'direccion'],
   },
 
   roles: {
     label: 'Roles', idKey: 'idRol',
-    listar: `${BASE}/roles`, crear: `${BASE}/roles`,
-    actualizar: id => `${BASE}/rol/actualizar_jwsv/${id}`,
-    eliminar:   id => `${BASE}/rol/eliminar_jwsv/${id}`,
+    listar: `${BASE}/roles`,
+    crear: null, actualizar: null, eliminar: null,
+    grupo: 'epsas',
     columnas: ['nombre', 'aplicativo'],
-    campos: ['nombre', 'aplicativoId'],
-    selectores: {
-      aplicativoId: { modulo: 'aplicativos', label: 'nombre', value: 'idAplicativo' },
-    },
   },
 
   municipios: {
     label: 'Municipios', idKey: 'idMunicipio',
-    listar: `${BASE}/municipios`, crear: `${BASE}/municipio/registrar_jwsv`,
-    actualizar: id => `${BASE}/municipio/actualizar_jwsv/${id}`,
-    eliminar:   id => `${BASE}/municipio/eliminar_jwsv/${id}`,
+    listar: `${BASE}/municipios`, crear: `${BASE}/municipios`,
+    actualizar: id => `${BASE}/municipios/${id}`,
+    eliminar:   id => `${BASE}/municipios/${id}`,
     grupo: 'epsas',
     columnas: ['nombre', 'departamento'],
     campos: ['nombre', 'departamentoId'],
@@ -103,9 +97,10 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
 
   aplicativos: {
     label: 'Aplicativos', idKey: 'idAplicativo',
-    listar: `${BASE}/aplicativos`, crear: `${BASE}/aplicativo/registrar_jwsv`,
-    actualizar: id => `${BASE}/aplicativo/actualizar_jwsv/${id}`,
-    eliminar:   id => `${BASE}/aplicativo/eliminar_jwsv/${id}`,
+    listar: `${BASE}/aplicativos`, crear: `${BASE}/aplicativos`,
+    actualizar: id => `${BASE}/aplicativos/${id}`,
+    eliminar:   id => `${BASE}/aplicativos/${id}`,
+    grupo: 'epsas',
     campos: ['nombre'],
   },
 
@@ -125,6 +120,23 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
       cedula:   'number',
       telefono: 'number',
       correo:   'email',
+    },
+    opcionesEstaticas: {
+      genero: [
+        { label: 'Masculino', value: 'masculino' },
+        { label: 'Femenino',  value: 'femenino'  },
+        { label: 'Otro',      value: 'otro'       },
+      ],
+      cargo: [
+        { label: 'Aprendiz',          value: 'aprendiz'          },
+        { label: 'Instructor',        value: 'instructor'        },
+        { label: 'Administrador',     value: 'administrador'     },
+        { label: 'Administrador ERP', value: 'administrador_erp' },
+      ],
+      estado: [
+        { label: 'Activo',   value: 'activo'   },
+        { label: 'Inactivo', value: 'inactivo' },
+      ],
     },
   },
 
@@ -160,8 +172,8 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
   cursos: {
     label: 'Cursos', idKey: 'idCurso',
     listar: `${BASE}/cursos`, crear: `${BASE}/cursos`,
-    actualizar: id => `${BASE}/curso/actualizar_jwsv/${id}`,
-    eliminar:   id => `${BASE}/curso/eliminar_jwsv/${id}`,
+    actualizar: id => `${BASE}/cursos/${id}`,
+    eliminar:   id => `${BASE}/cursos/${id}`,
     grupo: 'epsas',
     // area, programa y lider vienen como objetos anidados (eager); aplanarFila extrae 'nombre'
     columnas: ['codigo', 'area', 'programa', 'lider', 'fechaInicio', 'fechaFin'],
@@ -387,10 +399,8 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
 };
 
 
-/** Módulos que NO aparecen como pestañas (catálogos internos / de referencia) */
-const OCULTOS: Modulo[] = [
-  'sedes', 'centros', 'roles', 'aplicativos',
-];
+/** Módulos que NO aparecen como pestañas */
+const OCULTOS: Modulo[] = [];
 
 /** Solo los módulos que aparecen como pestañas en el panel */
 export const MODULOS = (Object.keys(CONFIG) as Modulo[]).filter(
@@ -402,3 +412,13 @@ export const MODULOS_EPSAS = MODULOS.filter(m => CONFIG[m].grupo === 'epsas');
 
 /** Módulos del grupo practica (backend-practica-hexagonal / api2) */
 export const MODULOS_PRACTICA = MODULOS.filter(m => CONFIG[m].grupo === 'practica');
+
+/**
+ * Vista del administrador de prácticas:
+ * gestión académica básica (personas, matrículas, cursos, usuarios, credenciales)
+ * + todos los módulos de prácticas.
+ */
+export const MODULOS_ADMIN: Modulo[] = [
+  'personas', 'matriculas', 'cursos', 'usuarios', 'credenciales',
+  ...MODULOS_PRACTICA,
+];

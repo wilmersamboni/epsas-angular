@@ -12,8 +12,9 @@ export class AuthService {
   readonly isAuthenticated = computed(() => this._user() !== null);
 
   /** Cargo del usuario autenticado: 'administrador' | 'instructor' | 'aprendiz' | '' */
-  readonly cargo    = computed(() => this._user()?.cargo ?? '');
-  readonly isAdmin  = computed(() => this.cargo() === 'administrador');
+  readonly cargo       = computed(() => this._user()?.cargo ?? '');
+  readonly isAdmin     = computed(() => this.cargo() === 'administrador' || this.cargo() === 'administrador_erp');
+  readonly isAdminErp  = computed(() => this.cargo() === 'administrador_erp');
 
   /** Devuelve true si el cargo del usuario está en la lista de roles permitidos */
   hasRole(roles: string[]): boolean {
