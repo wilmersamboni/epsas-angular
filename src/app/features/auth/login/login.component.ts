@@ -187,6 +187,41 @@ import { AuthService } from '../../../core/services/auth.service';
 
           <form (ngSubmit)="onSubmit()" class="space-y-4">
 
+            <!-- Centro (slug) — solo en localhost sin subdominio -->
+            @if (showCentroField) {
+              <div>
+                <label style="display:block;font-size:11px;font-weight:700;
+                               color:#2d4a33;margin-bottom:6px;letter-spacing:.5px;
+                               text-transform:uppercase;">
+                  Centro <span style="color:#dc2626;">*</span>
+                </label>
+                <div class="relative">
+                  <span class="absolute" style="left:13px;top:50%;transform:translateY(-50%);
+                                color:#8fa896;pointer-events:none;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2">
+                      <path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1m4 0h1m-6 4h1m4 0h1"/>
+                    </svg>
+                  </span>
+                  <input
+                    type="text"
+                    [(ngModel)]="tenantSlug"
+                    name="tenantSlug"
+                    placeholder="yamboro"
+                    style="width:100%;padding:11px 12px 11px 38px;
+                           border:1.5px solid #e2ece5;border-radius:12px;
+                           font-size:13px;color:#071a0a;background:#f5faf6;
+                           outline:none;transition:border-color .2s,background .2s;"
+                    (focus)="$event.target.style.borderColor='#39A900';$event.target.style.background='#fff'"
+                    (blur)="$event.target.style.borderColor='#e2ece5';$event.target.style.background='#f5faf6'"
+                  />
+                </div>
+                <p style="font-size:10px;color:#8fa896;margin-top:4px;">
+                  Identificador del centro (ej: yamboro, sena)
+                </p>
+              </div>
+            }
+
             <!-- Usuario -->
             <div>
               <label style="display:block;font-size:11px;font-weight:700;
@@ -329,6 +364,7 @@ import { AuthService } from '../../../core/services/auth.service';
 })
 export class LoginComponent implements OnInit, OnDestroy {
   credentials  = { login: '', password: '' };
+  tenantSlug   = '';
   loading      = signal(false);
   error        = signal<string | null>(null);
   showPassword = signal(false);
@@ -337,6 +373,15 @@ export class LoginComponent implements OnInit, OnDestroy {
   btnPressed   = signal(false);
   senaHover    = signal(false);
 
+  // true solo en localhost plano (sin subdominio) — dev manual
+  readonly isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+  // slug resuelto del subdominio (ej: centro-huila-test.localhost → 'centro-huila-test')
+  private readonly slugFromUrl = this.resolveSlugFromUrl();
+
+  // ocultar campo CENTRO cuando el slug viene de la URL
+  readonly showCentroField = !this.slugFromUrl;
+
   stars:     { id: number; style: string }[] = [];
   particles: { id: number; style: string }[] = [];
 
@@ -344,7 +389,23 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   constructor(private auth: AuthService, private router: Router) {}
 
+  private resolveSlugFromUrl(): string | null {
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') return null;
+    const parts = hostname.split('.');
+    return parts.length >= 2 ? parts[0].toLowerCase() : null;
+  }
+
   ngOnInit(): void {
+    // Si el slug viene de la URL, lo guardamos en localStorage y no se muestra el campo
+    if (this.slugFromUrl) {
+      this.tenantSlug = this.slugFromUrl;
+      localStorage.setItem('tenantSlug', this.slugFromUrl);
+    } else {
+      // En localhost plano, usar el último slug guardado
+      this.tenantSlug = localStorage.getItem('tenantSlug') ?? '';
+    }
+
     this.stars = Array.from({ length: 45 }, (_, i) => {
       const size = Math.random() * 2.5 + 0.8;
       const delay = (Math.random() * 4).toFixed(1);
@@ -378,6 +439,11 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   async onSubmit(): Promise<void> {
+    if (!this.tenantSlug.trim()) {
+      this.error.set('Debes ingresar el nombre del centro (slug) para continuar.');
+      return;
+    }
+    localStorage.setItem('tenantSlug', this.tenantSlug.trim().toLowerCase());
     this.error.set(null);
     this.loading.set(true);
     try {
