@@ -192,7 +192,7 @@ export class SeguimientosModalComponent implements OnChanges {
   private toast          = inject(ToastService);
 
   /** Gestionar seguimiento (observaciones, actas): admin e instructor */
-  canGestionarSeguimiento() { return this.auth.hasRole(['administrador', 'instructor']); }
+  canGestionarSeguimiento() { return this.auth.hasRole(['administrador', 'administrador_erp', 'instructor']); }
 
   @Input() isOpen  = false;
   @Input() alumno: any = null;
