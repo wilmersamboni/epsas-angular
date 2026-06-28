@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { CreateTenantDto, Tenant, UpdateTenantDto } from '../../../shared/models/admin/tenant.model';
+import { CreateTenantDto, Tenant, TenantCreado, UpdateTenantDto } from '../../../shared/models/admin/tenant.model';
 
 @Injectable({ providedIn: 'root' })
 export class TenantAdminService {
@@ -9,8 +9,8 @@ export class TenantAdminService {
 
   constructor(private http: HttpClient) {}
 
-  crear(dto: CreateTenantDto): Observable<Tenant> {
-    return this.http.post<Tenant>(this.baseUrl, dto);
+  crear(dto: CreateTenantDto): Observable<TenantCreado> {
+    return this.http.post<TenantCreado>(this.baseUrl, dto);
   }
 
   obtenerTodos(): Observable<Tenant[]> {
@@ -37,7 +37,7 @@ export class TenantAdminService {
     return this.http.get<{ erpDb: boolean; epsasDb: boolean }>(`${this.baseUrl}/${id}/verificar`);
   }
 
-  reinicializar(id: string): Observable<{ login: string; password: string }> {
-    return this.http.post<{ login: string; password: string }>(`${this.baseUrl}/${id}/reinicializar`, {});
+  reinicializar(id: string): Observable<{ mensaje: string; credencialesDefecto: { login: string; password: string } | null }> {
+    return this.http.post<{ mensaje: string; credencialesDefecto: { login: string; password: string } | null }>(`${this.baseUrl}/${id}/reinicializar`, {});
   }
 }

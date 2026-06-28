@@ -10,6 +10,15 @@ export interface Tenant {
   actualizadoEn: string;
 }
 
+export interface TenantCredenciales {
+  login: string;
+  password: string;
+}
+
+export interface TenantCreado extends Tenant {
+  credencialesDefecto?: TenantCredenciales | null;
+}
+
 export interface CreateTenantDto {
   nombre: string;
   slug: string;

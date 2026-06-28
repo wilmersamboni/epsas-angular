@@ -3,11 +3,13 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TenantAdminService } from '../../../../core/services/admin/tenant-admin.service';
 import { AdminToastService } from '../../../../core/admin-auth/admin-toast.service';
+import { AdminCredencialesModalComponent } from '../../../../shared/components/admin/credenciales-modal.component';
+import { TenantCredenciales } from '../../../../shared/models/admin/tenant.model';
 
 @Component({
   selector: 'app-tenant-form',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, AdminCredencialesModalComponent],
   template: `
     <div class="max-w-3xl mx-auto rounded-3xl p-8">
       <div class="mb-6 mx-auto text-center">
@@ -100,6 +102,13 @@ import { AdminToastService } from '../../../../core/admin-auth/admin-toast.servi
         </form>
       }
     </div>
+
+    <app-admin-credenciales-modal
+      [visible]="mostrarCredenciales()"
+      titulo="Tenant creado — guarda las credenciales"
+      [login]="credencialesNuevas()?.login ?? ''"
+      [password]="credencialesNuevas()?.password ?? ''"
+      (cerrar)="onCerrarCredenciales()" />
   `,
 })
 export class TenantFormComponent {
@@ -109,10 +118,12 @@ export class TenantFormComponent {
   private readonly router        = inject(Router);
   private readonly route         = inject(ActivatedRoute);
 
-  readonly modoEdicion = signal(false);
-  readonly tenantId    = signal<string | null>(null);
-  readonly cargando    = signal(false);
-  readonly guardando   = signal(false);
+  readonly modoEdicion        = signal(false);
+  readonly tenantId           = signal<string | null>(null);
+  readonly cargando           = signal(false);
+  readonly guardando          = signal(false);
+  readonly mostrarCredenciales = signal(false);
+  readonly credencialesNuevas  = signal<TenantCredenciales | null>(null);
 
   readonly form = this.fb.nonNullable.group({
     nombre:  ['', [Validators.required, Validators.maxLength(200)]],
@@ -147,15 +158,36 @@ export class TenantFormComponent {
     this.guardando.set(true);
     const payload = this.form.getRawValue();
     const id = this.tenantId();
-    const peticion = this.modoEdicion() && id ? this.tenantService.actualizar(id, payload) : this.tenantService.crear(payload);
-    peticion.subscribe({
-      next: () => {
-        this.guardando.set(false);
-        this.toast.success(this.modoEdicion() ? 'Centro actualizado correctamente.' : 'Centro creado correctamente.');
-        this.router.navigate(['/tenants']);
-      },
-      error: (err) => { this.guardando.set(false); this.toast.error(err?.error?.message ?? 'Ocurrió un error al guardar el centro.'); },
-    });
+
+    if (this.modoEdicion() && id) {
+      this.tenantService.actualizar(id, payload).subscribe({
+        next: () => {
+          this.guardando.set(false);
+          this.toast.success('Centro actualizado correctamente.');
+          this.router.navigate(['/tenants']);
+        },
+        error: (err) => { this.guardando.set(false); this.toast.error(err?.error?.message ?? 'Ocurrió un error al guardar el centro.'); },
+      });
+    } else {
+      this.tenantService.crear(payload).subscribe({
+        next: (respuesta) => {
+          this.guardando.set(false);
+          if (respuesta.credencialesDefecto) {
+            this.credencialesNuevas.set(respuesta.credencialesDefecto);
+            this.mostrarCredenciales.set(true);
+          } else {
+            this.toast.success('Centro creado correctamente.');
+            this.router.navigate(['/tenants']);
+          }
+        },
+        error: (err) => { this.guardando.set(false); this.toast.error(err?.error?.message ?? 'Ocurrió un error al guardar el centro.'); },
+      });
+    }
+  }
+
+  onCerrarCredenciales(): void {
+    this.mostrarCredenciales.set(false);
+    this.router.navigate(['/tenants']);
   }
 
   cancelar(): void { this.router.navigate(['/tenants']); }

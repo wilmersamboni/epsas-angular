@@ -3,8 +3,9 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TenantAdminService } from '../../../../core/services/admin/tenant-admin.service';
 import { AdminToastService } from '../../../../core/admin-auth/admin-toast.service';
-import { Tenant } from '../../../../shared/models/admin/tenant.model';
+import { Tenant, TenantCredenciales } from '../../../../shared/models/admin/tenant.model';
 import { AdminConfirmDialogComponent } from '../../../../shared/components/admin/confirm-dialog.component';
+import { AdminCredencialesModalComponent } from '../../../../shared/components/admin/credenciales-modal.component';
 import { AdminBadgeEstadoComponent } from '../../../../shared/components/admin/badge-estado.component';
 import { AdminEmptyStateComponent } from '../../../../shared/components/admin/empty-state.component';
 import { AdminLoadingSpinnerComponent } from '../../../../shared/components/admin/loading-spinner.component';
@@ -12,7 +13,7 @@ import { AdminLoadingSpinnerComponent } from '../../../../shared/components/admi
 @Component({
   selector: 'app-tenant-list',
   standalone: true,
-  imports: [FormsModule, AdminConfirmDialogComponent, AdminBadgeEstadoComponent, AdminEmptyStateComponent, AdminLoadingSpinnerComponent],
+  imports: [FormsModule, AdminConfirmDialogComponent, AdminBadgeEstadoComponent, AdminEmptyStateComponent, AdminLoadingSpinnerComponent, AdminCredencialesModalComponent],
   template: `
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
       <div>
@@ -109,6 +110,13 @@ import { AdminLoadingSpinnerComponent } from '../../../../shared/components/admi
       variante="danger"
       (confirmar)="confirmarEliminar()"
       (cancelar)="cancelarEliminar()" />
+
+    <app-admin-credenciales-modal
+      [visible]="mostrarCredenciales()"
+      titulo="Credenciales reinicializadas"
+      [login]="credencialesActuales()?.login ?? ''"
+      [password]="credencialesActuales()?.password ?? ''"
+      (cerrar)="mostrarCredenciales.set(false)" />
   `,
 })
 export class TenantListComponent {
@@ -116,11 +124,13 @@ export class TenantListComponent {
   private readonly toast         = inject(AdminToastService);
   private readonly router        = inject(Router);
 
-  readonly tenants         = signal<Tenant[]>([]);
-  readonly cargando        = signal(true);
-  readonly busqueda        = signal('');
-  readonly tenantAEliminar = signal<Tenant | null>(null);
+  readonly tenants           = signal<Tenant[]>([]);
+  readonly cargando          = signal(true);
+  readonly busqueda          = signal('');
+  readonly tenantAEliminar   = signal<Tenant | null>(null);
   readonly reinicializandoId = signal<string | null>(null);
+  readonly mostrarCredenciales  = signal(false);
+  readonly credencialesActuales = signal<TenantCredenciales | null>(null);
 
   readonly tenantsFiltrados = computed(() => {
     const termino = this.busqueda().trim().toLowerCase();
@@ -145,9 +155,14 @@ export class TenantListComponent {
   reinicializarTenant(tenant: Tenant): void {
     this.reinicializandoId.set(tenant.id);
     this.tenantService.reinicializar(tenant.id).subscribe({
-      next: (creds) => {
+      next: (respuesta) => {
         this.reinicializandoId.set(null);
-        this.toast.success(`"${tenant.nombre}" reinicializado. Login: ${creds.login}`);
+        if (respuesta.credencialesDefecto) {
+          this.credencialesActuales.set(respuesta.credencialesDefecto);
+          this.mostrarCredenciales.set(true);
+        } else {
+          this.toast.error(`"${tenant.nombre}" reinicializado, pero no se obtuvieron credenciales.`);
+        }
       },
       error: () => { this.reinicializandoId.set(null); this.toast.error('No se pudo reinicializar el tenant.'); },
     });

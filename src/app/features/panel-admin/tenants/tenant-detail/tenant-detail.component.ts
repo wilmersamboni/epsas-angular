@@ -4,15 +4,16 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TenantAdminService } from '../../../../core/services/admin/tenant-admin.service';
 import { AuditLogAdminService } from '../../../../core/services/admin/audit-log-admin.service';
 import { AdminToastService } from '../../../../core/admin-auth/admin-toast.service';
-import { Tenant } from '../../../../shared/models/admin/tenant.model';
+import { Tenant, TenantCredenciales } from '../../../../shared/models/admin/tenant.model';
 import { AuditLog, ACCION_COLORES } from '../../../../shared/models/admin/audit-log.model';
 import { AdminBadgeEstadoComponent } from '../../../../shared/components/admin/badge-estado.component';
 import { AdminLoadingSpinnerComponent } from '../../../../shared/components/admin/loading-spinner.component';
+import { AdminCredencialesModalComponent } from '../../../../shared/components/admin/credenciales-modal.component';
 
 @Component({
   selector: 'app-tenant-detail',
   standalone: true,
-  imports: [RouterLink, DatePipe, AdminBadgeEstadoComponent, AdminLoadingSpinnerComponent],
+  imports: [RouterLink, DatePipe, AdminBadgeEstadoComponent, AdminLoadingSpinnerComponent, AdminCredencialesModalComponent],
   template: `
     <div class="mb-6">
       <nav class="flex items-center gap-1.5 text-xs text-gray-400 mb-2">
@@ -71,6 +72,13 @@ import { AdminLoadingSpinnerComponent } from '../../../../shared/components/admi
         </div>
       </div>
 
+      <app-admin-credenciales-modal
+        [visible]="mostrarCredenciales()"
+        titulo="Credenciales reinicializadas"
+        [login]="credencialesActuales()?.login ?? ''"
+        [password]="credencialesActuales()?.password ?? ''"
+        (cerrar)="mostrarCredenciales.set(false)" />
+
       <!-- Logs -->
       <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mt-4">
         <div class="px-5 py-3.5 border-b border-gray-100 font-semibold text-sm text-gray-800">Últimos registros de auditoría</div>
@@ -117,12 +125,14 @@ export class TenantDetailComponent {
   private readonly route           = inject(ActivatedRoute);
   private readonly router          = inject(Router);
 
-  readonly accionColores      = ACCION_COLORES;
-  readonly cargando           = signal(true);
-  readonly tenant             = signal<Tenant | null>(null);
-  readonly logs               = signal<AuditLog[]>([]);
-  readonly actualizandoEstado = signal(false);
-  readonly reinicializando    = signal(false);
+  readonly accionColores       = ACCION_COLORES;
+  readonly cargando            = signal(true);
+  readonly tenant              = signal<Tenant | null>(null);
+  readonly logs                = signal<AuditLog[]>([]);
+  readonly actualizandoEstado  = signal(false);
+  readonly reinicializando     = signal(false);
+  readonly mostrarCredenciales = signal(false);
+  readonly credencialesActuales = signal<TenantCredenciales | null>(null);
 
   constructor() { this.cargarTenant(); }
 
@@ -161,7 +171,15 @@ export class TenantDetailComponent {
     if (!tenant) return;
     this.reinicializando.set(true);
     this.tenantService.reinicializar(tenant.id).subscribe({
-      next: (creds) => { this.reinicializando.set(false); this.toast.success(`Tenant reinicializado. Login: ${creds.login}`); },
+      next: (respuesta) => {
+        this.reinicializando.set(false);
+        if (respuesta.credencialesDefecto) {
+          this.credencialesActuales.set(respuesta.credencialesDefecto);
+          this.mostrarCredenciales.set(true);
+        } else {
+          this.toast.error('Tenant reinicializado, pero no se pudieron obtener las credenciales.');
+        }
+      },
       error: () => { this.reinicializando.set(false); this.toast.error('No se pudo reinicializar el tenant.'); },
     });
   }
