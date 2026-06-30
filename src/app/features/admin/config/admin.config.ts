@@ -36,7 +36,7 @@ export interface ModuloConfig {
   columnas?: string[];
   campos?: string[];
   selectores?: Record<string, Selector>;
-  tiposCampo?: Record<string, 'date' | 'number' | 'email' | 'text'>;
+  tiposCampo?: Record<string, 'date' | 'number' | 'email' | 'text' | 'password'>;
   usePatch?: boolean;
   grupo?: 'epsas' | 'practica';
   /** Opciones estáticas para dropdowns sin módulo externo */
@@ -101,6 +101,7 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
     actualizar: id => `${BASE}/aplicativos/${id}`,
     eliminar:   id => `${BASE}/aplicativos/${id}`,
     grupo: 'epsas',
+    columnas: ['nombre'],
     campos: ['nombre'],
   },
 
@@ -199,6 +200,13 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
     usePatch: true,
     columnas: ['nombre', 'tipo'],
     campos: ['nombre', 'tipo'],
+    opcionesEstaticas: {
+      tipo: [
+        { label: 'Tecnólogo', value: 'tecnologo' },
+        { label: 'Técnico',   value: 'tecnico'   },
+        { label: 'Auxiliar',  value: 'auxiliar'  },
+      ],
+    },
   },
 
   areas: {
@@ -242,6 +250,9 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
       rolId:     { modulo: 'roles',    label: 'nombre',  value: 'idRol'     },
       usuarioId: { modulo: 'usuarios', label: 'persona', value: 'idUsuario' },
     },
+    tiposCampo: {
+      password: 'password',
+    },
   },
 
   // ── Módulos api2 (backend-practica-hexagonal) ────────────────────────
@@ -256,12 +267,22 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
     columnas: ['nit', 'nombre', 'municipio', 'telefono', 'correo', 'estado'],
     campos: ['nit', 'nombre', 'direccion', 'telefono', 'correo', 'municipio', 'estado', 'tipo', 'longitud', 'latitud'],
     selectores: {
-      municipio: { modulo: 'municipios', label: 'nombre', value: 'idMunicipio' },
+      municipio: { modulo: 'municipios', label: 'nombre', value: 'nombre' },
     },
     tiposCampo: {
       correo:   'email',
-      longitud: 'text',
-      latitud:  'text',
+      longitud: 'number',
+      latitud:  'number',
+    },
+    opcionesEstaticas: {
+      estado: [
+        { label: 'Activo',   value: 'activo'   },
+        { label: 'Inactivo', value: 'inactivo' },
+      ],
+      tipo: [
+        { label: 'Unipersonal', value: 'unipersonal' },
+        { label: 'Empresa',     value: 'empresa'     },
+      ],
     },
   },
   
@@ -273,6 +294,14 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
     grupo: 'practica',
     usePatch: true,
     campos: ['nombre'],
+    opcionesEstaticas: {
+      nombre: [
+        { label: 'Proyecto Productivo',      value: 'proyecto productivo'      },
+        { label: 'Pasantía',                 value: 'pasantia'                 },
+        { label: 'Monitoría',                value: 'monitoria'                },
+        { label: 'Contrato de Aprendizaje',  value: 'contrato de aprendizaje'  },
+      ],
+    },
   },
 
  etapas: {
@@ -291,8 +320,14 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
     },
     opcionesEstaticas: {
       estado: [
-        { label: 'Activo',   value: 'activo'   },
-        { label: 'Inactivo', value: 'inactivo' },
+        { label: 'Activo',            value: 'activo'            },
+        { label: 'Inactivo',          value: 'inactivo'          },
+        { label: 'Suspendido',        value: 'suspendido'        },
+        { label: 'Condicionado',      value: 'condicionado'      },
+        { label: 'Certificado',       value: 'certificado'       },
+        { label: 'Por Certificar',    value: 'por certificar'    },
+        { label: 'Cancelado',         value: 'cancelado'         },
+        { label: 'Retiro Voluntario', value: 'retiro voluntario' },
       ],
     },
     tiposCampo: {
@@ -342,8 +377,13 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
       },
       opcionesEstaticas: {
         estado: [
-          { label: 'Activo',   value: 'activo'   },
-          { label: 'Inactivo', value: 'inactivo' },
+          { label: 'Activo',            value: 'activo'            },
+          { label: 'Inactivo',          value: 'inactivo'          },
+          { label: 'Pendiente',         value: 'pendiente'         },
+          { label: 'Condicionado',      value: 'condicionado'      },
+          { label: 'Cancelado',         value: 'cancelado'         },
+          { label: 'Retiro Voluntario', value: 'retiro voluntario' },
+          { label: 'Certificado',       value: 'certificado'       },
         ],
       },
       tiposCampo: {
@@ -359,11 +399,20 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
     eliminar:   id => `${BASE2}/bitacoras/${id}`,
     grupo: 'practica',
     usePatch: true,
-    // seguimiento llega como objeto anidado → ocultar con columnas explícitas
     columnas: ['fecha', 'estado', 'bitacora_pdf'],
     campos: ['seguimientoId', 'fecha', 'bitacora_pdf', 'estado'],
+    selectores: {
+      seguimientoId: { modulo: 'seguimientos', label: 'estado', value: 'id' },
+    },
     tiposCampo: {
       fecha: 'date',
+    },
+    opcionesEstaticas: {
+      estado: [
+        { label: 'Pendiente',  value: 'pendiente'  },
+        { label: 'Aceptada',   value: 'aceptada'   },
+        { label: 'Rechazada',  value: 'rechazada'  },
+      ],
     },
   },
 
@@ -374,11 +423,11 @@ export const CONFIG: Record<Modulo, ModuloConfig> = {
     eliminar:   id => `${BASE2}/observaciones/${id}`,
     grupo: 'practica',
     usePatch: true,
-    // 'persona' guarda un UUID de la tabla personas → el selector lo resuelve al nombre
     columnas: ['fecha', 'descripcion', 'persona', 'evidencia_foto'],
     campos: ['seguimientoId', 'fecha', 'descripcion', 'persona', 'evidencia_foto'],
     selectores: {
-      persona: { modulo: 'personas', label: 'nombre', value: 'idPersona' },
+      seguimientoId: { modulo: 'seguimientos', label: 'estado', value: 'id' },
+      persona:       { modulo: 'personas',     label: 'nombre', value: 'idPersona' },
     },
     tiposCampo: {
       fecha: 'date',

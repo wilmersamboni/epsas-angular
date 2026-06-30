@@ -40,14 +40,34 @@ export class HomeComponent implements OnInit {
   chartDataEtapaActiva:      any = null;
   chartDataEtapaCertificada: any = null;
   chartDataPersonal:         any = null;
+  chartDataEstados:          any = null;
 
   chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     cutout: '72%',
+    plugins: { legend: { display: false }, tooltip: { enabled: true } }
+  };
+
+  chartOptionsBar = {
+    responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
       tooltip: { enabled: true }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        border: { display: false },
+        ticks: { font: { size: 11, family: 'Inter' }, color: '#94a3b8' }
+      },
+      y: {
+        grid: { color: '#f1f5f9' },
+        border: { display: false },
+        ticks: { stepSize: 1, font: { size: 11, family: 'Inter' }, color: '#94a3b8' },
+        beginAtZero: true
+      }
     }
   };
 
@@ -56,13 +76,32 @@ export class HomeComponent implements OnInit {
   readonly esInstructor = computed(() => this.cargo() === 'instructor');
   readonly esAdmin      = computed(() => this.auth.isAdmin());
 
+  getInitials(nombre: string): string {
+    if (!nombre || nombre === '—') return '?';
+    return nombre.split(' ').filter(n => n.length > 0).slice(0, 2)
+      .map(n => n[0].toUpperCase()).join('');
+  }
+
+  estadoClass(estado: string): string {
+    const e = (estado ?? '').toLowerCase().trim();
+    if (['activo', 'activa', 'en_curso', 'en curso', 'inactivo'].includes(e)) return 'badge-success';
+    if (['certificado', 'certificada', 'por certificar'].includes(e))         return 'badge-info';
+    if (['desercion', 'desertado', 'desertada', 'deserción'].includes(e))     return 'badge-danger';
+    if (['suspendido', 'suspendida'].includes(e))                              return 'badge-warning';
+    if (e === 'condicionado')                                                  return 'badge-condicionado';
+    if (e === 'cancelado')                                                     return 'badge-cancelado';
+    if (['retiro voluntario', 'retiro_voluntario'].includes(e))               return 'badge-retiro';
+    return 'badge-secondary';
+  }
+
   // ── Severity para p-tag de estado ───────────────────────────────────────
   estadoSeverity(estado: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' {
-    const e = (estado ?? '').toLowerCase();
-    if (['activo', 'activa', 'en_curso', 'en curso'].includes(e)) return 'success';
-    if (['certificado', 'certificada'].includes(e))               return 'info';
-    if (['desercion', 'desertado', 'desertada'].includes(e))      return 'danger';
-    if (['suspendido', 'suspendida'].includes(e))                  return 'warn';
+    const e = (estado ?? '').toLowerCase().trim();
+    if (['activo', 'activa', 'en_curso', 'en curso', 'inactivo'].includes(e)) return 'success';
+    if (['certificado', 'certificada', 'por certificar'].includes(e))         return 'info';
+    if (['desercion', 'desertado', 'desertada', 'cancelado'].includes(e))     return 'danger';
+    if (['suspendido', 'suspendida', 'condicionado',
+         'retiro voluntario', 'retiro_voluntario'].includes(e))               return 'warn';
     return 'secondary';
   }
 
@@ -87,6 +126,47 @@ export class HomeComponent implements OnInit {
         backgroundColor: ['#2563eb', '#e2e8f0'],
         hoverBackgroundColor: ['#1d4ed8', '#d1d5db'],
         borderWidth: 0
+      }]
+    };
+  }
+
+  private buildChartEstados(): void {
+    const conteo: Record<string, number> = {
+      'activo': 0, 'certificado': 0, 'desertado': 0,
+      'suspendido': 0, 'condicionado': 0, 'cancelado': 0, 'retiro voluntario': 0
+    };
+
+    this.practicas.forEach(p => {
+      const e = (p.estado ?? '').toLowerCase().trim();
+      if (['activo', 'activa', 'en_curso', 'en curso', 'inactivo'].includes(e))  conteo['activo']++;
+      else if (['certificado', 'certificada', 'por certificar'].includes(e))      conteo['certificado']++;
+      else if (['desertado', 'desertada', 'desercion', 'deserción'].includes(e)) conteo['desertado']++;
+      else if (['suspendido', 'suspendida'].includes(e))                           conteo['suspendido']++;
+      else if (e === 'condicionado')                                               conteo['condicionado']++;
+      else if (e === 'cancelado')                                                  conteo['cancelado']++;
+      else if (['retiro voluntario', 'retiro_voluntario'].includes(e))            conteo['retiro voluntario']++;
+    });
+
+    const keys   = ['activo', 'certificado', 'desertado', 'suspendido', 'condicionado', 'cancelado', 'retiro voluntario'];
+    const labels = ['Activo', 'Certificado', 'Desertado', 'Suspendido', 'Condicionado', 'Cancelado', 'Retiro Vol.'];
+    const colors = [
+      'rgba(57,169,0,0.85)',
+      'rgba(59,130,246,0.85)',
+      'rgba(249,115,22,0.85)',
+      'rgba(168,85,247,0.85)',
+      'rgba(234,179,8,0.85)',
+      'rgba(220,38,38,0.85)',
+      'rgba(100,116,139,0.85)',
+    ];
+
+    this.chartDataEstados = {
+      labels,
+      datasets: [{
+        label: 'Aprendices',
+        data: keys.map(k => conteo[k]),
+        backgroundColor: colors,
+        borderRadius: 8,
+        borderSkipped: false,
       }]
     };
   }
@@ -163,6 +243,10 @@ export class HomeComponent implements OnInit {
       if (this.esAprendiz() && this.practicas.length > 0) {
         this.miPractica = this.practicas[0];
         this.buildChartPersonal();
+      }
+
+      if (!this.esAprendiz()) {
+        this.buildChartEstados();
       }
 
     }).catch((err) => {

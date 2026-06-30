@@ -271,8 +271,11 @@ import { TuiCalendar } from '@taiga-ui/core';
                   <option value="activo">Activo</option>
                   <option value="inactivo">Inactivo</option>
                   <option value="suspendido">Suspendido</option>
+                  <option value="condicionado">Condicionado</option>
                   <option value="certificado">Certificado</option>
                   <option value="por certificar">Por certificar</option>
+                  <option value="cancelado">Cancelado</option>
+                  <option value="retiro voluntario">Retiro Voluntario</option>
                 </select>
               </div>
 

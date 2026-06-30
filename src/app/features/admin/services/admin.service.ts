@@ -146,15 +146,21 @@ export class AdminService {
       let rows = Array.isArray(result) ? result : result?.data ?? [];
 
       if (mod === 'matriculas') {
-        rows = rows.map((m: any) => ({
-          ...m,
-          // UUIDs planos para que los selectores del form pre-carguen al editar
-          persona:    m.idPersona ?? m.persona?.idPersona ?? '',
-          curso:      m.idCurso   ?? m.curso?.idCurso     ?? '',
-          // campos de display usados en tabla y en cross-ref de etapas
-          estudiante: m.persona?.nombre ?? m.persona?.name ?? '—',
-          cargo:      m.persona?.cargo  ?? '—',
-        }));
+        const personasRaw: any[] = this.rawData()['personas'] ?? [];
+        rows = rows.map((m: any) => {
+          const personaId  = m.idPersona ?? (typeof m.persona === 'string' ? m.persona : m.persona?.idPersona) ?? '';
+          const cursoId    = m.idCurso   ?? (typeof m.curso   === 'string' ? m.curso   : m.curso?.idCurso)     ?? '';
+          const personaData = personasRaw.find((p: any) => p.idPersona === personaId);
+          return {
+            ...m,
+            persona:    personaId,
+            curso:      cursoId,
+            // avance llega como string decimal "0.00" desde la BD → convertir a número
+            avance:     m.avance != null ? parseFloat(m.avance) : m.avance,
+            estudiante: personaData?.nombre ?? m.persona?.nombre ?? m.persona?.name ?? '—',
+            cargo:      personaData?.cargo  ?? m.persona?.cargo  ?? '—',
+          };
+        });
       }
 
       // Etapas: añadir campo 'aprendiz' cruzando matriculaId → rawData de matrículas
@@ -425,10 +431,9 @@ export class AdminService {
   // ── SELECTORES ────────────────────────────────────────
   private buildOpciones(mod: Modulo): Record<string, OpcionSelect[]> {
     const cfg = CONFIG[mod];
-    if (!cfg.selectores) return {};
-
     const opciones: Record<string, OpcionSelect[]> = {};
-    for (const [campo, selector] of Object.entries(cfg.selectores)) {
+
+    for (const [campo, selector] of Object.entries(cfg.selectores ?? {})) {
       let items: any[] = this.data()[selector.modulo] ?? [];
 
       // Aplica filtro si está definido en el selector (p.ej. { cargo: 'aprendiz' })
