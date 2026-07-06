@@ -308,7 +308,7 @@ export class BitacorasModalComponent implements OnChanges, OnInit {
   private auth = inject(AuthService);
 
   /** Evaluar bitácoras: solo admin e instructor */
-  canEvaluar() { return this.auth.hasRole(['administrador', 'instructor']); }
+  canEvaluar() { return this.auth.hasRole(['administrador', 'administrador_erp', 'instructor']); }
 
   @Input() isOpen       = false;
   @Input() alumno:      any = null;

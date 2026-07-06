@@ -165,10 +165,12 @@ export class EditarPracticaModalComponent implements OnChanges {
 
   /* ── Estados ──────────────────────────────────────────────────── */
   readonly estadosValores: readonly string[] = [
-    'activo', 'inactivo', 'suspendido', 'certificado', 'por certificar',
+    'activo', 'inactivo', 'suspendido', 'condicionado',
+    'certificado', 'por certificar', 'cancelado', 'retiro voluntario',
   ];
   readonly estadosLabels: readonly string[] = [
-    'Activo', 'Inactivo', 'Suspendido', 'Certificado', 'Por certificar',
+    'Activo', 'Inactivo', 'Suspendido', 'Condicionado',
+    'Certificado', 'Por certificar', 'Cancelado', 'Retiro Voluntario',
   ];
 
   /* ── Modelo del formulario ────────────────────────────────────── */

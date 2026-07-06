@@ -12,8 +12,9 @@ export class AuthService {
   readonly isAuthenticated = computed(() => this._user() !== null);
 
   /** Cargo del usuario autenticado: 'administrador' | 'instructor' | 'aprendiz' | '' */
-  readonly cargo    = computed(() => this._user()?.cargo ?? '');
-  readonly isAdmin  = computed(() => this.cargo() === 'administrador');
+  readonly cargo       = computed(() => this._user()?.cargo ?? '');
+  readonly isAdmin     = computed(() => this.cargo() === 'administrador' || this.cargo() === 'administrador_erp');
+  readonly isAdminErp  = computed(() => this.cargo() === 'administrador_erp');
 
   /** Devuelve true si el cargo del usuario está en la lista de roles permitidos */
   hasRole(roles: string[]): boolean {
@@ -33,21 +34,19 @@ export class AuthService {
   // El login va DIRECTO a :3000 (sin proxy) para que el navegador
   // reciba y guarde la cookie de sesión correctamente.
   // Esa misma cookie la envía luego en las peticiones a :3001 vía proxy.
-  async login(data: LoginRequest): Promise<void> {
+ async login(data: LoginRequest): Promise<void> {
   const resp = await firstValueFrom(
     this.http.post<LoginResponse>(
-      //'http://2.24.77.37/api/auth/login',
-       'http://localhost:3000/api/auth/login',
+      '/api/auth/login',   // ← relativo, pasa por el proxy de Angular
       data,
       { withCredentials: true }
     )
   );
   localStorage.setItem('user', JSON.stringify(resp.usuario));
-  //localStorage.setItem('token', resp.token);
   localStorage.setItem('centroId', resp.centroId ?? '');
+  localStorage.setItem('tenantSlug', resp.tenantSlug ?? '');
   localStorage.setItem('cargo', resp.usuario.cargo ?? '');
   this._user.set(resp.usuario);
-  
 }
 
   // ── logout() ──────────────────────────────────────────────────────────────
@@ -55,6 +54,7 @@ export class AuthService {
     localStorage.removeItem('user');
     //localStorage.removeItem('token');
     localStorage.removeItem('centroId');
+    localStorage.removeItem('tenantSlug');
     localStorage.removeItem('cargo');
     this._user.set(null);
     this.router.navigate(['/'], { replaceUrl: true });

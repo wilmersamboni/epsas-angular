@@ -315,10 +315,8 @@ export class TableBodyComponent {
   }
 
   // ── Permisos por rol ────────────────────────────────────────────────────────
-  /** Observar: admin e instructor */
-  canObservar()      { return this.auth.hasRole(['administrador', 'instructor']); }
-  /** Crear práctica: solo admin */
-  canCrearPractica() { return this.auth.hasRole(['administrador']); }
+  canObservar()      { return this.auth.hasRole(['administrador', 'administrador_erp', 'instructor']); }
+  canCrearPractica() { return this.auth.hasRole(['administrador', 'administrador_erp']); }
 
   // ── Badges de estado ────────────────────────────────────────────────────────
   estadoBadgeCls(estado: string): object {

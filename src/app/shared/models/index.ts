@@ -18,7 +18,8 @@ export interface LoginResponse {
   usuario: Usuario;
   accion: string;
   mensaje: string;
-  centroId: string; // ← nuevo
+  centroId: string;
+  tenantSlug: string;
 }
 
 // ── Áreas ─────────────────────────────────────────────────────────────────────

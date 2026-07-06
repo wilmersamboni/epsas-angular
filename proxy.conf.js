@@ -11,11 +11,10 @@ const PROXY_CONFIG = {
     changeOrigin: true,
     logLevel: "debug"
   },
-  "/api2/": {  // <--- Agrega una barra "/" aquí
+  "/api2/": {
     target: "http://localhost:3001",
     secure: false,
     changeOrigin: true,
- // <--- Asegúrate de que termine en barra
     logLevel: "debug",
     cookieDomainRewrite: "localhost",
     onProxyReq(proxyReq, req) {
@@ -31,8 +30,7 @@ const PROXY_CONFIG = {
            .replace(/; Secure/gi, "")
         );
       }
-    },
-    logLevel: "debug"
+    }
   }
 };
 

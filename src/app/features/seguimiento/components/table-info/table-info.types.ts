@@ -60,9 +60,14 @@ export const INITIAL_VISIBLE_COLS = new Set([
 ]);
 
 export const STATUS_OPTIONS: StatusOption[] = [
-  { name: 'Activo',     uid: 'activo'     },
-  { name: 'Inactivo',   uid: 'inactivo'   },
-  { name: 'Suspendido', uid: 'suspendido' },
+  { name: 'Activo',            uid: 'activo'            },
+  { name: 'Inactivo',          uid: 'inactivo'          },
+  { name: 'Suspendido',        uid: 'suspendido'        },
+  { name: 'Condicionado',      uid: 'condicionado'      },
+  { name: 'Certificado',       uid: 'certificado'       },
+  { name: 'Por certificar',    uid: 'por certificar'    },
+  { name: 'Cancelado',         uid: 'cancelado'         },
+  { name: 'Retiro Voluntario', uid: 'retiro voluntario' },
 ];
 
 // ── Helpers puros (sin dependencia de Angular) ────────────────────────────────
@@ -96,7 +101,14 @@ export function avanceColor(avance: any): string {
 
 export function statusDotColor(uid: string): string {
   const map: Record<string, string> = {
-    activo: '#39A900', inactivo: '#f31260', suspendido: '#f5a524',
+    activo:            '#39A900',
+    inactivo:          '#f31260',
+    suspendido:        '#f5a524',
+    condicionado:      '#eab308',
+    certificado:       '#3b82f6',
+    'por certificar':  '#6366f1',
+    cancelado:         '#dc2626',
+    'retiro voluntario': '#94a3b8',
   };
   return map[uid] ?? '#ccc';
 }

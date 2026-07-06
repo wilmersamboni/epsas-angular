@@ -113,7 +113,6 @@ export class ApiService {
     } catch { return []; }
   }
 
-  // ✅ NUEVO: Obtener TODAS las matrículas de una vez (optimización)
   async listarTodasMatriculas(): Promise<any[]> {
     try {
       const resp: any = await firstValueFrom(this.http.get(`${BASE}/matriculas`));
