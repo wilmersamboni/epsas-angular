@@ -32,11 +32,7 @@
   </div>
 
   <!-- ══════════════════════════════════════════════════════════════════════
-<<<<<<< HEAD
-      VISTA APRENDIZ — muestra su práctica personal
-=======
        VISTA APRENDIZ
->>>>>>> wilmer
   ══════════════════════════════════════════════════════════════════════════ -->
   @if (esAprendiz()) {
     <div class="dash-body">
@@ -62,31 +58,16 @@
           <h3>No tienes una etapa práctica asignada aún</h3>
           <p>Tu instructor o administrador la creará cuando estés listo.</p>
         </div>
+      
 
       } @else {
         <div class="dash-left">
-<<<<<<< HEAD
-        
-          <!-- Hero card: empresa + estado + avance -->
-=======
->>>>>>> wilmer
           <p-card styleClass="hero-card">
             <div class="hero-content">
               <div class="hero-info">
                 <p class="personal-label">Tu etapa práctica</p>
                 <h2 class="personal-empresa">{{ miPractica.empresaNombre }}</h2>
-<<<<<<< HEAD
-                <p class="personal-label" style="margin-top:4px; opacity:0.7">
-                  {{ miPractica.modalidadNombre }}
-                </p>
-                <p-tag
-                  [value]="miPractica.estado"
-                  [severity]="estadoSeverity(miPractica.estado)"
-                  styleClass="mt-2"
-                />
-=======
                 <p-tag [value]="miPractica.estado" [severity]="estadoSeverity(miPractica.estado)" styleClass="mt-2"/>
->>>>>>> wilmer
               </div>
               <div class="avance-box">
                 <span class="avance-number">{{ miPractica.avance ?? 0 }}%</span>
@@ -94,12 +75,6 @@
               </div>
             </div>
           </p-card>
-<<<<<<< HEAD
-        
-          <!-- Barra de progreso -->
-=======
-
->>>>>>> wilmer
           <div class="progress-wrap">
             <div class="progress-header">
               <span class="progress-label">Progreso general</span>
@@ -107,84 +82,31 @@
             </div>
             <p-progressbar [value]="miPractica.avance ?? 0" [showValue]="false" styleClass="sena-progress"/>
           </div>
-<<<<<<< HEAD
-        
-          <!-- Tarjetas de detalle -->
-          <div class="cards-row">
-          
-=======
 
           <div class="cards-row">
->>>>>>> wilmer
             <p-card styleClass="detail-card">
               <div class="detail-icon icon-green"><i class="pi pi-calendar"></i></div>
               <div class="card-value-sm">{{ miPractica.fecha_inicio ?? '—' }}</div>
               <div class="card-label">Inicio práctica</div>
             </p-card>
-<<<<<<< HEAD
-          
-=======
->>>>>>> wilmer
             <p-card styleClass="detail-card">
               <div class="detail-icon icon-blue"><i class="pi pi-calendar-times"></i></div>
               <div class="card-value-sm">{{ miPractica.fecha_fin ?? '—' }}</div>
               <div class="card-label">Fin práctica</div>
             </p-card>
-<<<<<<< HEAD
-          
-            <p-card styleClass="detail-card">
-              <div class="detail-icon icon-orange"><i class="pi pi-book"></i></div>
-              <div class="card-value-sm text-sm">{{ miPractica.programa || '—' }}</div>
-              <div class="card-label">Programa</div>
-            </p-card>
-          
-=======
             <p-card styleClass="detail-card">
               <div class="detail-icon icon-orange"><i class="pi pi-book"></i></div>
               <div class="card-value-sm">{{ miPractica.programa || '—' }}</div>
               <div class="card-label">Programa</div>
             </p-card>
->>>>>>> wilmer
             <p-card styleClass="detail-card">
               <div class="detail-icon icon-purple"><i class="pi pi-hashtag"></i></div>
               <div class="card-value-sm">{{ miPractica.ficha || '—' }}</div>
               <div class="card-label">Ficha</div>
             </p-card>
-<<<<<<< HEAD
-          
-            <p-card styleClass="detail-card">
-              <div class="detail-icon icon-green"><i class="pi pi-id-card"></i></div>
-              <div class="card-value-sm text-sm">{{ miPractica.identificacion || '—' }}</div>
-              <div class="card-label">Identificación</div>
-            </p-card>
-          
-            <p-card styleClass="detail-card">
-              <div class="detail-icon icon-blue"><i class="pi pi-map-marker"></i></div>
-              <div class="card-value-sm text-sm">{{ miPractica.municipioPersona || '—' }}</div>
-              <div class="card-label">Municipio</div>
-            </p-card>
-          
-            <p-card styleClass="detail-card">
-              <div class="detail-icon icon-orange"><i class="pi pi-envelope"></i></div>
-              <div class="card-value-sm">{{ miPractica.correo || '—' }}</div>
-              <div class="card-label">Correo</div>
-            </p-card>
-          
-            <p-card styleClass="detail-card">
-              <div class="detail-icon icon-purple"><i class="pi pi-comment"></i></div>
-              <div class="card-value-sm">{{ miPractica.observacion || '—' }}</div>
-              <div class="card-label">Observación</div>
-            </p-card>
-          
-          </div>
-        </div>
-      
-        <!-- Columna derecha: gráfica de progreso -->
-=======
           </div>
         </div>
 
->>>>>>> wilmer
         <div class="dash-right">
           <p-card styleClass="donut-card">
             <div class="donut-header">

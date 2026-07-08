@@ -1,18 +1,18 @@
 const PROXY_CONFIG = {
   "/api/": {
-    target: "http://localhost:3000",
+    target: "http://localhost:3002",
     secure: false,
     changeOrigin: true,
     logLevel: "debug"
   },
   "/uploads/": {
-    target: "http://localhost:3001",
+    target: "http://localhost:3002",
     secure: false,
     changeOrigin: true,
     logLevel: "debug"
   },
   "/api2/": {
-    target: "http://localhost:3001",
+    target: "http://localhost:3002",
     secure: false,
     changeOrigin: true,
     logLevel: "debug",
