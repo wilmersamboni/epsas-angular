@@ -7,7 +7,7 @@ import { Observable } from 'rxjs';
 })
 export class ChatService {
 
-  private webhookUrl = 'https://bot.kromas.lat/webhook/asistente';
+  private webhookUrl = 'https://danin8n.duckdns.org/webhook/bot_virtual';
   private sessionId = crypto.randomUUID();
 
   constructor(private http: HttpClient) {}

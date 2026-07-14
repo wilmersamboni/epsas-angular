@@ -1,10 +1,11 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, ViewChild, ElementRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../../core/services/auth.service';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
 
-import { CONFIG, MODULOS, MODULOS_EPSAS, MODULOS_PRACTICA } from '../config/admin.config';
+import { CONFIG, MODULOS, MODULOS_EPSAS, MODULOS_PRACTICA, MODULOS_ADMIN } from '../config/admin.config';
 import { AdminService } from '../services/admin.service';
 import { AdminTableComponent } from '../components/admin-table.component';
 import { AdminModalComponent } from '../components/admin-modal.component';
@@ -47,7 +48,8 @@ import { ConfiguracionAdminComponent } from '../components/configuracion-admin.c
           </div>
         </div>
 
-        <!-- ── REGISTRO RÁPIDO ── -->
+        <!-- ── REGISTRO RÁPIDO (ambos tipos de admin) ── -->
+        @if (auth.isAdmin()) {
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <div class="flex items-center gap-2 mb-4">
             <svg class="w-4 h-4 text-[#39A900]" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -114,6 +116,7 @@ import { ConfiguracionAdminComponent } from '../components/configuracion-admin.c
 
           </div>
         </div>
+        } <!-- /Registro Rápido -->
 
         <!-- ── CONFIGURACIÓN GLOBAL ── -->
         <app-configuracion-admin />
@@ -121,42 +124,55 @@ import { ConfiguracionAdminComponent } from '../components/configuracion-admin.c
         <!-- ── GESTIÓN DE TABLAS ── -->
         <div class="bg-white rounded-2xl shadow-xl border border-gray-200/60 overflow-hidden">
 
-          <!-- ── Barra de vista: ERP / Prácticas ── -->
-          <div class="px-6 pt-5 pb-4 border-b border-gray-100 bg-gray-50/60">
-            <div class="inline-flex items-center bg-white rounded-2xl shadow-sm border border-gray-200 p-1 gap-1">
+          <!-- ── Barra de vista: ERP / Prácticas (solo administrador_erp) ── -->
+          @if (auth.isAdminErp()) {
+            <div class="px-6 pt-5 pb-4 border-b border-gray-100 bg-gray-50/60">
+              <div class="inline-flex items-center bg-white rounded-2xl shadow-sm border border-gray-200 p-1 gap-1">
 
-              <!-- Botón ERP -->
-              <button (click)="setVista('epsas')"
-                class="relative flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200"
-                [class]="vista() === 'epsas'
-                  ? 'bg-[#39A900] text-white shadow-md shadow-[#39A900]/25'
-                  : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                </svg>
-                ERP
-              </button>
+                <!-- Botón ERP -->
+                <button (click)="setVista('epsas')"
+                  class="relative flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200"
+                  [class]="vista() === 'epsas'
+                    ? 'bg-[#39A900] text-white shadow-md shadow-[#39A900]/25'
+                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                  </svg>
+                  ERP
+                </button>
 
-              <!-- Botón Prácticas -->
-              <button (click)="setVista('practica')"
-                class="relative flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200"
-                [class]="vista() === 'practica'
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
-                  : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                </svg>
-                Prácticas
-              </button>
+                <!-- Botón Prácticas -->
+                <button (click)="setVista('practica')"
+                  class="relative flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200"
+                  [class]="vista() === 'practica'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
+                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                  </svg>
+                  Prácticas
+                </button>
 
+              </div>
             </div>
-          </div>
+          }
 
           <!-- ── Pestañas del grupo activo ── -->
-          <div class="px-6 pt-3 pb-0 border-b border-gray-200/80">
-            <div class="flex gap-1 overflow-x-auto pb-px" style="scrollbar-width:none">
+          <div class="px-2 pt-3 pb-0 border-b border-gray-200/80 flex items-end gap-1">
+
+            <!-- Flecha izquierda -->
+            <button (click)="scrollTabs(-200)"
+              class="flex-shrink-0 w-7 h-8 flex items-center justify-center rounded-lg
+                     text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors mb-0.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+              </svg>
+            </button>
+
+            <!-- Carril de tabs con scroll -->
+            <div #tabsEl class="flex gap-1 overflow-x-auto pb-px flex-1" style="scrollbar-width:none">
               @for (mod of modulosVista(); track mod) {
                 <button (click)="admin.activeTab.set(mod)"
                   class="relative px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition-all duration-200 rounded-t-lg"
@@ -171,6 +187,16 @@ import { ConfiguracionAdminComponent } from '../components/configuracion-admin.c
                 </button>
               }
             </div>
+
+            <!-- Flecha derecha -->
+            <button (click)="scrollTabs(200)"
+              class="flex-shrink-0 w-7 h-8 flex items-center justify-center rounded-lg
+                     text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors mb-0.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+              </svg>
+            </button>
+
           </div>
 
           <div class="p-6">
@@ -329,9 +355,10 @@ export class AdminPanelComponent implements OnInit {
   // ── Vista activa: ERP vs Prácticas ──────────────────────────
   vista = signal<'epsas' | 'practica'>('epsas');
 
-  modulosVista = computed(() =>
-    this.vista() === 'epsas' ? MODULOS_EPSAS : MODULOS_PRACTICA
-  );
+  modulosVista = computed(() => {
+    if (!this.auth.isAdminErp()) return MODULOS_ADMIN;
+    return this.vista() === 'epsas' ? MODULOS_EPSAS : MODULOS_PRACTICA;
+  });
 
   setVista(v: 'epsas' | 'practica'): void {
     this.vista.set(v);
@@ -344,9 +371,19 @@ export class AdminPanelComponent implements OnInit {
   wizardOpen  = signal(false);
   wizardCargo = signal<'instructor' | 'aprendiz'>('instructor');
 
-  constructor(public admin: AdminService, private msg: MessageService) {}
+  @ViewChild('tabsEl') tabsEl!: ElementRef<HTMLDivElement>;
+
+  scrollTabs(px: number): void {
+    this.tabsEl?.nativeElement?.scrollBy({ left: px, behavior: 'smooth' });
+  }
+
+  constructor(public admin: AdminService, private msg: MessageService, public auth: AuthService) {}
 
   ngOnInit(): void {
+    if (!this.auth.isAdminErp()) {
+      // administrador: vista plana (personas → prácticas), sin toggle ERP/Prácticas
+      if (MODULOS_ADMIN.length) this.admin.activeTab.set(MODULOS_ADMIN[0]);
+    }
     this.admin.cargarTodos();
   }
 

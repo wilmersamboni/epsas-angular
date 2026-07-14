@@ -7,6 +7,7 @@ import { PdfViewerModule } from 'ng2-pdf-viewer';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { PracticaService, SeguimientoService } from '../../../core/services';
+import { NotificacionService } from '../../../core/services/notificacion.service';
 
 /**
  * Equivalente a ModalBitacoras.tsx + BitacorasCard.tsx de React.
@@ -307,12 +308,16 @@ export class BitacorasModalComponent implements OnChanges, OnInit {
   private auth = inject(AuthService);
 
   /** Evaluar bitácoras: solo admin e instructor */
-  canEvaluar() { return this.auth.hasRole(['administrador', 'instructor']); }
+  canEvaluar() { return this.auth.hasRole(['administrador', 'administrador_erp', 'instructor']); }
 
   @Input() isOpen       = false;
   @Input() alumno:      any = null;
   @Input() seguimiento: any = null;
   @Input() practicaId:  any = null;   // id de etapa_practica para actualizar avance
+  /** ID del instructor asignado a la etapa (para notificaciones) */
+  @Input() instructorId: string = '';
+  /** ID del aprendiz dueño de las bitácoras (para notificaciones) */
+  @Input() aprendizId: string = '';
   @Output() closed             = new EventEmitter<void>();
   @Output() avanceActualizado  = new EventEmitter<number>();
 
@@ -336,7 +341,8 @@ export class BitacorasModalComponent implements OnChanges, OnInit {
   constructor(
     private seguimientoSvc: SeguimientoService,
     private sanitizer: DomSanitizer, 
-    private bitacoraSvc: PracticaService
+    private bitacoraSvc: PracticaService,
+    private notificacionSvc: NotificacionService
   ) {}
 
   // Cierra el dropdown al hacer clic fuera
@@ -448,6 +454,38 @@ toggleDropdown(item: any, event: MouseEvent): void {
         lista.map(b => (b.id ?? b.id_bitacora) === bitacoraId ? { ...b, estado } : b)
       );
       this.recalcularAvance();
+
+      // ── Notificaciones al cambiar estado de bitácora ──────────────────────
+      // El instructor aprueba/rechaza → notifica al aprendiz y al admin
+      if (estado === 'aceptada' || estado === 'rechazada') {
+        const instructorNombre = this.auth.user()?.nombre ?? 'El instructor';
+        const aprendizNombre   = this.alumno?.name ?? this.alumno?.nombre ?? 'El aprendiz';
+        const fecha            = new Date().toLocaleDateString('es-CO');
+        const seguimientoId    = this.seguimiento?.id ?? this.seguimiento?.id_seguimiento ?? '';
+        const adminIds         = await this.notificacionSvc.obtenerIdsAdmins();
+
+        if (this.aprendizId) {
+          if (estado === 'aceptada') {
+            await this.notificacionSvc.notificarBitacoraAprobada({
+              aprendizId: this.aprendizId,
+              adminIds,
+              instructorNombre,
+              aprendizNombre,
+              fecha,
+              seguimientoId,
+            });
+          } else {
+            await this.notificacionSvc.notificarBitacoraRechazada({
+              aprendizId: this.aprendizId,
+              adminIds,
+              instructorNombre,
+              aprendizNombre,
+              fecha,
+              seguimientoId,
+            });
+          }
+        }
+      }
     } catch (e) {
       await this.cargarBitacoras();
     }
@@ -499,6 +537,21 @@ toggleDropdown(item: any, event: MouseEvent): void {
       this.bitacoras.update(lista =>
         lista.map(b => (b.id ?? b.id_bitacora) === id ? { ...b, bitacora_pdf: nombre } : b)
       );
+
+      // ── Notificación al instructor cuando el aprendiz sube una bitácora ──
+      // Solo aplica si quien sube es un aprendiz y hay instructor asignado
+      const cargo = this.auth.user()?.cargo ?? '';
+      if (cargo === 'aprendiz' && this.instructorId) {
+        const aprendizNombre = this.auth.user()?.nombre ?? 'El aprendiz';
+        const fecha          = new Date().toLocaleDateString('es-CO');
+        const seguimientoId  = this.seguimiento?.id ?? this.seguimiento?.id_seguimiento ?? '';
+        await this.notificacionSvc.notificarBitacoraSubida({
+          instructorId: this.instructorId,
+          aprendizNombre,
+          seguimientoId,
+          fecha,
+        });
+      }
     } catch (e) {
       await this.cargarBitacoras();
     } finally {

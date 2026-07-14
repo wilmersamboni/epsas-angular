@@ -192,7 +192,7 @@ export class SeguimientosModalComponent implements OnChanges {
   private toast          = inject(ToastService);
 
   /** Gestionar seguimiento (observaciones, actas): admin e instructor */
-  canGestionarSeguimiento() { return this.auth.hasRole(['administrador', 'instructor']); }
+  canGestionarSeguimiento() { return this.auth.hasRole(['administrador', 'administrador_erp', 'instructor']); }
 
   @Input() isOpen  = false;
   @Input() alumno: any = null;
@@ -327,7 +327,7 @@ export class SeguimientosModalComponent implements OnChanges {
   descargarActa(item: any): void {
     this.openMenu.set(null);
     if (!item.actas_pdf) return;
-    window.open(`http://localhost:3001/uploads/actas/${item.actas_pdf}`, '_blank');
+    window.open(`/uploads/actas/${item.actas_pdf}`, '_blank');
   }
 
   onAvanceActualizado(avance: number): void {

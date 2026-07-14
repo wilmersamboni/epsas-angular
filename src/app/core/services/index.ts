@@ -14,3 +14,4 @@ export { PersonaService }     from './persona.service';
 export { MatriculaService }   from './matricula.service';
 export { PracticaService }    from './practica.service';
 export { SeguimientoService } from './seguimiento.service';
+export { NotificacionService } from './notificacion.service';

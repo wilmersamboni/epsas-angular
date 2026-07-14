@@ -185,6 +185,36 @@ import { AuthService } from '../../../core/services/auth.service';
             </div>
           }
 
+          <!-- Sin subdominio: bloquear acceso -->
+          @if (!slugFromUrl) {
+            <div style="text-align:center;padding:12px 0 4px;">
+              <div style="display:inline-flex;align-items:center;justify-content:center;
+                           width:48px;height:48px;border-radius:50%;
+                           background:#fef2f2;margin-bottom:12px;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                  stroke="#dc2626" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/>
+                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+              </div>
+              <p style="font-size:13px;font-weight:600;color:#071a0a;margin-bottom:6px;">
+                Acceso no permitido
+              </p>
+              <p style="font-size:12px;color:#6b7280;line-height:1.5;">
+                Debes acceder usando el subdominio de tu centro.<br>
+                Ejemplo:
+              </p>
+              <code style="display:inline-block;margin-top:8px;padding:6px 12px;
+                            border-radius:8px;background:#f0fdf4;
+                            color:#39A900;font-size:12px;font-weight:600;
+                            border:1px solid #bbf7d0;">
+                tu-centro.sistema.com
+              </code>
+            </div>
+          }
+
+          @if (slugFromUrl) {
           <form (ngSubmit)="onSubmit()" class="space-y-4">
 
             <!-- Usuario -->
@@ -315,8 +345,7 @@ import { AuthService } from '../../../core/services/auth.service';
             </button>
 
           </form>
-
-          
+          } <!-- @if slugFromUrl -->
 
           <!-- Copyright -->
           <p style="font-size:10px;color:#b8c9bb;text-align:center;margin-top:22px;">
@@ -329,6 +358,7 @@ import { AuthService } from '../../../core/services/auth.service';
 })
 export class LoginComponent implements OnInit, OnDestroy {
   credentials  = { login: '', password: '' };
+  tenantSlug   = '';
   loading      = signal(false);
   error        = signal<string | null>(null);
   showPassword = signal(false);
@@ -337,6 +367,12 @@ export class LoginComponent implements OnInit, OnDestroy {
   btnPressed   = signal(false);
   senaHover    = signal(false);
 
+  // slug resuelto del subdominio (ej: centro-huila-test.localhost → 'centro-huila-test')
+  readonly slugFromUrl = this.resolveSlugFromUrl();
+
+  // hostname sin el slug, para mostrarlo en el mensaje de error (ej: localhost:4200)
+  readonly host = window.location.host.replace(/^[^.]+\./, '');
+
   stars:     { id: number; style: string }[] = [];
   particles: { id: number; style: string }[] = [];
 
@@ -344,7 +380,20 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   constructor(private auth: AuthService, private router: Router) {}
 
+  private resolveSlugFromUrl(): string | null {
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') return null;
+    const parts = hostname.split('.');
+    return parts.length >= 2 ? parts[0].toLowerCase() : null;
+  }
+
   ngOnInit(): void {
+    // Si el slug viene de la URL, lo guardamos en localStorage y no se muestra el campo
+    if (this.slugFromUrl) {
+      this.tenantSlug = this.slugFromUrl;
+      localStorage.setItem('tenantSlug', this.slugFromUrl);
+    }
+
     this.stars = Array.from({ length: 45 }, (_, i) => {
       const size = Math.random() * 2.5 + 0.8;
       const delay = (Math.random() * 4).toFixed(1);
@@ -378,6 +427,11 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   async onSubmit(): Promise<void> {
+    if (!this.tenantSlug.trim()) {
+      this.error.set('Debes ingresar el nombre del centro (slug) para continuar.');
+      return;
+    }
+    localStorage.setItem('tenantSlug', this.tenantSlug.trim().toLowerCase());
     this.error.set(null);
     this.loading.set(true);
     try {

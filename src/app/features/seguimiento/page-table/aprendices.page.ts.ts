@@ -84,8 +84,14 @@ export class AprendicesPage implements OnInit {
   areas = signal<string[]>([]);
 
   statusOptions = [
-    { uid: 'activo',   name: 'Activo'   },
-    { uid: 'inactivo', name: 'Inactivo' },
+    { uid: 'activo',            name: 'Activo'            },
+    { uid: 'inactivo',          name: 'Inactivo'          },
+    { uid: 'suspendido',        name: 'Suspendido'        },
+    { uid: 'condicionado',      name: 'Condicionado'      },
+    { uid: 'certificado',       name: 'Certificado'       },
+    { uid: 'por certificar',    name: 'Por certificar'    },
+    { uid: 'cancelado',         name: 'Cancelado'         },
+    { uid: 'retiro voluntario', name: 'Retiro Voluntario' },
   ];
 
   // ── Paginación ────────────────────────────────────────────────────────────

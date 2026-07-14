@@ -130,42 +130,31 @@ export class ChatComponent implements AfterViewChecked {
     this.anchor?.nativeElement.scrollIntoView({ behavior: 'smooth' });
   }
 
-  async handleSubmit(): Promise<void> {
-    if (!this.input.trim() || this.isLoading()) return;
+async handleSubmit(): Promise<void> {
+  if (!this.input.trim() || this.isLoading()) return;
 
-    const userMsg: Message = { role: 'user', content: this.input.trim() };
-    this.messages.update(m => [...m, userMsg]);
-    this.input = '';
-    this.isLoading.set(true);
+  const userMsg: Message = { role: 'user', content: this.input.trim() };
+  this.messages.update(m => [...m, userMsg]);
+  this.input = '';
+  this.isLoading.set(true);
 
-    try {
-      const history = this.messages().map(m => ({ role: m.role, content: m.content }));
-      const body = {
-        model: 'gpt-3.5-turbo',
-        messages: [
-          {
-            role: 'system',
-            content: 'Soy un asistente inteligente que te ayudará en tus preguntas sobre el mundo de la programación.',
-          },
-          ...history,
-        ],
-        temperature: 0.4,
-        max_tokens: 800,
-      };
+  try {
+    const resp: any = await firstValueFrom(
+      this.http.post('https://danin8n.duckdns.org/webhook/bot_virtual', {
+        message: userMsg.content
+      })
+    );
 
-      // ⚠️ Ajusta la URL según tu API de IA (igual que aiApi.ts en React)
-      const resp: any = await firstValueFrom(
-        this.http.post('http://localhost:3001/ai/chat', body)
-      );
-      const reply = resp?.choices?.[0]?.message?.content ?? 'Lo siento, no obtuve respuesta.';
-      this.messages.update(m => [...m, { role: 'assistant', content: reply }]);
-    } catch {
-      this.messages.update(m => [
-        ...m,
-        { role: 'assistant', content: 'Lo siento, no fue posible conectar. Revisa tu configuración e intenta nuevamente.' },
-      ]);
-    } finally {
-      this.isLoading.set(false);
-    }
+    const reply = resp?.reply ?? 'Lo siento, no obtuve respuesta.';
+    this.messages.update(m => [...m, { role: 'assistant', content: reply }]);
+
+  } catch {
+    this.messages.update(m => [
+      ...m,
+      { role: 'assistant', content: 'Lo siento, no fue posible conectar con el asistente.' },
+    ]);
+  } finally {
+    this.isLoading.set(false);
   }
+}
 }

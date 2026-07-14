@@ -44,7 +44,7 @@ import {
         [filter]="filterValue()"
         [total]="filtered().length"
         [rowsPerPage]="rowsPerPage()"
-        [visibleCols]="visibleCols"
+        [visibleCols]="visibleCols()"
         (filterChange)="filterValue.set($event); resetPage()"
         (rowsPerPageChange)="rowsPerPage.set($event); resetPage()"
         (toggleCol)="toggleCol($event)"
@@ -150,7 +150,7 @@ export class TableInfoComponent implements OnInit {
 
   sortCol  = 'name';
   sortDir: 'asc' | 'desc' = 'asc';
-  visibleCols = new Set(INITIAL_VISIBLE_COLS);
+  visibleCols = signal(new Set(INITIAL_VISIBLE_COLS));
 
   // ── Modales ────────────────────────────────────────────────────────────────
   modalSeguimientos    = false;
@@ -200,7 +200,7 @@ export class TableInfoComponent implements OnInit {
   });
 
   headerColumns = computed(() =>
-    COLUMNS.filter(c => c.uid === 'actions' || this.visibleCols.has(c.uid))
+    COLUMNS.filter(c => c.uid === 'actions' || this.visibleCols().has(c.uid))
   );
 
   // ── Ciclo de vida ──────────────────────────────────────────────────────────
@@ -305,9 +305,11 @@ export class TableInfoComponent implements OnInit {
   resetPage(): void { this.page.set(1); }
 
   toggleCol(uid: string): void {
-    const s = new Set(this.visibleCols);
-    s.has(uid) ? s.delete(uid) : s.add(uid);
-    this.visibleCols = s;
+    this.visibleCols.update(s => {
+      const next = new Set(s);
+      next.has(uid) ? next.delete(uid) : next.add(uid);
+      return next;
+    });
   }
 
   toggleArea(area: string): void {
